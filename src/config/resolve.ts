@@ -1,45 +1,150 @@
 import { readFileSync } from 'node:fs';
+import { dirname, resolve as resolvePath } from 'node:path';
 import { parse } from 'yaml';
-import type { Config, PolicySet, RepoState } from './types.js';
+import type { AuditConfig, ClassifyConfig, Config, PolicySet, RepoState } from './types.js';
 
 export class ConfigError extends Error {}
 
+/**
+ * A configuration file before it is known to be complete. Only the file the
+ * caller actually asked for has to declare `owner`; a file meant to be
+ * imported — a shared library of `types` and `defaults` — usually does not,
+ * and is only ever valid once merged into something that does.
+ */
+type Draft = Omit<Config, 'owner'> & { owner?: string };
+
 export function loadConfig(path: string): Config {
+  const draft = resolveFile(resolvePath(path), []);
+  if (!draft.owner) {
+    throw new ConfigError(
+      `${path} must declare an "owner" (a GitHub organisation or personal account), ` +
+        `either directly or through one of its imports.`,
+    );
+  }
+
+  const config = draft as Config;
+  validateTypeReferences(config, path);
+  return config;
+}
+
+/** Read, parse and fold in this file's own imports, most general first. */
+function resolveFile(absolutePath: string, stack: string[]): Draft {
+  if (stack.includes(absolutePath)) {
+    throw new ConfigError(`Circular import:\n  ${[...stack, absolutePath].join('\n  imports -> ')}`);
+  }
+  const nextStack = [...stack, absolutePath];
+
   let raw: string;
   try {
-    raw = readFileSync(path, 'utf8');
+    raw = readFileSync(absolutePath, 'utf8');
   } catch {
-    throw new ConfigError(`Cannot read configuration file: ${path}`);
+    throw new ConfigError(`Cannot read configuration file: ${absolutePath}`);
   }
 
-  const parsed = parse(raw) as Config | null;
+  const parsed = parse(raw) as Draft | null;
   if (parsed === null || typeof parsed !== 'object') {
-    throw new ConfigError(`${path} is empty or is not a YAML mapping`);
-  }
-  if (!parsed.org) {
-    throw new ConfigError(`${path} must declare an "org"`);
+    throw new ConfigError(`${absolutePath} is empty or is not a YAML mapping`);
   }
 
-  const knownTypes = Object.keys(parsed.types ?? {});
-  for (const [name, entry] of Object.entries(parsed.repos ?? {})) {
+  const { imports = [], ...ownContent } = parsed;
+
+  let merged: Draft | undefined;
+  for (const importPath of imports) {
+    const importedAbsolute = resolvePath(dirname(absolutePath), importPath);
+    const imported = resolveFile(importedAbsolute, nextStack);
+    merged = merged ? mergeConfig(merged, imported) : imported;
+  }
+
+  return merged ? mergeConfig(merged, ownContent) : ownContent;
+}
+
+function validateTypeReferences(config: Config, path: string): void {
+  const knownTypes = Object.keys(config.types ?? {});
+  for (const [name, entry] of Object.entries(config.repos ?? {})) {
     if (entry?.type && knownTypes.length > 0 && !knownTypes.includes(entry.type)) {
       throw new ConfigError(
-        `repos.${name}.type is "${entry.type}", which is not declared under "types" ` +
-          `(known: ${knownTypes.join(', ')})`,
+        `repos.${name}.type is "${entry.type}", which is not declared under "types" in ${path} ` +
+          `or its imports (known: ${knownTypes.join(', ')})`,
       );
     }
   }
-
-  return parsed;
 }
 
-const GROUPS = [
-  'features',
-  'merge',
-  'security',
-  'repo',
-  'default_branch',
-] as const;
+/**
+ * Fold `over` on top of `base`. `over` is the more specific layer: later
+ * imports beat earlier ones, and a file's own content beats everything it
+ * imports.
+ */
+function mergeConfig(base: Draft, over: Draft): Draft {
+  if (base.owner && over.owner && base.owner !== over.owner) {
+    throw new ConfigError(
+      `Conflicting "owner": "${base.owner}" vs "${over.owner}". A file meant to be shared across ` +
+        `owners should not declare "owner" itself — only the file that is actually run should.`,
+    );
+  }
+
+  return {
+    owner: over.owner ?? base.owner,
+    classify: mergeClassify(base.classify, over.classify),
+    audit: mergeAudit(base.audit, over.audit),
+    defaults: base.defaults || over.defaults ? mergeLayer(base.defaults ?? {}, over.defaults ?? {}) : undefined,
+    types: mergeNamedPolicies(base.types, over.types),
+    repos: mergeNamedPolicies(base.repos, over.repos),
+    exclude: mergeExclude(base.exclude, over.exclude),
+  };
+}
+
+function mergeClassify(base?: ClassifyConfig, over?: ClassifyConfig): ClassifyConfig | undefined {
+  if (!base && !over) return undefined;
+  const rules = [...(over?.rules ?? []), ...(base?.rules ?? [])];
+  return {
+    property: over?.property ?? base?.property,
+    ...(rules.length > 0 ? { rules } : {}),
+  };
+}
+
+/**
+ * Shallow: a key present in `over` replaces base's whole value for that key,
+ * it is not merged one level deeper. `require_description: { visibility: ... }`
+ * is small enough that "the narrower file means all of it" is the simpler and
+ * more predictable rule.
+ */
+function mergeAudit(base?: AuditConfig, over?: AuditConfig): AuditConfig | undefined {
+  if (!base && !over) return undefined;
+  return { ...base, ...over };
+}
+
+function mergeExclude(
+  base?: { repos?: string[] },
+  over?: { repos?: string[] },
+): { repos?: string[] } | undefined {
+  if (!base && !over) return undefined;
+  const repos: string[] = [];
+  const seen = new Set<string>();
+  for (const name of [...(base?.repos ?? []), ...(over?.repos ?? [])]) {
+    if (seen.has(name)) continue;
+    seen.add(name);
+    repos.push(name);
+  }
+  return { repos };
+}
+
+function mergeNamedPolicies<T extends PolicySet>(
+  base: Record<string, T> | undefined,
+  over: Record<string, T> | undefined,
+): Record<string, T> | undefined {
+  if (!base && !over) return undefined;
+  const out: Record<string, T> = { ...(base ?? {}) };
+  for (const [name, value] of Object.entries(over ?? {})) {
+    const existing = out[name];
+    out[name] = existing ? mergeLayer(existing, value) : value;
+  }
+  return out;
+}
+
+const GROUPS = ['features', 'merge', 'security', 'repo', 'default_branch'] as const;
+const LIST_KEYS = ['ensure_branches', 'rulesets', 'environments', 'files'] as const;
+const HANDLED = new Set<string>(['manage', ...GROUPS, ...LIST_KEYS]);
 
 /**
  * Merge one policy layer on top of another, key by key.
@@ -48,28 +153,35 @@ const GROUPS = [
  * "stop managing this", and it has to survive the merge in order to override
  * a `true`/`false` inherited from a wider one. Callers strip it at the end via
  * `isManaged`.
+ *
+ * Doubles as the merge step for `repos.<name>` and `types.<name>` entries
+ * when folding imports together, which is why anything not otherwise handled
+ * — the `type` field on a `repos.<name>` entry, for instance — is copied over
+ * as a plain scalar rather than ignored.
  */
-function mergeLayer(base: PolicySet, over: PolicySet): PolicySet {
-  const out: PolicySet = { ...base };
+function mergeLayer<T extends PolicySet>(base: T, over: Partial<T>): T {
+  const out = { ...base } as Record<string, unknown>;
+  const overRecord = over as Record<string, unknown>;
 
-  if (over.manage !== undefined) out.manage = over.manage;
+  if (overRecord.manage !== undefined) out.manage = overRecord.manage;
 
   for (const group of GROUPS) {
-    const overGroup = over[group] as Record<string, unknown> | undefined;
+    const overGroup = overRecord[group] as Record<string, unknown> | undefined;
     if (overGroup === undefined) continue;
-    const baseGroup = (base[group] as Record<string, unknown> | undefined) ?? {};
-    (out as Record<string, unknown>)[group] = { ...baseGroup, ...overGroup };
+    const baseGroup = (out[group] as Record<string, unknown> | undefined) ?? {};
+    out[group] = { ...baseGroup, ...overGroup };
   }
 
-  // List-valued policies replace rather than merge. Concatenating them would
-  // make it impossible for a repository to opt out of a ruleset its type
-  // declares, which is exactly the escape hatch the precedence chain is for.
-  if (over.ensure_branches !== undefined) out.ensure_branches = over.ensure_branches;
-  if (over.rulesets !== undefined) out.rulesets = over.rulesets;
-  if (over.environments !== undefined) out.environments = over.environments;
-  if (over.files !== undefined) out.files = over.files;
+  for (const key of LIST_KEYS) {
+    if (overRecord[key] !== undefined) out[key] = overRecord[key];
+  }
 
-  return out;
+  for (const [key, value] of Object.entries(overRecord)) {
+    if (HANDLED.has(key) || value === undefined) continue;
+    out[key] = value;
+  }
+
+  return out as T;
 }
 
 /**
@@ -98,7 +210,9 @@ export function resolvePolicy(config: Config, repo: RepoState): PolicySet {
 /**
  * The type recorded for a repository. The custom property is the usual source,
  * but a type declared in the configuration file wins: it lets the tool work on
- * an organisation whose plan does not offer custom properties at all.
+ * an organisation whose plan does not offer custom properties at all, and is
+ * the only source available on a personal account, which has no custom
+ * properties API to read from.
  */
 export function repoType(config: Config, repo: RepoState): string | undefined {
   return config.repos?.[repo.name]?.type ?? repo.type;

@@ -1,6 +1,6 @@
 import type { Octokit } from '@octokit/rest';
 import { isExcluded, resolvePolicy } from '../config/resolve.js';
-import { detectLimits, getRepoDetail, listRepos, readPropertyValues } from '../github/client.js';
+import { detectLimits, detectOwnerKind, getRepoDetail, listRepos, readPropertyValues } from '../github/client.js';
 import { planRepo } from '../core/plan.js';
 import { formatChange, groupByRepo } from '../report/format.js';
 import type { Change, Config } from '../config/types.js';
@@ -19,13 +19,17 @@ export async function plan(
   config: Config,
   only?: { repo?: string; type?: string },
 ): Promise<PlanResult> {
-  const limits = await detectLimits(octokit, config.org);
-  const all = await listRepos(octokit, config.org);
+  const kind = await detectOwnerKind(octokit, config.owner);
+  const limits = await detectLimits(octokit, config.owner, kind);
+  const all = await listRepos(octokit, config.owner, kind);
 
+  // Custom properties are an organisation feature; a personal account has no
+  // such API to call.
   const property = config.classify?.property;
-  const types = property
-    ? await readPropertyValues(octokit, config.org, property)
-    : new Map<string, string>();
+  const types =
+    property && kind === 'org'
+      ? await readPropertyValues(octokit, config.owner, property)
+      : new Map<string, string>();
   for (const repo of all) repo.type = types.get(repo.name);
 
   let targets = all.filter((r) => !isExcluded(config, r.name));
@@ -38,15 +42,16 @@ export async function plan(
   }
 
   // Rulesets are only enforced on private repositories on paid plans, and
-  // organisation-wide rulesets are a paid feature outright. The second is the
-  // cheaper thing to probe, so it stands in for the plan being a paid one.
+  // organisation-wide rulesets are a paid feature outright — and simply do
+  // not exist for a personal account. `orgRulesets` doubles as the answer to
+  // both, since a plan without one does not have the other either.
   const options = { rulesetsEnforcedOnPrivate: limits.orgRulesets };
 
   const changes: Change[] = [];
   const blocked: Change[] = [];
 
   for (const repo of targets) {
-    const detail = await getRepoDetail(octokit, config.org, repo);
+    const detail = await getRepoDetail(octokit, config.owner, repo);
     const policy = resolvePolicy(config, repo);
     for (const change of planRepo(detail, policy, options)) {
       (change.blocked ? blocked : changes).push(change);

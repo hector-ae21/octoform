@@ -1,0 +1,45 @@
+# Configuring one person's own repositories, not an organisation's.
+#
+# octoform tells the two apart by asking the API — "torvalds" here is a
+# personal GitHub account, not an org, and that is all that changes:
+#
+#   - There is no custom properties API for a personal account, so
+#     `classify.property` below is simply not used; type comes from
+#     `classify.rules` or from `repos.<name>.type`.
+#   - There is no organisation-wide ruleset feature either — that was never
+#     an organisation-only limitation to begin with, on a personal account it
+#     does not exist as a concept. Per-repository rulesets still apply.
+#   - Running this against your OWN account (the one the token belongs to)
+#     sees private repositories too, via GitHub's authenticated-user
+#     endpoint. Running it against someone else's username only ever sees
+#     their public repositories, regardless of whose token is used.
+#
+# Try it (read-only, needs nothing beyond a plain token):
+#   export GITHUB_TOKEN=...
+#   octoform plan --config examples/personal-account/octoform.yml
+
+owner: torvalds
+
+classify:
+  rules:
+    - when: { file_exists: package.json }
+      type: npm-package
+    - when: { file_exists: Cargo.toml }
+      type: rust-crate
+
+audit:
+  require_description: { visibility: public }
+  max_topics: 10
+
+defaults:
+  merge:
+    delete_branch_on_merge: true
+  security:
+    vulnerability_alerts: true
+
+types:
+  npm-package:
+    rulesets:
+      - name: main-branch
+        target_branches: ['~DEFAULT_BRANCH']
+        block_force_push: true

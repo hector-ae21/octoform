@@ -131,7 +131,23 @@ export interface AuditConfig {
 }
 
 export interface Config {
-  org: string;
+  /**
+   * A GitHub login: an organisation or a personal account. octoform tells
+   * which one it is by asking the API, not by anything declared here — an
+   * organisation and a user with the same login are indistinguishable in
+   * configuration, and forcing the author to say which invites the file to
+   * be wrong about it.
+   */
+  owner: string;
+  /**
+   * Other configuration files to merge before this one, most general first.
+   * Paths are resolved relative to the file that lists them, so an imported
+   * file can itself import further files. This is how a set of type
+   * presets is shared across several owners without copying it around: put
+   * `types` and `defaults` in a file with no `owner` of its own, and import
+   * it from each real configuration.
+   */
+  imports?: string[];
   classify?: ClassifyConfig;
   audit?: AuditConfig;
   defaults?: PolicySet;
@@ -139,6 +155,14 @@ export interface Config {
   repos?: Record<string, PolicySet & { type?: string }>;
   exclude?: { repos?: string[] };
 }
+
+/**
+ * Whether `owner` turned out to be an organisation or a personal account.
+ * Several features are organisation-only (custom properties, organisation
+ * rulesets), so this changes what gets probed and how findings are worded —
+ * never what the configuration is allowed to say.
+ */
+export type OwnerKind = 'org' | 'user';
 
 /** A repository as octoform sees it, before any policy is applied. */
 export interface RepoState {

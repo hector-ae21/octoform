@@ -1,7 +1,7 @@
 # octoform configuration.
 #
-# Everything specific to your organisation lives here. octoform itself knows
-# nothing about npm, Moodle, or what any of these type names mean.
+# Everything specific to your setup lives here. octoform itself knows nothing
+# about npm, Moodle, or what any of these type names mean.
 #
 # Every setting is tri-state:
 #
@@ -21,12 +21,31 @@
 #   repos.<name>.manage: false audit it, apply nothing
 #   exclude.repos: [...]       drop it entirely
 
-org: example-org
+# A GitHub organisation or a personal account — octoform asks the API which
+# one this is, so nothing else in this file changes either way. The main
+# practical difference: a personal account has no custom properties API, so
+# `classify.property` below simply does not apply there, and every type comes
+# from `repos.<name>.type` or from `classify.rules` instead. See
+# examples/personal-account/ for a configuration that only ever manages one
+# person's own repositories.
+owner: example-org
+
+# Split this file across several and pull them back together. Useful for a
+# set of type presets shared across more than one owner: put `types` and
+# `defaults` in a file with no `owner` of its own, and import it wherever it
+# applies. Paths are relative to the file that lists them, and can nest.
+# Listed most general first: a later import overrides an earlier one, and
+# this file's own content overrides every import. See examples/shared-presets/.
+#
+# imports:
+#   - presets/npm-library.yml
+#   - presets/security-baseline.yml
 
 # Where a repository's type comes from. Omit this block and everything falls
-# under `defaults`. The custom property is the usual source; a type declared
-# under `repos:` wins over it, which is what lets this work on plans that do
-# not offer custom properties.
+# under `defaults`. The custom property is the usual source on an
+# organisation; a type declared under `repos:` wins over it, which is what
+# lets this work on plans that do not offer custom properties, and is the
+# only source available on a personal account.
 classify:
   property: project-type
   rules:
@@ -61,6 +80,12 @@ defaults:
     automated_security_fixes: true
     private_vulnerability_reporting: true
 
+# `target_branches` accepts a literal branch name, `~DEFAULT_BRANCH` (whatever
+# that repository's default branch is, so it survives a rename), or a glob.
+# What to name your branches and how many maintenance lines to keep is a
+# decision for your own project, not something octoform prescribes — the
+# three types below make three different, equally arbitrary choices, and
+# examples/branch-patterns/ walks through more.
 types:
   npm-package:
     environments:
@@ -70,8 +95,8 @@ types:
         from: files/dependabot/npm.yml
         mode: create-if-missing
     rulesets:
-      - name: version-branches
-        target_branches: ['v*.x']
+      - name: default-branch
+        target_branches: ['~DEFAULT_BRANCH']
         required_approvals: 1
         required_checks: [verify]
         block_force_push: true
@@ -84,8 +109,8 @@ types:
         from: files/dependabot/composer.yml
         mode: create-if-missing
     rulesets:
-      - name: stable-branches
-        target_branches: ['main', 'MOODLE_*_STABLE']
+      - name: main-branch
+        target_branches: [main]
         required_approvals: 1
         required_checks: ['CI complete']
         block_force_push: true

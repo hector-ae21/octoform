@@ -1,0 +1,18 @@
+# The other of the two owners — a personal account this time. Same presets,
+# same result: the presets know about project types and security settings,
+# never about who owns the repositories.
+#
+# Try it:
+#   export GITHUB_TOKEN=...
+#   octoform plan --config examples/shared-presets/personal.octoform.yml --type npm-package
+
+owner: sindresorhus
+
+classify:
+  rules:
+    - when: { file_exists: package.json }
+      type: npm-package
+
+imports:
+  - presets/npm-library.yml
+  - presets/security-baseline.yml

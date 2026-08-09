@@ -1,0 +1,13 @@
+# The smallest configuration that does something: one policy, applied to
+# every repository in the organisation, nothing else managed.
+#
+# Try it against a real, public organisation (read-only, no admin needed).
+# Chosen small on purpose, so the output is short enough to read in full:
+#   export GITHUB_TOKEN=...   # a plain "public_repo" token is enough
+#   octoform plan --config examples/minimal/octoform.yml
+
+owner: shikijs
+
+defaults:
+  merge:
+    delete_branch_on_merge: true

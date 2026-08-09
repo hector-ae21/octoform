@@ -3,10 +3,12 @@ dist/
 *.tsbuildinfo
 *.log
 
-# Real configuration files describe someone's actual repositories, including
-# private ones. Only example.yml is meant to be committed here.
-octoform.yml
-*.octoform.yml
-!example.yml
+# A real configuration file describes someone's actual repositories,
+# including private ones, and must never be committed here. Anchored to the
+# repository root on purpose — an unanchored pattern would also match every
+# example under examples/*/octoform.yml, which exist specifically to be
+# committed and run.
+/octoform.yml
+/*.octoform.yml
 
 .test-build/

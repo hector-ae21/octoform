@@ -1,0 +1,55 @@
+name: Bug report
+description: Something in octoform behaves incorrectly.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. If your configuration mentions private
+        repositories, please redact their names before pasting it below.
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+    validations:
+      required: true
+
+  - type: input
+    id: octoform-version
+    attributes:
+      label: octoform version
+      placeholder: "run: octoform --version (or check package.json if running from source)"
+    validations:
+      required: true
+
+  - type: input
+    id: node-version
+    attributes:
+      label: Node version
+      placeholder: "run: node --version"
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant part of your configuration
+      description: >
+        The `defaults`/`types`/`repos` block that produced the issue.
+        Redact repository names if they are private.
+      render: yaml
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Command and output
+      description: The exact command you ran and what it printed.
+      render: shell

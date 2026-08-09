@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/hector-ae21/octoform/security/advisories/new
+    about: Please do not open a public issue for a vulnerability — use private reporting, or see SECURITY.md.
+  - name: Question or general discussion
+    url: mailto:hectorlazaroarrechea@gmail.com
+    about: For anything that is not a bug or a concrete feature request.

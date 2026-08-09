@@ -1,0 +1,254 @@
+name: Release
+
+# The normal path is a push to main after CI already passed there. A manual
+# tag push runs the quality gate itself first, in case someone tags without
+# going through main (this should not normally happen).
+#
+# This repo is 0.x and has only ever had one line of development, so there is
+# no vMAJOR.x branch scheme yet and no per-major dist-tag to maintain — see
+# example.yml's `types.npm-package` for what that will look like once this
+# project reaches 1.0 and adopts it for itself.
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run every check and pack the tarball, but do not publish'
+        type: boolean
+        default: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  validate:
+    name: validate release
+    if: >-
+      always() &&
+      (needs.ci.result == 'success' || needs.ci.result == 'skipped')
+    runs-on: ubuntu-latest
+    needs: ci
+    outputs:
+      version: ${{ steps.pkg.outputs.version }}
+      name: ${{ steps.pkg.outputs.name }}
+      should_publish: ${{ steps.mode.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Read package metadata
+        id: pkg
+        run: |
+          echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          echo "name=$(node -p "require('./package.json').name")" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve release mode
+        id: mode
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$DRY_RUN" = "true" ]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publishing requires a version tag
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          case "$GITHUB_REF" in
+            refs/tags/v*.*.*) ;;
+            *)
+              echo "::error::Publishing must run from a version tag, got $GITHUB_REF"
+              exit 1
+              ;;
+          esac
+
+      - name: Tag must match package.json version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="${{ steps.pkg.outputs.version }}"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag v$TAG does not match package.json version $PKG"
+            exit 1
+          fi
+
+      - name: Version must be valid semver
+        run: |
+          echo "${{ steps.pkg.outputs.version }}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$' \
+            || { echo "::error::Invalid semver: ${{ steps.pkg.outputs.version }}"; exit 1; }
+
+      - name: CHANGELOG must mention this version
+        run: |
+          grep -q "\[${{ steps.pkg.outputs.version }}\]" CHANGELOG.md \
+            || { echo "::error::CHANGELOG.md has no entry for ${{ steps.pkg.outputs.version }}"; exit 1; }
+
+      - name: Version must not already exist on npm
+        run: |
+          if npm view "${{ steps.pkg.outputs.name }}@${{ steps.pkg.outputs.version }}" version >/dev/null 2>&1; then
+            echo "::error::${{ steps.pkg.outputs.name }}@${{ steps.pkg.outputs.version }} is already published"
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Built output must exist
+        run: |
+          for f in dist/index.js dist/index.d.ts bin/octoform.js; do
+            [ -s "$f" ] || { echo "::error::Missing build artifact: $f"; exit 1; }
+          done
+
+      - name: Package must be importable
+        # ESM only — there is no CJS build to check separately.
+        run: |
+          node --input-type=module -e "
+            import('./dist/index.js').then((m) => {
+              if (!m || Object.keys(m).length === 0) throw new Error('No exports found');
+              console.log('import ok:', Object.keys(m).length, 'exports');
+            });
+          "
+
+      - name: CLI must run
+        run: node bin/octoform.js --help
+
+      - name: Inspect the tarball (no source, no test fixtures)
+        run: |
+          npm pack --dry-run --json > /tmp/pack.json
+          node -e "
+            const [p]=require('/tmp/pack.json');
+            const files=p.files.map(f=>f.path);
+            const leaked=files.filter(f=>/^(src|test)\//.test(f));
+            if(leaked.length){console.error('Unexpected files in the package:',leaked);process.exit(1);}
+            if(!files.some(f=>f.startsWith('dist/'))){console.error('No dist/ in the package');process.exit(1);}
+            console.log('Tarball contents ok:',files.length,'files,',p.size,'bytes');
+          "
+
+  # Publish via npm trusted publishing (OIDC) — no long-lived npm token stored
+  # in the repo. This requires a trusted publisher to be configured on
+  # npmjs.com for this exact package/owner/repo/workflow/environment
+  # combination BEFORE the first publish — see CONTRIBUTING.md.
+  publish:
+    name: publish to npm
+    if: always() && needs.validate.result == 'success'
+    runs-on: ubuntu-latest
+    needs: validate
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/${{ needs.validate.outputs.name }}/v/${{ needs.validate.outputs.version }}
+    permissions:
+      contents: write # to create the GitHub Release after a successful publish
+      id-token: write # required for npm trusted publishing (OIDC)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing requires npm >= 11.5.1. The npm bundled with the
+      # runner's Node install can be older than that — it will happily sign
+      # provenance but cannot exchange GitHub's OIDC token for a registry
+      # credential, so it must be upgraded explicitly before publishing.
+      - name: Install npm with trusted publishing support
+        run: |
+          npm install --global npm@^11.5.1
+          npm --version
+
+      - run: npm ci
+      - run: npm run build
+
+      # Authentication is exclusively OIDC trusted publishing. Do not add a
+      # NODE_AUTH_TOKEN / NPM_TOKEN env var back here.
+      - name: Publish
+        if: needs.validate.outputs.should_publish == 'true'
+        run: npm publish --provenance
+
+      - name: Dry run
+        if: needs.validate.outputs.should_publish == 'false'
+        run: npm publish --dry-run
+
+      # Harmless while there is only one line of development (main), and
+      # becomes load-bearing the moment this project adopts version branches
+      # at 1.0: it guards against `latest` pointing at whatever was published
+      # most recently rather than the highest semver, which is what happens
+      # the instant a security backport to an older major publishes after a
+      # newer major already exists.
+      #
+      # VERIFY: not yet confirmed whether the short-lived OIDC credential from
+      # `npm publish --provenance` is also honored by `npm dist-tag add` in
+      # this separate step. If it 401s here once this is exercised for real,
+      # this step needs its own credential.
+      - name: Point npm 'latest' at the highest published semver
+        if: needs.validate.outputs.should_publish == 'true'
+        env:
+          PKG: ${{ needs.validate.outputs.name }}
+        run: |
+          HIGHEST=$(npm view "$PKG" versions --json | node -e "
+            const data = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+            const cmp = (a, b) => {
+              const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
+              for (let i = 0; i < 3; i++) { if (pa[i] !== pb[i]) return pa[i] - pb[i]; }
+              return 0;
+            };
+            console.log([].concat(data).sort(cmp).pop());
+          ")
+          CURRENT_LATEST=$(npm view "$PKG" dist-tags.latest)
+          if [ "$HIGHEST" != "$CURRENT_LATEST" ]; then
+            echo "Correcting 'latest' from $CURRENT_LATEST to $HIGHEST"
+            npm dist-tag add "$PKG@$HIGHEST" latest
+          fi
+
+      - name: Extract CHANGELOG section for this version
+        if: needs.validate.outputs.should_publish == 'true'
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md | sed -e '1{/^$/d}' > /tmp/release-notes.md
+
+      - name: Create GitHub Release
+        if: needs.validate.outputs.should_publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_TAG: ${{ github.ref_name }}
+        run: |
+          if gh release view "$VERSION_TAG" >/dev/null 2>&1; then
+            echo "GitHub Release $VERSION_TAG already exists"
+          elif [ -s /tmp/release-notes.md ]; then
+            gh release create "$VERSION_TAG" \
+              --verify-tag \
+              --title "$VERSION_TAG" \
+              --notes-file /tmp/release-notes.md
+          else
+            gh release create "$VERSION_TAG" \
+              --verify-tag \
+              --title "$VERSION_TAG" \
+              --generate-notes
+          fi
+
+      - name: Published summary
+        if: needs.validate.outputs.should_publish == 'true'
+        run: |
+          echo "### Published \`${{ needs.validate.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "https://www.npmjs.com/package/${{ needs.validate.outputs.name }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dry-run summary
+        if: needs.validate.outputs.should_publish == 'false'
+        run: echo "### Dry run completed for \`${{ needs.validate.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"

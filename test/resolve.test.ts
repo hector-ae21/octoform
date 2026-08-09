@@ -15,13 +15,13 @@ const repo = (over: Partial<RepoState> = {}): RepoState => ({
 });
 
 test('an empty configuration manages nothing', () => {
-  const policy = resolvePolicy({ org: 'o' }, repo());
+  const policy = resolvePolicy({ owner: 'o' }, repo());
   assert.deepEqual(policy, {});
 });
 
 test('types layer over defaults, key by key', () => {
   const config: Config = {
-    org: 'o',
+    owner: 'o',
     defaults: { features: { issues: true, wiki: false } },
     types: { lib: { features: { wiki: true } } },
   };
@@ -33,7 +33,7 @@ test('types layer over defaults, key by key', () => {
 
 test('a repository entry overrides its type', () => {
   const config: Config = {
-    org: 'o',
+    owner: 'o',
     types: { lib: { features: { issues: false } } },
     repos: { thing: { features: { issues: true } } },
   };
@@ -43,7 +43,7 @@ test('a repository entry overrides its type', () => {
 
 test('null cancels an inherited policy without cancelling its neighbours', () => {
   const config: Config = {
-    org: 'o',
+    owner: 'o',
     defaults: { merge: { delete_branch_on_merge: true, allow_squash: true } },
     repos: { thing: { merge: { delete_branch_on_merge: null } } },
   };
@@ -54,7 +54,7 @@ test('null cancels an inherited policy without cancelling its neighbours', () =>
 });
 
 test('false is a policy, not an absence', () => {
-  const config: Config = { org: 'o', defaults: { features: { wiki: false } } };
+  const config: Config = { owner: 'o', defaults: { features: { wiki: false } } };
   const policy = resolvePolicy(config, repo());
 
   assert.equal(policy.features?.wiki, false);
@@ -63,7 +63,7 @@ test('false is a policy, not an absence', () => {
 
 test('a type declared in the config wins over the recorded property', () => {
   const config: Config = {
-    org: 'o',
+    owner: 'o',
     types: {
       fromProperty: { features: { issues: false } },
       fromConfig: { features: { issues: true } },
@@ -76,7 +76,7 @@ test('a type declared in the config wins over the recorded property', () => {
 
 test('list policies replace rather than accumulate', () => {
   const config: Config = {
-    org: 'o',
+    owner: 'o',
     types: { lib: { rulesets: [{ name: 'a', target_branches: ['main'] }] } },
     repos: { thing: { rulesets: [] } },
   };
@@ -86,7 +86,7 @@ test('list policies replace rather than accumulate', () => {
 
 test('an unknown type simply skips that layer', () => {
   const config: Config = {
-    org: 'o',
+    owner: 'o',
     defaults: { features: { issues: true } },
     types: { lib: { features: { issues: false } } },
   };

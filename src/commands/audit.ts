@@ -1,7 +1,7 @@
 import type { Octokit } from '@octokit/rest';
 import { isExcluded, repoType } from '../config/resolve.js';
-import { detectLimits, listRepos, readPropertyValues } from '../github/client.js';
-import type { AuditConfig, Config, RepoState } from '../config/types.js';
+import { detectLimits, detectOwnerKind, listRepos, readPropertyValues } from '../github/client.js';
+import type { AuditConfig, Config, OwnerKind, RepoState } from '../config/types.js';
 
 export interface Finding {
   repo: string;
@@ -13,19 +13,30 @@ export interface Finding {
  * changes anything, so it is safe to run before any of the config is trusted.
  */
 export async function audit(octokit: Octokit, config: Config): Promise<number> {
-  const limits = await detectLimits(octokit, config.org);
-  const all = await listRepos(octokit, config.org);
+  const kind = await detectOwnerKind(octokit, config.owner);
+  const limits = await detectLimits(octokit, config.owner, kind);
+  const all = await listRepos(octokit, config.owner, kind);
 
   const property = config.classify?.property;
-  const types = property
-    ? await readPropertyValues(octokit, config.org, property)
-    : new Map<string, string>();
+  // Custom properties are an organisation feature. A personal account has no
+  // such API to call, not even an empty one, so this is skipped rather than
+  // attempted and swallowed.
+  const types =
+    property && kind === 'org'
+      ? await readPropertyValues(octokit, config.owner, property)
+      : new Map<string, string>();
 
-  if (property && types.size === 0) {
+  if (property && kind === 'org' && types.size === 0) {
     console.log(
       `Note: no values found for the "${property}" custom property. Either none ` +
         `are set yet, or this plan does not expose them. Types declared in the ` +
         `configuration file are still used.\n`,
+    );
+  } else if (property && kind === 'user') {
+    console.log(
+      `Note: "${config.owner}" is a personal account, so the "${property}" custom ` +
+        `property does not apply — that is an organisation-only feature. Types ` +
+        `declared under "repos" in the configuration file are used instead.\n`,
     );
   }
 
@@ -39,7 +50,7 @@ export async function audit(octokit: Octokit, config: Config): Promise<number> {
     findings.push(...inspect(repo, config));
   }
 
-  report(config, considered, excluded, findings, limits.plan, limits.orgRulesets);
+  report(config, kind, considered, excluded, findings, limits.plan, limits.orgRulesets);
   return findings.length;
 }
 
@@ -82,6 +93,7 @@ function matchesVisibility(repo: RepoState, visibility: string | undefined): boo
 
 function report(
   config: Config,
+  kind: OwnerKind,
   considered: RepoState[],
   excluded: RepoState[],
   findings: Finding[],
@@ -90,8 +102,9 @@ function report(
 ): void {
   const width = Math.max(...considered.map((r) => r.name.length), 4);
 
-  console.log(`Organisation: ${config.org}${plan ? ` (${plan} plan)` : ''}`);
-  if (!orgRulesets) {
+  const label = kind === 'org' ? 'Organisation' : 'Personal account';
+  console.log(`${label}: ${config.owner}${plan ? ` (${plan} plan)` : ''}`);
+  if (kind === 'org' && !orgRulesets) {
     console.log(
       'Organisation-wide rulesets are not available on this plan. Branch rules ' +
         'are applied per repository instead.',
