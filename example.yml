@@ -1,0 +1,116 @@
+# octoform configuration.
+#
+# Everything specific to your organisation lives here. octoform itself knows
+# nothing about npm, Moodle, or what any of these type names mean.
+#
+# Every setting is tri-state:
+#
+#   true       enforce it on
+#   false      enforce it off, and correct it if someone turns it on
+#   omitted    not managed, leave whatever the repository already has
+#
+# The difference between `false` and omitting is the point: `false` is a
+# policy, omitting is staying out of the way. Nothing has a default in the
+# code, so an empty configuration file changes nothing.
+#
+# Precedence, widest to narrowest, key by key:
+#   defaults -> types.<type> -> repos.<name>
+#
+# Escape hatches, narrowest to widest:
+#   repos.<name>.<key>: null   stop managing that one setting there
+#   repos.<name>.manage: false audit it, apply nothing
+#   exclude.repos: [...]       drop it entirely
+
+org: example-org
+
+# Where a repository's type comes from. Omit this block and everything falls
+# under `defaults`. The custom property is the usual source; a type declared
+# under `repos:` wins over it, which is what lets this work on plans that do
+# not offer custom properties.
+classify:
+  property: project-type
+  rules:
+    - when: { file_exists: version.php }
+      type: moodle-plugin
+    - when: { file_exists: package.json, json: { private: true } }
+      type: frontend-app
+    - when: { file_exists: package.json }
+      type: npm-package
+
+# Read-only expectations. These never change anything; they exist so that
+# "every public repository needs a description" is configuration, not code.
+audit:
+  require_type: true
+  require_description: { visibility: public }
+  require_topics: { visibility: public }
+  max_topics: 8
+
+defaults:
+  features:
+    issues: true
+    wiki: false
+    projects: false
+    # discussions is not listed at all, so it is left alone everywhere.
+  merge:
+    allow_squash: true
+    allow_merge_commit: false
+    allow_rebase: false
+    delete_branch_on_merge: true
+  security:
+    vulnerability_alerts: true
+    automated_security_fixes: true
+    private_vulnerability_reporting: true
+
+types:
+  npm-package:
+    environments:
+      - name: npm
+    files:
+      - path: .github/dependabot.yml
+        from: files/dependabot/npm.yml
+        mode: create-if-missing
+    rulesets:
+      - name: version-branches
+        target_branches: ['v*.x']
+        required_approvals: 1
+        required_checks: [verify]
+        block_force_push: true
+        block_deletion: true
+
+  moodle-plugin:
+    ensure_branches: [main]
+    files:
+      - path: .github/dependabot.yml
+        from: files/dependabot/composer.yml
+        mode: create-if-missing
+    rulesets:
+      - name: stable-branches
+        target_branches: ['main', 'MOODLE_*_STABLE']
+        required_approvals: 1
+        required_checks: ['CI complete']
+        block_force_push: true
+        block_deletion: true
+
+  service:
+    rulesets:
+      - name: default-branch
+        target_branches: ['~DEFAULT_BRANCH']
+        required_approvals: 1
+        block_force_push: true
+        block_deletion: true
+
+# Per-repository overrides and anything that is inherently per-repository,
+# such as description and topics.
+repos:
+  docs-site:
+    features: { issues: true }
+    repo:
+      description: Public documentation site
+      homepage: https://example.org
+      topics: [documentation, static-site]
+
+  legacy-tool:
+    manage: false # inventoried and audited, but nothing is applied
+
+exclude:
+  repos: [scratch, fork-of-something]
