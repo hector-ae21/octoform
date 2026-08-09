@@ -17,10 +17,14 @@ export {
   AuthError,
 } from './github/client.js';
 export { planRepo } from './core/plan.js';
+export { applyRepoChanges } from './github/apply.js';
+export type { AppliedChange } from './github/apply.js';
 export { formatChange, groupByRepo } from './report/format.js';
 export { audit } from './commands/audit.js';
 export { plan } from './commands/plan.js';
+export { apply } from './commands/apply.js';
 
+export { UNREADABLE } from './config/types.js';
 export type {
   Config,
   PolicySet,
@@ -29,6 +33,7 @@ export type {
   Change,
   Toggle,
   Managed,
+  OwnerKind,
   AuditConfig,
   ClassifyConfig,
   ClassifyRule,

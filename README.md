@@ -62,12 +62,14 @@ Requires Node 20 or newer.
 export GITHUB_TOKEN=...      # or GH_TOKEN
 octoform audit               # read-only: what deviates from the config
 octoform plan                # read-only: what apply would change, and why some of it can't
+octoform apply                # shows the same diff, asks, then changes it
 ```
 
-Both commands look for `octoform.yml` in the current directory by default;
-point elsewhere with `--config path/to/file.yml`. Neither one changes
-anything — `apply` is the only command that does, and it does not exist yet
-(see [Status](#status)).
+All three look for `octoform.yml` in the current directory by default; point
+elsewhere with `--config path/to/file.yml`. `audit` and `plan` never change
+anything. `apply` shows the same diff `plan` would, asks for confirmation
+(skip with `--yes`), and only then calls the GitHub API — see
+[Status](#status) for what it can apply today.
 
 The token needs `repo`. Custom properties and rulesets on an organisation
 additionally need `admin:org`; octoform checks up front and tells you which
@@ -161,12 +163,12 @@ same two preset files.
 | Command | Effect |
 |---|---|
 | `octoform audit` | Read-only inventory: every repository, its recorded type, and configurable findings (missing type, missing description or topics on public repositories, too many topics). |
-| `octoform plan` | Read-only diff between the configuration and each repository's actual settings — features, merge options, security settings, description and topics today. Anything that cannot be applied — an unimplemented policy, a value this GitHub plan does not expose, a ruleset on a private repository the plan would not enforce — is reported as blocked, with the reason, never dropped in silence. Rulesets, environments and seeded files are part of the configuration model but not yet diffed against the repository's actual state; that lands with `apply`. |
+| `octoform plan` | Read-only diff between the configuration and each repository's actual settings — features, merge options, security settings, description and topics today. Anything that cannot be applied — an unimplemented policy, a value this GitHub plan does not expose, a ruleset on a private repository the plan would not enforce — is reported as blocked, with the reason, never dropped in silence. Rulesets, environments and seeded files are part of the configuration model but not yet diffed against the repository's actual state; that lands later. |
+| `octoform apply` | Shows the same diff `plan` would, asks for confirmation, then calls the GitHub API. Applies everything `plan` diffs today (features, merge options, description/homepage/topics, secret scanning, vulnerability alerts, code scanning default setup). Rulesets, environments, branch renaming and file seeding are not applied yet — they show up in `audit`/`plan`'s model but `apply` has nothing to do for them so far. |
 
-Both accept `--config <path>`; `plan` additionally accepts `--repo <name>` and
-`--type <type>` to narrow the scope.
-
-`apply`, which actually changes things, is not implemented yet.
+All three accept `--config <path>`; `plan` and `apply` additionally accept
+`--repo <name>` and `--type <type>` to narrow the scope. `apply` also accepts
+`--yes` to skip the confirmation prompt (for a script, not for a first run).
 
 ## Programmatic use
 
@@ -174,7 +176,7 @@ The pieces the CLI is built from are exported, for planning a repository from
 a script instead of shelling out and parsing text:
 
 ```ts
-import { loadConfig, createClient, detectOwnerKind, listRepos, getRepoDetail, resolvePolicy, planRepo } from 'octoform';
+import { loadConfig, createClient, detectOwnerKind, listRepos, getRepoDetail, resolvePolicy, planRepo, applyRepoChanges } from 'octoform';
 
 const config = loadConfig('octoform.yml');
 const octokit = createClient();
@@ -182,6 +184,9 @@ const kind = await detectOwnerKind(octokit, config.owner);
 const [repo] = await listRepos(octokit, config.owner, kind);
 const detail = await getRepoDetail(octokit, config.owner, repo);
 const changes = planRepo(detail, resolvePolicy(config, repo), { rulesetsEnforcedOnPrivate: true });
+
+// Only when you actually want to change something:
+const results = await applyRepoChanges(octokit, config.owner, repo.name, changes);
 ```
 
 ## Examples
@@ -216,7 +221,11 @@ protection.
 
 ## Status
 
-Early. `audit` and `plan` work; `apply` is next.
+Early. `audit`, `plan` and `apply` work for repository settings (features,
+merge options, description/homepage/topics, and the security toggles GitHub
+exposes per repository). Rulesets, environments, default-branch renaming and
+file seeding are part of the configuration model and show up in `plan`, but
+`apply` cannot act on them yet.
 
 ## Contributing
 

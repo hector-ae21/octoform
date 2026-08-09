@@ -13,11 +13,17 @@ export interface PlanResult {
 /**
  * Read-only. Says what `apply` would do, and just as importantly what it would
  * refuse to do and why.
+ *
+ * `quiet` suppresses the console report without changing what is computed or
+ * returned: `apply` calls this to get the same diff without plan's own
+ * "nothing was changed" framing, which would be actively wrong to print
+ * moments before it changes something.
  */
 export async function plan(
   octokit: Octokit,
   config: Config,
   only?: { repo?: string; type?: string },
+  opts?: { quiet?: boolean },
 ): Promise<PlanResult> {
   const kind = await detectOwnerKind(octokit, config.owner);
   const limits = await detectLimits(octokit, config.owner, kind);
@@ -37,7 +43,7 @@ export async function plan(
   if (only?.type) targets = targets.filter((r) => (config.repos?.[r.name]?.type ?? r.type) === only.type);
 
   if (targets.length === 0) {
-    console.log('No repositories match.');
+    if (!opts?.quiet) console.log('No repositories match.');
     return { changes: [], blocked: [] };
   }
 
@@ -58,7 +64,7 @@ export async function plan(
     }
   }
 
-  report(changes, blocked, targets.length);
+  if (!opts?.quiet) report(changes, blocked, targets.length);
   return { changes, blocked };
 }
 

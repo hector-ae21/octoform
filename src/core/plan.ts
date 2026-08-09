@@ -13,6 +13,11 @@ const SCALAR_GROUPS = ['features', 'merge', 'security', 'repo'] as const;
 const NOT_IMPLEMENTED: Record<string, string> = {
   'security.automated_security_fixes': 'not implemented yet',
   'security.private_vulnerability_reporting': 'not implemented yet',
+  // Not a gap in effort: GitHub's REST API has no field for this anywhere.
+  // repos/update does not accept has_discussions, and there is no dedicated
+  // endpoint either — enabling Discussions is GraphQL-only as of this
+  // writing. Revisit if that changes.
+  'features.discussions': 'not applicable over the REST API',
 };
 
 export interface PlanOptions {

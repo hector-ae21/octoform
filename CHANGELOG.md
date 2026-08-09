@@ -27,6 +27,13 @@ until then, breaking changes can land in a minor release.
 - `imports`: split a configuration across several files and fold them back
   together, most general first, so a set of type presets can be shared
   across unrelated owners.
+- `octoform apply`: shows the same diff `plan` would, asks for confirmation
+  (`--yes` to skip it), and calls the GitHub API. Applies everything `plan`
+  diffs today — grouped so that, for instance, five repository-settings
+  changes cost one API call, not five — and reports each change as applied
+  or failed with the reason; a failure in one group never stops the others
+  from being attempted. Rulesets, environments, default-branch renaming and
+  file seeding remain plan-only for now.
 - Tri-state configuration model (`true` / `false` / omitted) with precedence
   `defaults` -> `types.<type>` -> `repos.<name>`, resolved key by key.
 - Programmatic entry point (`import ... from 'octoform'`) alongside the CLI.
