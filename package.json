@@ -51,7 +51,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@octokit/rest": "^21.0.0",
+    "@octokit/rest": "^22.0.1",
     "yaml": "^2.5.0"
   },
   "devDependencies": {
