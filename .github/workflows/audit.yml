@@ -1,0 +1,51 @@
+name: Audit
+
+# Drift detection, not enforcement. Runs `octoform audit` — the one command
+# that cannot change anything — against this repository's own configuration
+# on a schedule, so a setting somebody flipped by hand in the GitHub UI shows
+# up on its own rather than being discovered months later.
+#
+# Deliberately never runs `apply`. A scheduled job that mutates repositories
+# would turn one bad commit to a configuration file into a fleet-wide change
+# nobody was watching; `apply` stays a thing a person runs and confirms.
+on:
+  schedule:
+    # Monday morning, so the result is waiting at the start of the week rather
+    # than arriving in the middle of one.
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: report drift
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Audit
+        env:
+          # The workflow's own token, on purpose. It reads public repositories
+          # only, which is all this audit is about — a personal access token
+          # would also list private repository names into a public run log.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node bin/octoform.js audit --config examples/self-audit/octoform.yml | tee /tmp/audit.txt
+
+      - name: Publish the report to the run summary
+        if: always()
+        run: |
+          {
+            echo '### octoform audit'
+            echo ''
+            echo '```'
+            cat /tmp/audit.txt 2>/dev/null || echo 'No output — the audit step did not get that far.'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
