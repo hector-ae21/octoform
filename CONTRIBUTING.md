@@ -79,7 +79,11 @@ published; test files have no business shipping inside it.
    worked examples against real, specific third-party GitHub accounts.
 5. Update [CHANGELOG.md](CHANGELOG.md) under `[Unreleased]` if the change is
    visible to a user of the CLI or the library.
-6. Open a pull request against `main`.
+6. Open a pull request against the highest `vMAJOR.x` branch — `v0.x` today,
+   which is also the default branch, so the pre-filled base is already the
+   right one. There is no `develop`. An older `vMAJOR.x` branch takes
+   security fixes only; see [SECURITY.md](.github/SECURITY.md) for what that
+   scheme means.
 
 ## Reporting a security issue
 
