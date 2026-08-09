@@ -1,7 +1,8 @@
 # Configuring one person's own repositories, not an organisation's.
 #
-# octoform tells the two apart by asking the API — "torvalds" here is a
-# personal GitHub account, not an org, and that is all that changes:
+# octoform tells the two apart by asking the API. `your-username` below is a
+# placeholder — put your own GitHub username there, or someone else's, and
+# that alone decides what happens:
 #
 #   - There is no custom properties API for a personal account, so
 #     `classify.property` below is simply not used; type comes from
@@ -18,7 +19,7 @@
 #   export GITHUB_TOKEN=...
 #   octoform plan --config examples/personal-account/octoform.yml
 
-owner: torvalds
+owner: your-username
 
 classify:
   rules:

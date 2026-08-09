@@ -2,11 +2,11 @@
 # Compare with personal.octoform.yml: both import the exact same two files,
 # and neither preset had to be written with either owner in mind.
 #
-# Try it:
+# `org-name` is a placeholder — try it against your own organisation:
 #   export GITHUB_TOKEN=...
 #   octoform plan --config examples/shared-presets/org.octoform.yml --type npm-package
 
-owner: octokit
+owner: org-name
 
 classify:
   rules:

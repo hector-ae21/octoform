@@ -54,7 +54,7 @@ src/
   cli.ts      argument parsing and dispatch
   index.ts    the programmatic entry point
 test/         mirrors src/, one level up — see below
-examples/     real, runnable configurations against real GitHub accounts
+examples/     valid configurations for specific scenarios, owner names redacted
 ```
 
 Tests live in `test/`, not next to the source files. `src/` is what gets
@@ -70,10 +70,13 @@ published; test files have no business shipping inside it.
 3. Add or update tests. `core/` and `config/` are pure functions with no
    network calls — most new behaviour belongs there and should be tested
    there, not by hitting the real API.
-4. If your example claims a configuration works, run it. Every file under
-   `examples/` is verified against a real GitHub account before it is
-   committed; a plausible-looking YAML snippet that was never actually
-   executed does not belong there.
+4. If your example claims a configuration works, run it — against your own
+   account or organisation while you write it — before committing it; a
+   plausible-looking YAML snippet that was never actually executed does not
+   belong under `examples/`. Once it works, replace `owner` and any
+   repository names with a placeholder (`org-name`, `your-username`,
+   `library-a`, ...) before committing: this project does not publish
+   worked examples against real, specific third-party GitHub accounts.
 5. Update [CHANGELOG.md](CHANGELOG.md) under `[Unreleased]` if the change is
    visible to a user of the CLI or the library.
 6. Open a pull request against `main`.

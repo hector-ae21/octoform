@@ -186,9 +186,12 @@ const changes = planRepo(detail, resolvePolicy(config, repo), { rulesetsEnforced
 
 ## Examples
 
-Every example under [`examples/`](examples/) is a real, runnable
-configuration against a real, public GitHub account — none of it is
-hypothetical YAML that merely looks plausible.
+Every example under [`examples/`](examples/) is a complete, valid
+configuration for a specific scenario, verified against a real GitHub
+account while it was written. `owner` in each one is a placeholder
+(`org-name`, `your-username`) rather than a real organisation or person —
+deliberately: this project does not publish worked examples against
+specific third-party accounts. Swap the placeholder for your own and run it.
 
 | Example | Demonstrates |
 |---|---|

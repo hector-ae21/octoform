@@ -1,7 +1,7 @@
 # octoform has no opinion on how you name or structure branches. This file
-# shows several real, unrelated ways different projects do it — none of them
-# is "the" convention, they are just different valid choices, targeted with
-# the same `target_branches` field:
+# shows four unrelated ways different projects do it — none of them is "the"
+# convention, they are just different valid choices, targeted with the same
+# `target_branches` field:
 #
 #   - a single default branch, whatever it is called (~DEFAULT_BRANCH)
 #   - one explicit, hand-picked branch name
@@ -16,14 +16,15 @@
 # topics) but does not yet diff rulesets, environments or seeded files
 # against what a repository actually has — that reconciliation lands with
 # `apply`. Running this example will report "nothing to do" for all four
-# types even though none of these rulesets exist on tinylibs yet. The
-# configuration shape below is final; the diffing for it is not built yet.
+# types even if none of these rulesets exist yet. The configuration shape
+# below is final; the diffing for it is not built yet.
 #
-# Try it:
+# `org-name` and the repository names below are placeholders — replace them
+# with your own organisation and repositories before running this:
 #   export GITHUB_TOKEN=...
 #   octoform plan --config examples/branch-patterns/octoform.yml
 
-owner: tinylibs
+owner: org-name
 
 types:
   # Whatever the default branch is named. Survives a rename from master to
@@ -60,14 +61,14 @@ types:
         target_branches: [main, stable, lts]
         block_force_push: true
 
-# tinylibs has no type recorded for any repository (no custom property, and
+# org-name has no type recorded for any repository (no custom property, and
 # this file has no `classify.rules`), so without this section none of the
 # four types above would ever be assigned and `plan` would report nothing
-# for any of them. Assigning one real repository to each type here is purely
-# to make this example runnable end to end — an organisation with a
-# `classify` block, or custom properties already set, would not need this.
+# for any of them. Assigning one placeholder repository to each type here is
+# purely to make the example concrete — an organisation with a `classify`
+# block, or custom properties already set, would not need this.
 repos:
-  tinyspy: { type: default-branch-only }
-  tinypool: { type: named-branch }
-  tinybench: { type: release-branches }
-  tinyexec: { type: fixed-set-of-branches }
+  library-a: { type: default-branch-only }
+  library-b: { type: named-branch }
+  web-app: { type: release-branches }
+  cli-tool: { type: fixed-set-of-branches }

@@ -2,11 +2,11 @@
 # same result: the presets know about project types and security settings,
 # never about who owns the repositories.
 #
-# Try it:
+# `your-username` is a placeholder — try it against your own account:
 #   export GITHUB_TOKEN=...
 #   octoform plan --config examples/shared-presets/personal.octoform.yml --type npm-package
 
-owner: sindresorhus
+owner: your-username
 
 classify:
   rules:
