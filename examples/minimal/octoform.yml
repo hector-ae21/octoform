@@ -1,0 +1,13 @@
+# The smallest configuration that does something: one policy, applied to
+# every repository the owner has, nothing else managed.
+#
+# `org-name` is a placeholder, not a real account — replace it with your own
+# organisation or personal account before running this:
+#   export GITHUB_TOKEN=...
+#   octoform plan --config examples/minimal/octoform.yml
+
+owner: org-name
+
+defaults:
+  merge:
+    delete_branch_on_merge: true

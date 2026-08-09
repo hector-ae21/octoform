@@ -1,0 +1,37 @@
+name: Feature request
+description: A policy, command or piece of behaviour octoform does not have yet.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The actual goal, not the feature you think solves it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: missing
+    attributes:
+      label: What policy or behaviour is missing?
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        If this only makes sense for one specific ecosystem or platform (npm,
+        Moodle, a particular CI provider, ...), it is very likely something
+        the configuration model should be able to express generically,
+        rather than something octoform's code should know about by name —
+        see "The one rule about the codebase" in
+        [CONTRIBUTING.md](../../CONTRIBUTING.md). Describing the general
+        shape of what you need (a new kind of policy, a new tri-state
+        setting, a new way to target repositories) is more useful here than
+        describing it in terms of your specific stack.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What are you doing today instead?
+      description: A manual step, a separate script, a different tool.
