@@ -41,7 +41,7 @@ jobs:
       name: ${{ steps.pkg.outputs.name }}
       should_publish: ${{ steps.mode.outputs.publish }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -153,7 +153,7 @@ jobs:
       contents: write # to create the GitHub Release after a successful publish
       id-token: write # required for npm trusted publishing (OIDC)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: 20
