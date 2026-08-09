@@ -1,8 +1,12 @@
 name: CI
 
+# Runs on pull requests and on pushes to a version branch. Version branches
+# are named vMAJOR.x (v0.x today) — one per major line that is still alive,
+# with the highest one as the default branch. See SECURITY.md for what that
+# scheme means for which versions get fixes.
 on:
   push:
-    branches: [main]
+    branches: ['v*.x']
   pull_request:
   workflow_call: # reused by release.yml as its quality gate
 
@@ -11,8 +15,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The suite only needs to run once per change, on the pull request (or on a
+  # manual tag push via release.yml's workflow_call). A push to a vX.x branch
+  # is always a merge of a PR that already passed this same gate, so it skips
+  # straight to tagging instead of re-running everything.
+  #
+  # The ref_type check is what keeps the manual-tag path honest. A reusable
+  # workflow inherits the caller's github context, so when release.yml is
+  # triggered by a tag push and calls this workflow, github.event_name is
+  # still 'push' — without ref_type, the gate release.yml relies on would
+  # silently skip every test and publish untested code.
   test:
     name: node ${{ matrix.node }}
+    if: github.event_name != 'push' || github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,7 +51,7 @@ jobs:
   # check; this one never changes and only succeeds once every entry above did.
   verify:
     name: CI complete
-    if: always()
+    if: always() && (github.event_name != 'push' || github.ref_type == 'tag')
     needs: [test]
     runs-on: ubuntu-latest
     permissions:
@@ -50,12 +65,17 @@ jobs:
           fi
 
   # A tag pushed with GITHUB_TOKEN does not trigger another workflow
-  # automatically, so create the missing version tag once tests pass on main,
-  # then explicitly dispatch the release workflow on that tag rather than
-  # relying on the push-to-tag trigger to fire on its own.
+  # automatically, so create the missing version tag once a version branch
+  # moves, then explicitly dispatch the release workflow on that tag rather
+  # than relying on the push-to-tag trigger to fire on its own. Matches vN.x
+  # for any maintained major without edits here.
   release:
     name: tag and start release
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: >-
+      always() &&
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/heads/v') &&
+      (needs.verify.result == 'success' || needs.verify.result == 'skipped')
     runs-on: ubuntu-latest
     needs: verify
     permissions:
@@ -90,7 +110,27 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$VERSION_TAG" -m "Release $VERSION_TAG"
+
+          # Use this version's own CHANGELOG.md section as the annotated tag
+          # message when there is one, the same extraction release.yml uses
+          # for the GitHub Release body, so the tag itself carries the notes
+          # instead of a bare "Release vX.Y.Z".
+          VERSION="${VERSION_TAG#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md | sed -e '1{/^$/d}' > /tmp/tag-message.md
+
+          {
+            echo "Release $VERSION_TAG"
+            if [ -s /tmp/tag-message.md ]; then
+              echo
+              cat /tmp/tag-message.md
+            fi
+          } > /tmp/tag-message-final.md
+
+          git tag -a "$VERSION_TAG" -F /tmp/tag-message-final.md
           git push origin "$VERSION_TAG"
 
       - name: Start release workflow

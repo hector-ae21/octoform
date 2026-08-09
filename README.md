@@ -1,7 +1,7 @@
 # octoform
 
 [![npm version](https://img.shields.io/npm/v/%40hector21%2Foctoform.svg?logo=npm)](https://www.npmjs.com/package/@hector21/octoform)
-[![CI](https://img.shields.io/github/actions/workflow/status/hector-ae21/octoform/ci.yml?branch=main&logo=github&label=CI)](https://github.com/hector-ae21/octoform/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/hector-ae21/octoform/ci.yml?branch=v0.x&logo=github&label=CI)](https://github.com/hector-ae21/octoform/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node](https://img.shields.io/badge/Node-20%20%7C%2022%20%7C%2024-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/en/about/previous-releases)
 
@@ -176,12 +176,30 @@ same two preset files.
 | Command | Effect |
 |---|---|
 | `octoform audit` | Read-only inventory: every repository, its recorded type, and configurable findings (missing type, missing description or topics on public repositories, too many topics). |
-| `octoform plan` | Read-only diff between the configuration and each repository's actual settings — features, merge options, security settings, description and topics today. Anything that cannot be applied — an unimplemented policy, a value this GitHub plan does not expose, a ruleset on a private repository the plan would not enforce — is reported as blocked, with the reason, never dropped in silence. Rulesets, environments and seeded files are part of the configuration model but not yet diffed against the repository's actual state; that lands later. |
-| `octoform apply` | Shows the same diff `plan` would, asks for confirmation, then calls the GitHub API. Applies everything `plan` diffs today (features, merge options, description/homepage/topics, secret scanning, vulnerability alerts, code scanning default setup). Rulesets, environments, branch renaming and file seeding are not applied yet — they show up in `audit`/`plan`'s model but `apply` has nothing to do for them so far. |
+| `octoform plan` | Read-only diff between the configuration and each repository's actual state: features, merge options, security settings, description and topics, the default branch, branches that must exist, rulesets, environments and seeded files. Anything that cannot be applied — a policy with no REST endpoint, a value this GitHub plan does not expose, a ruleset on a private repository the plan would not enforce — is reported as blocked, with the reason, never dropped in silence. |
+| `octoform apply` | Shows the same diff `plan` would, asks for confirmation, then calls the GitHub API. Applies everything `plan` diffs. |
+| `octoform classify` | Proposes a type for each repository that has none, from `classify.rules`. Prints and stops unless `--apply` is given, which records the proposals in the custom property (organisations only). Never re-examines a repository that already has a type. |
+| `octoform properties sync` | Creates or updates the custom property that stores the type, and records the types declared under `repos.<name>.type`. Its allowed values are the keys of `types` — there is no second list to keep in step. Organisations only: custom properties do not exist for a personal account. |
 
-All three accept `--config <path>`; `plan` and `apply` additionally accept
+All of them accept `--config <path>`; `plan` and `apply` additionally accept
 `--repo <name>` and `--type <type>` to narrow the scope. `apply` also accepts
 `--yes` to skip the confirmation prompt (for a script, not for a first run).
+
+`audit`, `plan` and `classify` without `--apply` never change anything.
+
+### Renaming a default branch
+
+Worth calling out, because it is the one change that reaches outside a
+repository's settings. `default_branch.rename_from` lists the names you are
+willing to rename away from; a repository whose default branch is not one of
+them is reported and left alone, rather than renamed on the strength of a
+policy that never contemplated it.
+
+GitHub retargets open pull requests and redirects the old name by itself. What
+it does not do is fix a workflow that names the branch — `on: push: branches:
+[master]` keeps parsing perfectly and simply stops matching anything, with no
+error anywhere. So `plan` reads the workflow files first and names the ones
+that will break, as a warning attached to the change.
 
 ## Programmatic use
 
@@ -206,10 +224,14 @@ const results = await applyRepoChanges(octokit, config.owner, repo.name, changes
 
 Every example under [`examples/`](examples/) is a complete, valid
 configuration for a specific scenario, verified against a real GitHub
-account while it was written. `owner` in each one is a placeholder
-(`org-name`, `your-username`) rather than a real organisation or person —
-deliberately: this project does not publish worked examples against
-specific third-party accounts. Swap the placeholder for your own and run it.
+account while it was written. `owner` is a placeholder (`org-name`,
+`your-username`) rather than a real organisation or person — deliberately:
+this project does not publish worked examples against specific third-party
+accounts. Swap the placeholder for your own and run it.
+
+The one exception is `self-audit/`, which names the account that owns
+octoform, because it is not an illustration — it is the configuration this
+repository actually audits itself with.
 
 | Example | Demonstrates |
 |---|---|
@@ -218,6 +240,7 @@ specific third-party accounts. Swap the placeholder for your own and run it.
 | [`shared-presets/`](examples/shared-presets/) | `imports`: the same two preset files reused by an organisation and a personal account that know nothing of each other. |
 | [`audit-only/`](examples/audit-only/) | Using octoform purely as a compliance report, with no `types` or `defaults` at all. |
 | [`branch-patterns/`](examples/branch-patterns/) | Four unrelated, equally valid ways to target branches with a ruleset — octoform has no opinion on branch naming, and does not prescribe one. |
+| [`self-audit/`](examples/self-audit/) | A configuration with audit rules and no policies at all — what octoform runs against its own account every Monday. The sensible way to start on a fleet you are not ready to reconfigure. |
 
 Run any of them with `octoform plan --config examples/<name>/octoform.yml` (or
 the appropriately named file inside `shared-presets/`).

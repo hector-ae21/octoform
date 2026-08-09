@@ -1,13 +1,10 @@
 name: Release
 
-# The normal path is a push to main after CI already passed there. A manual
-# tag push runs the quality gate itself first, in case someone tags without
-# going through main (this should not normally happen).
-#
-# This repo is 0.x and has only ever had one line of development, so there is
-# no vMAJOR.x branch scheme yet and no per-major dist-tag to maintain — see
-# example.yml's `types.npm-package` for what that will look like once this
-# project reaches 1.0 and adopts it for itself.
+# The normal path is dispatched by ci.yml after its quality gate already
+# passed on a push to a version branch (v0.x, v1.x, ...), so it does not
+# repeat the tests. A manual tag push runs the full gate itself first, in
+# case someone tags without going through a version branch (this should not
+# normally happen).
 on:
   push:
     tags: ['v*.*.*']
@@ -177,46 +174,76 @@ jobs:
       - run: npm ci
       - run: npm run build
 
-      # Authentication is exclusively OIDC trusted publishing. Do not add a
-      # NODE_AUTH_TOKEN / NPM_TOKEN env var back here.
-      - name: Publish
-        if: needs.validate.outputs.should_publish == 'true'
-        run: npm publish --provenance
-
-      - name: Dry run
-        if: needs.validate.outputs.should_publish == 'false'
-        run: npm publish --dry-run
-
-      # Harmless while there is only one line of development (main), and
-      # becomes load-bearing the moment this project adopts version branches
-      # at 1.0: it guards against `latest` pointing at whatever was published
-      # most recently rather than the highest semver, which is what happens
-      # the instant a security backport to an older major publishes after a
-      # newer major already exists.
+      # CONFIRMED in production on another package: the short-lived credential
+      # `npm publish --provenance` gets from the OIDC id-token is scoped to
+      # that one publish call and does NOT carry over to a later, separate
+      # `npm dist-tag add` in the same job — it 401s. So the tag is decided
+      # here, before publishing, and handed to `npm publish --tag` directly;
+      # no separate registry-write call is ever needed and NPM_TOKEN stays
+      # unnecessary.
       #
-      # VERIFY: not yet confirmed whether the short-lived OIDC credential from
-      # `npm publish --provenance` is also honored by `npm dist-tag add` in
-      # this separate step. If it 401s here once this is exercised for real,
-      # this step needs its own credential.
-      - name: Point npm 'latest' at the highest published semver
+      # The highest-numbered major always gets 'latest', full stop — never its
+      # own 'vNx' tag, since 'latest' already serves that purpose. Only a
+      # major that is NOT the current highest gets tagged 'vNx', so
+      # `npm install @hector21/octoform@v0x` keeps resolving to the newest 0.x
+      # patch on its own once a 1.x exists. No dot in the tag name on purpose:
+      # npm's own arg parsing treats a bare "v0.x" as a semver range
+      # (>=0.0.0 <1.0.0) before it ever considers dist-tags, which would
+      # silently bypass this tag rather than use it.
+      #
+      # While v0.x is the only line, this always resolves to 'latest' — the
+      # branching only starts to matter once a second major exists.
+      - name: Determine npm dist-tag
+        id: npm-tag
         if: needs.validate.outputs.should_publish == 'true'
         env:
           PKG: ${{ needs.validate.outputs.name }}
+          VERSION: ${{ needs.validate.outputs.version }}
         run: |
-          HIGHEST=$(npm view "$PKG" versions --json | node -e "
-            const data = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+          HIGHEST=$(npm view "$PKG" versions --json 2>/dev/null | node -e "
+            let data = [];
+            try { data = JSON.parse(require('fs').readFileSync(0, 'utf8')); } catch {}
+            data = [].concat(data).filter(Boolean);
             const cmp = (a, b) => {
               const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
               for (let i = 0; i < 3; i++) { if (pa[i] !== pb[i]) return pa[i] - pb[i]; }
               return 0;
             };
-            console.log([].concat(data).sort(cmp).pop());
+            console.log(data.sort(cmp).pop() ?? '');
           ")
-          CURRENT_LATEST=$(npm view "$PKG" dist-tags.latest)
-          if [ "$HIGHEST" != "$CURRENT_LATEST" ]; then
-            echo "Correcting 'latest' from $CURRENT_LATEST to $HIGHEST"
-            npm dist-tag add "$PKG@$HIGHEST" latest
+
+          IS_HIGHEST=$(node -e "
+            const cmp = (a, b) => {
+              const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
+              for (let i = 0; i < 3; i++) { if (pa[i] !== pb[i]) return pa[i] - pb[i]; }
+              return 0;
+            };
+            const [version, highest] = process.argv.slice(1);
+            console.log(!highest || cmp(version, highest) >= 0);
+          " "$VERSION" "$HIGHEST")
+
+          echo "Highest published so far: ${HIGHEST:-none yet} — publishing: $VERSION"
+          if [ "$IS_HIGHEST" = "true" ]; then
+            echo "New overall highest — tag: latest"
+            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "is_highest=true" >> "$GITHUB_OUTPUT"
+          else
+            MAJOR="${VERSION%%.*}"
+            MAJOR_TAG="v${MAJOR}x"
+            echo "Patch on an older, non-highest major — tag: $MAJOR_TAG (never touches latest)"
+            echo "tag=$MAJOR_TAG" >> "$GITHUB_OUTPUT"
+            echo "is_highest=false" >> "$GITHUB_OUTPUT"
           fi
+
+      # Authentication is exclusively OIDC trusted publishing. Do not add a
+      # NODE_AUTH_TOKEN / NPM_TOKEN env var back here.
+      - name: Publish
+        if: needs.validate.outputs.should_publish == 'true'
+        run: npm publish --tag ${{ steps.npm-tag.outputs.tag }} --provenance
+
+      - name: Dry run
+        if: needs.validate.outputs.should_publish == 'false'
+        run: npm publish --dry-run
 
       - name: Extract CHANGELOG section for this version
         if: needs.validate.outputs.should_publish == 'true'
@@ -234,19 +261,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION_TAG: ${{ github.ref_name }}
+          IS_HIGHEST: ${{ steps.npm-tag.outputs.is_highest }}
         run: |
+          # --latest is set from the same highest-semver check that picked the
+          # dist-tag, not left to gh's default of "most recently created",
+          # which marks a backport to an old major as the latest release.
           if gh release view "$VERSION_TAG" >/dev/null 2>&1; then
             echo "GitHub Release $VERSION_TAG already exists"
           elif [ -s /tmp/release-notes.md ]; then
             gh release create "$VERSION_TAG" \
               --verify-tag \
               --title "$VERSION_TAG" \
-              --notes-file /tmp/release-notes.md
+              --notes-file /tmp/release-notes.md \
+              --latest="$IS_HIGHEST"
           else
             gh release create "$VERSION_TAG" \
               --verify-tag \
               --title "$VERSION_TAG" \
-              --generate-notes
+              --generate-notes \
+              --latest="$IS_HIGHEST"
           fi
 
       - name: Published summary
