@@ -1,5 +1,10 @@
 # octoform
 
+[![npm version](https://img.shields.io/npm/v/octoform.svg?logo=npm)](https://www.npmjs.com/package/octoform)
+[![CI](https://img.shields.io/github/actions/workflow/status/hector-ae21/octoform/ci.yml?branch=main&logo=github&label=CI)](https://github.com/hector-ae21/octoform/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node](https://img.shields.io/badge/Node-20%20%7C%2022%20%7C%2024-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/en/about/previous-releases)
+
 Declarative governance for GitHub repositories — an organisation's or your
 own. Describe how your repositories should be configured in one YAML file;
 octoform reports the drift and, when you tell it to, corrects it.
@@ -21,21 +26,26 @@ the handful of files GitHub does not inherit from a `.github` repository.
 - [Commands](#commands)
 - [Programmatic use](#programmatic-use)
 - [Examples](#examples)
-- [Plan limitations](#plan-limitations)
-- [Status](#status)
 - [Contributing](#contributing)
+- [Contributors](#contributors)
 - [License](#license)
 
 ## Why
 
-Templates only help repositories that do not exist yet. A repository created
-from a template never hears from it again, and organisation-wide settings do
-not reach `dependabot.yml`, workflows or `CODEOWNERS` — those are per
-repository, forever. Past a handful of repositories, keeping them consistent
-becomes a tour of identical Settings pages, whether they belong to a company
-or to one person with too many side projects.
+You add a security setting, a merge policy, or a branch rule to one
+repository. A month later it is on three of your forty repos, because the
+other thirty-seven existed before you thought of it, and nothing ever went
+back to bring them in line.
 
-octoform reconciles what already exists, for either.
+Templates do not fix this — they only help repositories created *after* the
+template exists, and a repository created from one never hears from it
+again. Organisation-wide settings do not reach `dependabot.yml`, workflows or
+`CODEOWNERS` either: GitHub treats those as per-repository, forever, whether
+the repositories belong to a company or to one person with too many side
+projects.
+
+octoform reconciles what already exists. Describe how things should be
+configured once, and run it against everything you own.
 
 ## It knows nothing about your stack
 
@@ -69,7 +79,7 @@ All three look for `octoform.yml` in the current directory by default; point
 elsewhere with `--config path/to/file.yml`. `audit` and `plan` never change
 anything. `apply` shows the same diff `plan` would, asks for confirmation
 (skip with `--yes`), and only then calls the GitHub API — see
-[Status](#status) for what it can apply today.
+[Commands](#commands) for exactly what it can apply today.
 
 The token needs `repo`. Custom properties and rulesets on an organisation
 additionally need `admin:org`; octoform checks up front and tells you which
@@ -209,27 +219,15 @@ specific third-party accounts. Swap the placeholder for your own and run it.
 Run any of them with `octoform plan --config examples/<name>/octoform.yml` (or
 the appropriately named file inside `shared-presets/`).
 
-## Plan limitations
-
-Some of what octoform can express is not available on every GitHub plan —
-organisation-wide rulesets need a paid plan, and rulesets are only enforced
-on private repositories on paid plans, on both organisation and personal
-accounts. octoform detects this and **skips those policies with an explicit
-message** rather than creating a rule that quietly does nothing. A ruleset
-that exists but is not enforced is worse than no ruleset: it looks like
-protection.
-
-## Status
-
-Early. `audit`, `plan` and `apply` work for repository settings (features,
-merge options, description/homepage/topics, and the security toggles GitHub
-exposes per repository). Rulesets, environments, default-branch renaming and
-file seeding are part of the configuration model and show up in `plan`, but
-`apply` cannot act on them yet.
-
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Contributors
+
+Thanks to everyone who has contributed to this project:
+
+[![Contributors](https://contrib.rocks/image?repo=hector-ae21/octoform)](https://github.com/hector-ae21/octoform/graphs/contributors)
 
 ## License
 
