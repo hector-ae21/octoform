@@ -9,6 +9,12 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-10
+
+The configuration model was complete in 0.1.0; `apply` was not. This closes
+that gap — everything the YAML can declare, `apply` now carries out — and
+turns the branching scheme this tool prescribes on the tool itself.
+
 ### Added
 
 - `plan`/`apply` now cover the rest of the configuration model: rulesets
@@ -45,6 +51,12 @@ a zero major means. Security fixes are always a patch bump. See
 - `ci.yml` skipped its entire test matrix on a manual tag push. A reusable
   workflow inherits the caller's event, so `github.event_name` was still
   `push` and the gate `release.yml` depends on ran nothing at all.
+- The CLI ran a stale build without saying so. `bin/octoform.js` executes
+  `dist/`, so a failed or forgotten `npm run build` meant the previous build
+  kept running — and its failure mode is quietly doing less than you asked
+  for, which reads as the tool ignoring a policy rather than as a stale
+  build. It now refuses to start when `src/` is newer than `dist/`, and only
+  checks that when `src/` is present, since an installed package has none.
 
 ### Changed
 
