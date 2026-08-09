@@ -25,8 +25,14 @@ concurrency:
 jobs:
   ci:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    # Must grant everything any job in ci.yml could ever request, including
+    # its own release job's contents:write/actions:write — GitHub validates
+    # this statically against every job the callee declares, regardless of
+    # that job's own `if:` condition (it never actually runs from here,
+    # since a tag push isn't github.event_name == 'push' on a branch).
     permissions:
-      contents: read
+      contents: write
+      actions: write
     uses: ./.github/workflows/ci.yml
 
   validate:

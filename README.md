@@ -1,6 +1,6 @@
 # octoform
 
-[![npm version](https://img.shields.io/npm/v/octoform.svg?logo=npm)](https://www.npmjs.com/package/octoform)
+[![npm version](https://img.shields.io/npm/v/%40hector21%2Foctoform.svg?logo=npm)](https://www.npmjs.com/package/@hector21/octoform)
 [![CI](https://img.shields.io/github/actions/workflow/status/hector-ae21/octoform/ci.yml?branch=main&logo=github&label=CI)](https://github.com/hector-ae21/octoform/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node](https://img.shields.io/badge/Node-20%20%7C%2022%20%7C%2024-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/en/about/previous-releases)
@@ -61,10 +61,13 @@ model, not a reason to special-case.
 ## Install
 
 ```bash
-npm install --global octoform
+npm install --global @hector21/octoform
 ```
 
-Requires Node 20 or newer.
+Requires Node 20 or newer. The package is scoped (`@hector21/octoform` was
+the only name npm's own similarity check would allow — `octoform` unscoped
+collided with an existing, unrelated package), but the command it installs
+is still just `octoform`.
 
 ## Quick start
 
@@ -186,7 +189,7 @@ The pieces the CLI is built from are exported, for planning a repository from
 a script instead of shelling out and parsing text:
 
 ```ts
-import { loadConfig, createClient, detectOwnerKind, listRepos, getRepoDetail, resolvePolicy, planRepo, applyRepoChanges } from 'octoform';
+import { loadConfig, createClient, detectOwnerKind, listRepos, getRepoDetail, resolvePolicy, planRepo, applyRepoChanges } from '@hector21/octoform';
 
 const config = loadConfig('octoform.yml');
 const octokit = createClient();

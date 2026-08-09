@@ -37,7 +37,8 @@ First published version.
   across unrelated owners.
 - Tri-state configuration model (`true` / `false` / omitted) with precedence
   `defaults` -> `types.<type>` -> `repos.<name>`, resolved key by key.
-- Programmatic entry point (`import ... from 'octoform'`) alongside the CLI.
+- Programmatic entry point (`import ... from '@hector21/octoform'`) alongside
+  the CLI.
 
 ### Known limitations
 

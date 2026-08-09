@@ -4,15 +4,23 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # A group's update-types only controls what gets bundled together; it
+    # does not stop dependabot from opening an individual PR for whatever
+    # falls outside it. ignore is what actually suppresses majors.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       dev-dependencies:
         dependency-type: development
-        update-types: [minor, patch]
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       github-actions:
-        update-types: [minor, patch]
+        patterns: ["*"]
