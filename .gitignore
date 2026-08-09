@@ -8,3 +8,5 @@ dist/
 octoform.yml
 *.octoform.yml
 !example.yml
+
+.test-build/

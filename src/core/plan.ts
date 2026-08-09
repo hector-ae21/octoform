@@ -1,5 +1,6 @@
-import { isManaged } from './config.js';
-import type { Change, PolicySet, RepoDetail } from './types.js';
+import { isManaged } from '../config/resolve.js';
+import { UNREADABLE } from '../config/types.js';
+import type { Change, PolicySet, RepoDetail } from '../config/types.js';
 
 /** Policy groups whose keys map one-to-one onto a repository setting. */
 const SCALAR_GROUPS = ['features', 'merge', 'security', 'repo'] as const;
@@ -69,7 +70,7 @@ export function planRepo(
         });
         continue;
       }
-      if (current === null) {
+      if (current === UNREADABLE) {
         changes.push({
           repo: repo.name,
           key,
@@ -113,18 +114,4 @@ function same(current: unknown, wanted: unknown): boolean {
   // responses and null in others; neither is a reason to plan a change.
   if ((current === '' || current === null) && (wanted === '' || wanted === null)) return true;
   return current === wanted;
-}
-
-export function formatChange(change: Change): string {
-  const from = display(change.from);
-  const to = display(change.to);
-  const suffix = change.blocked ? `  [skipped: ${change.blocked}]` : '';
-  return `${change.key}: ${from} -> ${to}${suffix}`;
-}
-
-function display(value: unknown): string {
-  if (value === null || value === undefined) return '(unset)';
-  if (Array.isArray(value)) return value.length === 0 ? '(none)' : value.join(', ');
-  if (value === '') return '(empty)';
-  return String(value);
 }

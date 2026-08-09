@@ -158,8 +158,18 @@ export interface RepoState {
  * the repository object and some from endpoints of its own, so it is gathered
  * separately from the cheap inventory `audit` runs on.
  */
+/**
+ * The answer could not be read at all: an endpoint this plan does not expose,
+ * or a field GitHub omitted. Distinct from `null`, which is a real value for
+ * a description or a homepage and means "set to nothing". Conflating the two
+ * makes the planner offer to fill in a field it cannot even see.
+ */
+export const UNREADABLE = Symbol('unreadable');
+
+export type SettingValue = boolean | string | string[] | null | typeof UNREADABLE;
+
 export interface RepoDetail extends RepoState {
-  settings: Record<string, boolean | string | string[] | null>;
+  settings: Record<string, SettingValue>;
 }
 
 /** One difference between what is declared and what the repository has. */

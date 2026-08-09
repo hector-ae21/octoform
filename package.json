@@ -1,17 +1,44 @@
 {
   "name": "octoform",
   "version": "0.1.0",
-  "description": "Declarative plan/apply governance for GitHub repositories",
+  "description": "Declarative plan/apply governance for GitHub repositories: settings, branch rules, environments and files, from one YAML file",
+  "keywords": [
+    "github",
+    "governance",
+    "octokit",
+    "rulesets",
+    "branch-protection",
+    "repository-settings",
+    "compliance",
+    "infrastructure-as-code"
+  ],
+  "homepage": "https://github.com/hector-ae21/octoform#readme",
+  "bugs": {
+    "url": "https://github.com/hector-ae21/octoform/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hector-ae21/octoform.git"
+  },
   "license": "MIT",
-  "author": "Hector Arrechea",
+  "author": "Hector Arrechea (https://github.com/hector-ae21)",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
   "bin": {
     "octoform": "bin/octoform.js"
   },
   "files": [
     "bin",
     "dist",
-    "example.yml"
+    "examples",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=20"
@@ -19,8 +46,9 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "tsc && node --test \"dist/**/*.test.js\"",
-    "start": "node bin/octoform.js"
+    "test": "tsc -p tsconfig.test.json && node --test \".test-build/test/**/*.test.js\"",
+    "octoform": "node bin/octoform.js",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@octokit/rest": "^21.0.0",
@@ -29,14 +57,5 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "typescript": "^5.6.0"
-  },
-  "keywords": [
-    "github",
-    "governance",
-    "octokit",
-    "rulesets",
-    "branch-protection",
-    "repository-settings",
-    "compliance"
-  ]
+  }
 }

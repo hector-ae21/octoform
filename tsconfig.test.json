@@ -1,0 +1,13 @@
+{
+  // Tests live outside src/, so they cannot share the published build: that one
+  // has rootDir src/ and would either refuse them or flatten dist/. This config
+  // compiles both trees into a throwaway directory that never ships.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": ".test-build",
+    "declaration": false,
+    "sourceMap": false
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

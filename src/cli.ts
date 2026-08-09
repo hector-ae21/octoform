@@ -1,5 +1,5 @@
-import { ConfigError, loadConfig } from './config.js';
-import { AuthError, createClient, requireScopes } from './github.js';
+import { ConfigError, loadConfig } from './config/resolve.js';
+import { AuthError, createClient, requireScopes } from './github/client.js';
 import { audit } from './commands/audit.js';
 import { plan } from './commands/plan.js';
 

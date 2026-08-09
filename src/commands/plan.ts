@@ -1,8 +1,9 @@
 import type { Octokit } from '@octokit/rest';
-import { isExcluded, resolvePolicy } from '../config.js';
-import { detectLimits, getRepoDetail, listRepos, readPropertyValues } from '../github.js';
-import { formatChange, planRepo } from '../plan.js';
-import type { Change, Config } from '../types.js';
+import { isExcluded, resolvePolicy } from '../config/resolve.js';
+import { detectLimits, getRepoDetail, listRepos, readPropertyValues } from '../github/client.js';
+import { planRepo } from '../core/plan.js';
+import { formatChange, groupByRepo } from '../report/format.js';
+import type { Change, Config } from '../config/types.js';
 
 export interface PlanResult {
   changes: Change[];
@@ -81,16 +82,6 @@ function report(changes: Change[], blocked: Change[], scanned: number): void {
   }
 
   console.log('Nothing was changed. This command only reports.');
-}
-
-function groupByRepo(changes: Change[]): Array<[string, Change[]]> {
-  const map = new Map<string, Change[]>();
-  for (const change of changes) {
-    const list = map.get(change.repo) ?? [];
-    list.push(change);
-    map.set(change.repo, list);
-  }
-  return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
 }
 
 function countRepos(changes: Change[]): number {

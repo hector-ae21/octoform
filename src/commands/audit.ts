@@ -1,7 +1,7 @@
 import type { Octokit } from '@octokit/rest';
-import { isExcluded, repoType } from '../config.js';
-import { detectLimits, listRepos, readPropertyValues } from '../github.js';
-import type { AuditConfig, Config, RepoState } from '../types.js';
+import { isExcluded, repoType } from '../config/resolve.js';
+import { detectLimits, listRepos, readPropertyValues } from '../github/client.js';
+import type { AuditConfig, Config, RepoState } from '../config/types.js';
 
 export interface Finding {
   repo: string;

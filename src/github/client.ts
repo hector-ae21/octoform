@@ -1,5 +1,6 @@
 import { Octokit } from '@octokit/rest';
-import type { RepoDetail, RepoState } from './types.js';
+import { UNREADABLE } from '../config/types.js';
+import type { RepoDetail, RepoState } from '../config/types.js';
 
 export class AuthError extends Error {}
 
@@ -86,9 +87,9 @@ export async function getRepoDetail(
   const { data } = await octokit.repos.get({ owner: org, repo: base.name });
   const analysis = (data as { security_and_analysis?: Record<string, { status?: string } | undefined> })
     .security_and_analysis;
-  const enabled = (key: string): boolean | null => {
+  const enabled = (key: string): boolean | typeof UNREADABLE => {
     const status = analysis?.[key]?.status;
-    return status === undefined ? null : status === 'enabled';
+    return status === undefined ? UNREADABLE : status === 'enabled';
   };
 
   const settings: RepoDetail['settings'] = {
@@ -135,14 +136,14 @@ async function probe(
   route: string,
   owner: string,
   repo: string,
-): Promise<boolean | null> {
+): Promise<boolean | typeof UNREADABLE> {
   try {
     await octokit.request(route, { owner, repo });
     return true;
   } catch (error) {
     const status = (error as { status?: number }).status;
     if (status === 404) return false;
-    return null;
+    return UNREADABLE;
   }
 }
 
@@ -150,7 +151,7 @@ async function codeScanningState(
   octokit: Octokit,
   owner: string,
   repo: string,
-): Promise<boolean | null> {
+): Promise<boolean | typeof UNREADABLE> {
   try {
     const { data } = await octokit.request(
       'GET /repos/{owner}/{repo}/code-scanning/default-setup',
@@ -158,7 +159,7 @@ async function codeScanningState(
     );
     return (data as { state?: string }).state === 'configured';
   } catch {
-    return null;
+    return UNREADABLE;
   }
 }
 
