@@ -46,7 +46,7 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.test.json && node --test \".test-build/test/**/*.test.js\"",
+    "test": "tsc -p tsconfig.test.json && node --test .test-build/test/",
     "octoform": "node bin/octoform.js",
     "prepublishOnly": "npm run build"
   },
