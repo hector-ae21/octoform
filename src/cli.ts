@@ -3,40 +3,48 @@ import { AuthError, createClient, requireScopes } from './github/client.js';
 import { audit } from './commands/audit.js';
 import { plan } from './commands/plan.js';
 import { apply } from './commands/apply.js';
+import { classify } from './commands/classify.js';
+import { propertiesSync } from './commands/properties.js';
 
 const USAGE = `octoform - declarative governance for GitHub repositories
 
 Usage:
-  octoform audit [--config <path>]
-  octoform plan  [--config <path>] [--repo <name>] [--type <type>]
-  octoform apply [--config <path>] [--repo <name>] [--type <type>] [--yes]
+  octoform audit      [--config <path>]
+  octoform plan       [--config <path>] [--repo <name>] [--type <type>]
+  octoform apply      [--config <path>] [--repo <name>] [--type <type>] [--yes]
+  octoform classify   [--config <path>] [--apply]
+  octoform properties sync [--config <path>]
 
 Options:
   --config <path>   Configuration file (default: octoform.yml)
   --repo <name>     Limit to one repository
   --type <type>     Limit to repositories of one type
   --yes             Apply without asking for confirmation
+  --apply           classify: record the proposals instead of only printing them
   --help            Show this message
 
 Environment:
   GITHUB_TOKEN / GH_TOKEN   Token used for every call. Needs "repo", plus
                             "admin:org" for custom properties and rulesets.
 
-audit and plan are read-only and never change anything. apply shows the same
-diff plan would, then asks before changing anything, unless --yes is given.
+audit, plan and classify (without --apply) are read-only and never change
+anything. apply shows the same diff plan would, then asks before changing
+anything, unless --yes is given.
 `;
 
 interface Args {
   command?: string;
+  subcommand?: string;
   config: string;
   help: boolean;
   repo?: string;
   type?: string;
   yes: boolean;
+  apply: boolean;
 }
 
 export function parseArgs(argv: string[]): Args {
-  const args: Args = { config: 'octoform.yml', help: false, yes: false };
+  const args: Args = { config: 'octoform.yml', help: false, yes: false, apply: false };
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -46,6 +54,8 @@ export function parseArgs(argv: string[]): Args {
       args.help = true;
     } else if (arg === '--yes' || arg === '-y') {
       args.yes = true;
+    } else if (arg === '--apply') {
+      args.apply = true;
     } else if (arg === '--config' || arg === '--repo' || arg === '--type') {
       const value = argv[++i];
       if (!value) throw new ConfigError(`${arg} needs a value`);
@@ -56,6 +66,8 @@ export function parseArgs(argv: string[]): Args {
       throw new ConfigError(`Unknown option: ${arg}`);
     } else if (!args.command) {
       args.command = arg;
+    } else if (!args.subcommand) {
+      args.subcommand = arg;
     } else {
       throw new ConfigError(`Unexpected argument: ${arg}`);
     }
@@ -100,6 +112,25 @@ export async function main(argv: string[]): Promise<number> {
       case 'apply': {
         await requireScopes(octokit, ['repo']);
         return apply(octokit, config, { repo: args.repo, type: args.type, yes: args.yes });
+      }
+      case 'classify': {
+        // admin:org is only needed to write, and only on an organisation.
+        // Requiring it to merely propose would lock out the read-only use.
+        await requireScopes(octokit, args.apply ? ['repo', 'admin:org'] : ['repo']);
+        return classify(octokit, config, { apply: args.apply });
+      }
+      case 'properties': {
+        if (args.subcommand !== 'sync') {
+          console.error(
+            args.subcommand
+              ? `Unknown subcommand: properties ${args.subcommand}\n`
+              : 'properties needs a subcommand: properties sync\n',
+          );
+          console.error(USAGE);
+          return 2;
+        }
+        await requireScopes(octokit, ['repo', 'admin:org']);
+        return propertiesSync(octokit, config);
       }
       default:
         console.error(`Unknown command: ${args.command}\n`);
