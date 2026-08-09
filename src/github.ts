@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import type { RepoState } from './types.js';
+import type { RepoDetail, RepoState } from './types.js';
 
 export class AuthError extends Error {}
 
@@ -71,6 +71,95 @@ export async function listRepos(octokit: Octokit, org: string): Promise<RepoStat
     homepage: r.homepage ?? null,
     topics: r.topics ?? [],
   }));
+}
+
+/**
+ * Everything `plan` compares against, flattened into the same dotted keys the
+ * configuration uses. Gathered per repository, because most of it is not in
+ * the organisation-wide listing and some of it has an endpoint of its own.
+ */
+export async function getRepoDetail(
+  octokit: Octokit,
+  org: string,
+  base: RepoState,
+): Promise<RepoDetail> {
+  const { data } = await octokit.repos.get({ owner: org, repo: base.name });
+  const analysis = (data as { security_and_analysis?: Record<string, { status?: string } | undefined> })
+    .security_and_analysis;
+  const enabled = (key: string): boolean | null => {
+    const status = analysis?.[key]?.status;
+    return status === undefined ? null : status === 'enabled';
+  };
+
+  const settings: RepoDetail['settings'] = {
+    'features.issues': data.has_issues ?? null,
+    'features.wiki': data.has_wiki ?? null,
+    'features.projects': data.has_projects ?? null,
+    'features.discussions': (data as { has_discussions?: boolean }).has_discussions ?? null,
+
+    'merge.allow_squash': data.allow_squash_merge ?? null,
+    'merge.allow_merge_commit': data.allow_merge_commit ?? null,
+    'merge.allow_rebase': data.allow_rebase_merge ?? null,
+    'merge.allow_auto_merge': data.allow_auto_merge ?? null,
+    'merge.allow_update_branch': data.allow_update_branch ?? null,
+    'merge.delete_branch_on_merge': data.delete_branch_on_merge ?? null,
+
+    'repo.description': data.description ?? null,
+    'repo.homepage': data.homepage ?? null,
+    'repo.topics': data.topics ?? [],
+    'repo.allow_forking': data.allow_forking ?? null,
+    'repo.web_commit_signoff_required':
+      (data as { web_commit_signoff_required?: boolean }).web_commit_signoff_required ?? null,
+
+    'security.secret_scanning': enabled('secret_scanning'),
+    'security.secret_scanning_push_protection': enabled('secret_scanning_push_protection'),
+  };
+
+  const [alerts, codeScanning] = await Promise.all([
+    probe(octokit, 'GET /repos/{owner}/{repo}/vulnerability-alerts', org, base.name),
+    codeScanningState(octokit, org, base.name),
+  ]);
+  settings['security.vulnerability_alerts'] = alerts;
+  settings['security.code_scanning_default_setup'] = codeScanning;
+
+  return { ...base, settings };
+}
+
+/**
+ * Endpoints that answer with a bare 204/404 rather than a body. `null` means
+ * the answer could not be read at all, which is different from "off" and must
+ * not be planned as a change.
+ */
+async function probe(
+  octokit: Octokit,
+  route: string,
+  owner: string,
+  repo: string,
+): Promise<boolean | null> {
+  try {
+    await octokit.request(route, { owner, repo });
+    return true;
+  } catch (error) {
+    const status = (error as { status?: number }).status;
+    if (status === 404) return false;
+    return null;
+  }
+}
+
+async function codeScanningState(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<boolean | null> {
+  try {
+    const { data } = await octokit.request(
+      'GET /repos/{owner}/{repo}/code-scanning/default-setup',
+      { owner, repo },
+    );
+    return (data as { state?: string }).state === 'configured';
+  } catch {
+    return null;
+  }
 }
 
 /**

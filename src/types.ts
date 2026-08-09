@@ -152,3 +152,23 @@ export interface RepoState {
   /** Resolved type, from the custom property or from `repos.<name>.type`. */
   type?: string;
 }
+
+/**
+ * Everything `plan` needs to compare against a policy. Some of it comes from
+ * the repository object and some from endpoints of its own, so it is gathered
+ * separately from the cheap inventory `audit` runs on.
+ */
+export interface RepoDetail extends RepoState {
+  settings: Record<string, boolean | string | string[] | null>;
+}
+
+/** One difference between what is declared and what the repository has. */
+export interface Change {
+  repo: string;
+  /** Dotted path of the setting, e.g. "merge.delete_branch_on_merge". */
+  key: string;
+  from: unknown;
+  to: unknown;
+  /** Set when the change cannot be applied; explains why, in plain words. */
+  blocked?: string;
+}
