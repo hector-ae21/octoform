@@ -47,6 +47,7 @@ function resolveFile(absolutePath: string, stack: string[]): Draft {
   }
 
   const { imports = [], ...ownContent } = parsed;
+  absolutizeFileSources(ownContent, dirname(absolutePath));
 
   let merged: Draft | undefined;
   for (const importPath of imports) {
@@ -56,6 +57,29 @@ function resolveFile(absolutePath: string, stack: string[]): Draft {
   }
 
   return merged ? mergeConfig(merged, ownContent) : ownContent;
+}
+
+/**
+ * Rewrite every `files[].from` to an absolute path, resolved against the file
+ * that declared it.
+ *
+ * A shared preset that seeds `files/dependabot/npm.yml` means a path next to
+ * itself, not next to whichever configuration happens to import it — the same
+ * rule `imports` already follows. Resolving it here, once, is what lets a
+ * preset be imported from anywhere without its file references breaking, and
+ * means nothing downstream has to remember which file a policy came from.
+ */
+function absolutizeFileSources(draft: Draft, dir: string): void {
+  const sets: Array<PolicySet | undefined> = [
+    draft.defaults,
+    ...Object.values(draft.types ?? {}),
+    ...Object.values(draft.repos ?? {}),
+  ];
+  for (const set of sets) {
+    for (const file of set?.files ?? []) {
+      if (file?.from) file.from = resolvePath(dir, file.from);
+    }
+  }
 }
 
 function validateTypeReferences(config: Config, path: string): void {

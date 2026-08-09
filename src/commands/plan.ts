@@ -57,8 +57,11 @@ export async function plan(
   const blocked: Change[] = [];
 
   for (const repo of targets) {
-    const detail = await getRepoDetail(octokit, config.owner, repo);
+    // Resolved first, and handed to the reader: most of what a plan could ask
+    // GitHub about costs a request per declared item, so the policy decides
+    // what is worth looking up at all.
     const policy = resolvePolicy(config, repo);
+    const detail = await getRepoDetail(octokit, config.owner, repo, policy);
     for (const change of planRepo(detail, policy, options)) {
       (change.blocked ? blocked : changes).push(change);
     }

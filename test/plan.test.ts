@@ -80,11 +80,12 @@ test('an unreadable current value is blocked, not silently applied', () => {
   assert.match(String(changes[0]?.blocked), /could not be read/);
 });
 
-test('an unimplemented policy is blamed on the tool, not on the configuration', () => {
-  const policy: PolicySet = { security: { automated_security_fixes: true } };
-  const changes = planRepo(repo(), policy, OPTIONS);
+test('a policy with no REST endpoint at all is blamed on the API, not on the configuration', () => {
+  const state = repo({ settings: { ...repo().settings, 'features.discussions': false } });
+  const policy: PolicySet = { features: { discussions: true } };
+  const changes = planRepo(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
-  assert.equal(changes[0]?.blocked, 'not implemented yet');
+  assert.equal(changes[0]?.blocked, 'not applicable over the REST API');
 });
 
 test('rulesets on a private repository are blocked when the plan does not enforce them', () => {
@@ -98,10 +99,187 @@ test('rulesets on a private repository are blocked when the plan does not enforc
   assert.match(String(changes[0]?.blocked), /not enforced on private/);
 });
 
-test('the same rulesets are not blocked on a public repository', () => {
+test('a public repository is not blocked for that reason, and a missing ruleset is created', () => {
   const policy: PolicySet = {
     rulesets: [{ name: 'protect', target_branches: ['main'] }],
   };
-  const changes = planRepo(repo(), policy, { rulesetsEnforcedOnPrivate: false });
-  assert.deepEqual(changes, []);
+  const changes = planRepo(repo({ structure: { rulesets: [] } }), policy, {
+    rulesetsEnforcedOnPrivate: false,
+  });
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0]?.key, 'rulesets.protect');
+  assert.equal(changes[0]?.blocked, undefined);
+  assert.equal(changes[0]?.from, null);
+});
+
+test('a ruleset that already matches is not planned again', () => {
+  const policy: PolicySet = {
+    rulesets: [
+      {
+        name: 'protect',
+        target_branches: ['v*.x'],
+        required_approvals: 1,
+        required_checks: ['CI complete'],
+        block_force_push: true,
+        block_deletion: true,
+      },
+    ],
+  };
+  const state = repo({
+    structure: {
+      rulesets: [
+        {
+          id: 7,
+          name: 'protect',
+          target_branches: ['v*.x'],
+          required_approvals: 1,
+          required_checks: ['CI complete'],
+          block_force_push: true,
+          block_deletion: true,
+        },
+      ],
+    },
+  });
+  assert.deepEqual(planRepo(state, policy, OPTIONS), []);
+});
+
+test('a ruleset that differs is updated in place, carrying the id it already has', () => {
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['v*.x'], required_approvals: 2 }],
+  };
+  const state = repo({
+    structure: {
+      rulesets: [
+        {
+          id: 7,
+          name: 'protect',
+          target_branches: ['v*.x'],
+          required_approvals: 1,
+          block_force_push: false,
+          block_deletion: false,
+        },
+      ],
+    },
+  });
+  const changes = planRepo(state, policy, OPTIONS);
+  assert.equal(changes.length, 1);
+  assert.deepEqual(changes[0]?.payload, { ruleset: policy.rulesets?.[0], id: 7 });
+});
+
+test('rulesets that could not be read are blocked rather than assumed missing', () => {
+  const policy: PolicySet = { rulesets: [{ name: 'protect', target_branches: ['main'] }] };
+  const changes = planRepo(repo({ structure: {} }), policy, OPTIONS);
+  assert.equal(changes.length, 1);
+  assert.match(String(changes[0]?.blocked), /could not read/);
+});
+
+test('the default branch is renamed only from a name the configuration anticipated', () => {
+  const policy: PolicySet = { default_branch: { name: 'v0.x', rename_from: ['master'] } };
+  const changes = planRepo(repo({ default_branch: 'trunk' }), policy, OPTIONS);
+  assert.equal(changes.length, 1);
+  assert.match(String(changes[0]?.blocked), /not in rename_from/);
+});
+
+test('a rename that was anticipated goes ahead and names the workflows it will break', () => {
+  const policy: PolicySet = { default_branch: { name: 'main', rename_from: ['master'] } };
+  const state = repo({
+    default_branch: 'master',
+    structure: { workflowsNamingDefaultBranch: ['.github/workflows/ci.yml'] },
+  });
+  const changes = planRepo(state, policy, OPTIONS);
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0]?.blocked, undefined);
+  assert.match(String(changes[0]?.warning), /ci\.yml/);
+  assert.deepEqual(changes[0]?.payload, { from: 'master', to: 'main' });
+});
+
+test('a default branch that already has the wanted name is not a change', () => {
+  const policy: PolicySet = { default_branch: { name: 'main' } };
+  assert.deepEqual(planRepo(repo(), policy, OPTIONS), []);
+});
+
+test('ensure_branches creates what is missing and leaves what is there alone', () => {
+  const policy: PolicySet = { ensure_branches: ['main', 'develop'] };
+  const state = repo({ structure: { branches: { main: true, develop: false } } });
+  const changes = planRepo(state, policy, OPTIONS);
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0]?.key, 'ensure_branches.develop');
+  assert.deepEqual(changes[0]?.payload, { branch: 'develop', from: 'main' });
+});
+
+test('an environment that exists is not re-created', () => {
+  const policy: PolicySet = { environments: [{ name: 'npm' }] };
+  const state = repo({ structure: { environments: ['npm'] } });
+  assert.deepEqual(planRepo(state, policy, OPTIONS), []);
+});
+
+test('a missing environment is planned with its reviewers', () => {
+  const policy: PolicySet = { environments: [{ name: 'npm', reviewers: ['someone'] }] };
+  const state = repo({ structure: { environments: [] } });
+  const changes = planRepo(state, policy, OPTIONS);
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0]?.key, 'environments.npm');
+  assert.match(String(changes[0]?.to), /someone/);
+});
+
+test('a file that is already there is never re-seeded', () => {
+  const policy: PolicySet = {
+    files: [{ path: '.github/dependabot.yml', from: '/presets/dependabot.yml', mode: 'create-if-missing' }],
+  };
+  const state = repo({ structure: { files: { '.github/dependabot.yml': true } } });
+  assert.deepEqual(planRepo(state, policy, OPTIONS), []);
+});
+
+test('a missing file is planned, carrying the local source to copy', () => {
+  const file = {
+    path: '.github/dependabot.yml',
+    from: '/presets/dependabot.yml',
+    mode: 'create-if-missing' as const,
+  };
+  const state = repo({ structure: { files: { '.github/dependabot.yml': false } } });
+  const changes = planRepo(state, { files: [file] }, OPTIONS);
+  assert.equal(changes.length, 1);
+  assert.deepEqual(changes[0]?.payload, { file });
+});
+
+/**
+ * The guarantee `apply` rests on: a repository that already matches every part
+ * of its policy produces no changes at all, so a second `apply` has nothing to
+ * do. Covers all the structured policies at once, since each of them compares
+ * differently and any one of them reporting a phantom difference would make
+ * every run mutate something.
+ */
+test('a repository that already matches its whole policy plans nothing', () => {
+  const policy: PolicySet = {
+    features: { issues: true, wiki: true },
+    merge: { delete_branch_on_merge: false },
+    repo: { topics: ['a'] },
+    default_branch: { name: 'main' },
+    ensure_branches: ['main'],
+    environments: [{ name: 'npm' }],
+    files: [{ path: 'LICENSE', from: '/presets/LICENSE', mode: 'create-if-missing' }],
+    rulesets: [
+      { name: 'protect', target_branches: ['main'], required_approvals: 1, block_force_push: true },
+    ],
+  };
+  const state = repo({
+    settings: { ...repo().settings, 'repo.topics': ['a'] },
+    structure: {
+      branches: { main: true },
+      environments: ['npm'],
+      files: { LICENSE: true },
+      rulesets: [
+        {
+          id: 1,
+          name: 'protect',
+          target_branches: ['main'],
+          required_approvals: 1,
+          block_force_push: true,
+          block_deletion: false,
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(planRepo(state, policy, OPTIONS), []);
 });

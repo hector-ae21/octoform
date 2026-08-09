@@ -1,6 +1,13 @@
 import { Octokit } from '@octokit/rest';
 import { UNREADABLE } from '../config/types.js';
-import type { OwnerKind, RepoDetail, RepoState } from '../config/types.js';
+import type {
+  ExistingRuleset,
+  OwnerKind,
+  PolicySet,
+  RepoDetail,
+  RepoState,
+  RepoStructure,
+} from '../config/types.js';
 
 export class AuthError extends Error {}
 
@@ -150,6 +157,7 @@ export async function getRepoDetail(
   octokit: Octokit,
   owner: string,
   base: RepoState,
+  policy?: PolicySet,
 ): Promise<RepoDetail> {
   const { data } = await octokit.repos.get({ owner, repo: base.name });
   const analysis = (data as { security_and_analysis?: Record<string, { status?: string } | undefined> })
@@ -183,14 +191,241 @@ export async function getRepoDetail(
     'security.secret_scanning_push_protection': enabled('secret_scanning_push_protection'),
   };
 
-  const [alerts, codeScanning] = await Promise.all([
+  const [alerts, codeScanning, autoFixes, privateReporting] = await Promise.all([
     probe(octokit, 'GET /repos/{owner}/{repo}/vulnerability-alerts', owner, base.name),
     codeScanningState(octokit, owner, base.name),
+    // Unlike vulnerability-alerts, these two answer with a body rather than by
+    // the status code alone, so a 404 here means the endpoint was not reachable
+    // at all rather than "the feature is off".
+    enabledFlag(octokit, 'GET /repos/{owner}/{repo}/automated-security-fixes', owner, base.name),
+    enabledFlag(octokit, 'GET /repos/{owner}/{repo}/private-vulnerability-reporting', owner, base.name),
   ]);
   settings['security.vulnerability_alerts'] = alerts;
   settings['security.code_scanning_default_setup'] = codeScanning;
+  settings['security.automated_security_fixes'] = autoFixes;
+  settings['security.private_vulnerability_reporting'] = privateReporting;
 
-  return { ...base, settings };
+  const structure = policy ? await getRepoStructure(octokit, owner, base, policy) : undefined;
+
+  return { ...base, settings, ...(structure ? { structure } : {}) };
+}
+
+/**
+ * Gather only what this repository's policy actually asks about.
+ *
+ * Each of these costs at least one request, several cost one per declared
+ * item, and most repositories declare none of them — so nothing here is
+ * fetched speculatively. Every field is left `undefined` when it could not be
+ * read, which `plan` reports as blocked rather than treating as "absent".
+ */
+async function getRepoStructure(
+  octokit: Octokit,
+  owner: string,
+  base: RepoState,
+  policy: PolicySet,
+): Promise<RepoStructure | undefined> {
+  const structure: RepoStructure = {};
+  let asked = false;
+
+  if (policy.environments?.length) {
+    asked = true;
+    structure.environments = await listEnvironments(octokit, owner, base.name);
+  }
+
+  if (policy.rulesets?.length) {
+    asked = true;
+    structure.rulesets = await listRulesets(octokit, owner, base.name);
+  }
+
+  if (policy.ensure_branches?.length) {
+    asked = true;
+    const entries = await Promise.all(
+      policy.ensure_branches.map(async (branch) => {
+        const exists = await probe(octokit, 'GET /repos/{owner}/{repo}/branches/{branch}', owner, base.name, {
+          branch,
+        });
+        return [branch, exists] as const;
+      }),
+    );
+    if (entries.every(([, exists]) => exists !== UNREADABLE)) {
+      structure.branches = Object.fromEntries(entries as Array<readonly [string, boolean]>);
+    }
+  }
+
+  if (policy.files?.length) {
+    asked = true;
+    const entries = await Promise.all(
+      policy.files.map(async (file) => {
+        const exists = await probe(octokit, 'GET /repos/{owner}/{repo}/contents/{path}', owner, base.name, {
+          path: file.path,
+        });
+        return [file.path, exists] as const;
+      }),
+    );
+    if (entries.every(([, exists]) => exists !== UNREADABLE)) {
+      structure.files = Object.fromEntries(entries as Array<readonly [string, boolean]>);
+    }
+  }
+
+  // Only worth the requests when a rename is actually on the table: reading
+  // every workflow file of every repository on every run, to answer a question
+  // nobody asked, would dominate the cost of a plan.
+  const wantedBranch = policy.default_branch?.name;
+  if (wantedBranch && base.default_branch && wantedBranch !== base.default_branch) {
+    asked = true;
+    structure.workflowsNamingDefaultBranch = await workflowsNaming(
+      octokit,
+      owner,
+      base.name,
+      base.default_branch,
+    );
+  }
+
+  return asked ? structure : undefined;
+}
+
+async function listEnvironments(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<string[] | undefined> {
+  try {
+    const { data } = await octokit.request('GET /repos/{owner}/{repo}/environments', { owner, repo });
+    const list = (data as { environments?: Array<{ name: string }> }).environments ?? [];
+    return list.map((e) => e.name);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Repository rulesets, reduced to the rules octoform models.
+ *
+ * The list endpoint returns summaries with no rules in them, so each ruleset
+ * has to be fetched again by id to see what it actually enforces. That is one
+ * extra request per existing ruleset, which is why this only runs for a
+ * repository whose policy declares at least one.
+ */
+async function listRulesets(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<ExistingRuleset[] | undefined> {
+  try {
+    const { data } = await octokit.request('GET /repos/{owner}/{repo}/rulesets', { owner, repo });
+    const summaries = data as Array<{ id: number; name: string }>;
+
+    const full = await Promise.all(
+      summaries.map(async (summary) => {
+        const res = await octokit.request('GET /repos/{owner}/{repo}/rulesets/{ruleset_id}', {
+          owner,
+          repo,
+          ruleset_id: summary.id,
+        });
+        return toExistingRuleset(res.data as RawRuleset);
+      }),
+    );
+    return full;
+  } catch {
+    return undefined;
+  }
+}
+
+interface RawRuleset {
+  id: number;
+  name: string;
+  conditions?: { ref_name?: { include?: string[] } };
+  rules?: Array<{ type: string; parameters?: Record<string, unknown> }>;
+}
+
+function toExistingRuleset(raw: RawRuleset): ExistingRuleset {
+  const rules = raw.rules ?? [];
+  const pullRequest = rules.find((r) => r.type === 'pull_request');
+  const statusChecks = rules.find((r) => r.type === 'required_status_checks');
+
+  const approvals = pullRequest?.parameters?.['required_approving_review_count'];
+  const checks = statusChecks?.parameters?.['required_status_checks'] as
+    | Array<{ context?: string }>
+    | undefined;
+
+  return {
+    id: raw.id,
+    name: raw.name,
+    target_branches: (raw.conditions?.ref_name?.include ?? []).map(fromRefName),
+    ...(typeof approvals === 'number' ? { required_approvals: approvals } : {}),
+    ...(checks ? { required_checks: checks.map((c) => c.context ?? '').filter(Boolean) } : {}),
+    // GitHub names these after what they permit, not what they block:
+    // non_fast_forward present means force-pushing is refused.
+    block_force_push: rules.some((r) => r.type === 'non_fast_forward'),
+    block_deletion: rules.some((r) => r.type === 'deletion'),
+  };
+}
+
+/**
+ * Ruleset conditions are stored as full refs (`refs/heads/main`), except for
+ * the `~ALL` / `~DEFAULT_BRANCH` placeholders, which stand on their own. The
+ * configuration says `main`, so the two forms are translated at this boundary
+ * and nowhere else — `plan` compares branch names, not refs.
+ */
+export function toRefName(branch: string): string {
+  if (branch.startsWith('~')) return branch;
+  if (branch.startsWith('refs/')) return branch;
+  return `refs/heads/${branch}`;
+}
+
+function fromRefName(ref: string): string {
+  if (ref.startsWith('~')) return ref;
+  return ref.replace(/^refs\/heads\//, '');
+}
+
+/**
+ * Workflow files that mention a branch name. Used to warn before a rename,
+ * since `on: push: branches: [old-name]` keeps parsing fine and simply stops
+ * matching anything — a failure mode with no error message attached to it.
+ */
+async function workflowsNaming(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  branch: string,
+): Promise<string[] | undefined> {
+  try {
+    const { data } = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+      owner,
+      repo,
+      path: '.github/workflows',
+    });
+    const entries = data as Array<{ name: string; path: string; type: string }>;
+    const files = entries.filter((e) => e.type === 'file' && /\.ya?ml$/.test(e.name));
+
+    const naming = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const res = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+            owner,
+            repo,
+            path: file.path,
+          });
+          const content = (res.data as { content?: string }).content ?? '';
+          const text = Buffer.from(content, 'base64').toString('utf8');
+          // Word boundaries so that renaming "main" does not match "domain".
+          const mentions = new RegExp(`\\b${escapeRegExp(branch)}\\b`).test(text);
+          return mentions ? file.path : undefined;
+        } catch {
+          return undefined;
+        }
+      }),
+    );
+    return naming.filter((path): path is string => path !== undefined);
+  } catch (error) {
+    // No workflows directory at all is a real answer, not a failure to read.
+    if ((error as { status?: number }).status === 404) return [];
+    return undefined;
+  }
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
@@ -203,13 +438,35 @@ async function probe(
   route: string,
   owner: string,
   repo: string,
+  extra: Record<string, string> = {},
 ): Promise<boolean | typeof UNREADABLE> {
   try {
-    await octokit.request(route, { owner, repo });
+    await octokit.request(route, { owner, repo, ...extra });
     return true;
   } catch (error) {
     const status = (error as { status?: number }).status;
     if (status === 404) return false;
+    return UNREADABLE;
+  }
+}
+
+/**
+ * Endpoints that answer 200 with `{ enabled: boolean }` rather than encoding
+ * the answer in the status code. A 404 from one of these is not "disabled" —
+ * it means the endpoint was not reachable for this repository at all, which is
+ * exactly the case `UNREADABLE` exists for.
+ */
+async function enabledFlag(
+  octokit: Octokit,
+  route: string,
+  owner: string,
+  repo: string,
+): Promise<boolean | typeof UNREADABLE> {
+  try {
+    const { data } = await octokit.request(route, { owner, repo });
+    const enabled = (data as { enabled?: boolean }).enabled;
+    return typeof enabled === 'boolean' ? enabled : UNREADABLE;
+  } catch {
     return UNREADABLE;
   }
 }
@@ -264,6 +521,77 @@ export async function readPropertyValues(
     throw error;
   }
   return values;
+}
+
+/**
+ * A file's contents, or null when the repository does not have it.
+ *
+ * Only used for classification, where "no such file" is the answer half the
+ * rules are looking for rather than a failure.
+ */
+export async function readRepoFile(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  path: string,
+): Promise<string | null> {
+  try {
+    const { data } = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
+      owner,
+      repo,
+      path,
+    });
+    const content = (data as { content?: string; encoding?: string }).content;
+    if (typeof content !== 'string') return null;
+    return Buffer.from(content, 'base64').toString('utf8');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Create or update the custom property definition itself.
+ *
+ * `allowed_values` is not declared anywhere in the configuration: it is the
+ * set of type names under `types`. Asking an author to list them twice is
+ * asking for the two lists to disagree, and the one that would silently win is
+ * the one GitHub stores rather than the one the file shows.
+ */
+export async function putPropertySchema(
+  octokit: Octokit,
+  org: string,
+  property: string,
+  allowedValues: string[],
+): Promise<void> {
+  await octokit.request('PUT /orgs/{org}/properties/schema/{custom_property_name}', {
+    org,
+    custom_property_name: property,
+    value_type: 'single_select',
+    allowed_values: allowedValues,
+    // No default: a repository with no value is "not classified yet", which is
+    // a finding worth reporting. A default would quietly answer the question
+    // for every repository nobody has looked at.
+    required: false,
+  });
+}
+
+/**
+ * Assign a property value to repositories, in one call for each distinct
+ * value: the endpoint takes a list of repositories and a list of properties,
+ * so a whole type's worth of repositories costs a single request.
+ */
+export async function setPropertyValues(
+  octokit: Octokit,
+  org: string,
+  property: string,
+  value: string,
+  repos: string[],
+): Promise<void> {
+  await octokit.request('PATCH /orgs/{org}/properties/values', {
+    org,
+    repository_names: repos,
+    properties: [{ property_name: property, value }],
+  });
 }
 
 /**

@@ -72,6 +72,7 @@ export interface RulesetPolicy {
 
 export interface EnvironmentPolicy {
   name: string;
+  /** GitHub logins that must approve a deployment to this environment. */
   reviewers?: string[];
 }
 
@@ -79,6 +80,7 @@ export type FileMode = 'create-if-missing';
 
 export interface FilePolicy {
   path: string;
+  /** Path to the local file to copy, relative to the configuration file. */
   from: string;
   mode: FileMode;
 }
@@ -192,8 +194,49 @@ export const UNREADABLE = Symbol('unreadable');
 
 export type SettingValue = boolean | string | string[] | null | typeof UNREADABLE;
 
+/**
+ * A ruleset as it exists on GitHub right now, reduced to the parts octoform
+ * manages. Everything else GitHub stores on a ruleset — bypass actors, rules
+ * octoform does not model — is deliberately absent: `plan` must not offer to
+ * remove a rule it never knew how to describe.
+ */
+export interface ExistingRuleset {
+  id: number;
+  name: string;
+  target_branches: string[];
+  required_approvals?: number;
+  required_checks?: string[];
+  block_force_push: boolean;
+  block_deletion: boolean;
+}
+
+/**
+ * State that costs an extra request each, so it is only gathered when a policy
+ * actually asks about it.
+ *
+ * Every field distinguishes "not gathered, or could not be read" (undefined)
+ * from "gathered, and there is nothing" (an empty array or map). Collapsing
+ * the two would make `plan` offer to create things it simply failed to look at.
+ */
+export interface RepoStructure {
+  /** Names of the environments that exist. */
+  environments?: string[];
+  rulesets?: ExistingRuleset[];
+  /** Path -> whether it exists, for the paths a `files` policy named. */
+  files?: Record<string, boolean>;
+  /** Branch -> whether it exists, for the branches `ensure_branches` named. */
+  branches?: Record<string, boolean>;
+  /**
+   * Workflow files that mention the current default branch by name. Renaming
+   * the branch does not rewrite these, so they are the collateral damage of a
+   * rename and have to be named before it happens, not discovered after.
+   */
+  workflowsNamingDefaultBranch?: string[];
+}
+
 export interface RepoDetail extends RepoState {
   settings: Record<string, SettingValue>;
+  structure?: RepoStructure;
 }
 
 /** One difference between what is declared and what the repository has. */
@@ -205,4 +248,16 @@ export interface Change {
   to: unknown;
   /** Set when the change cannot be applied; explains why, in plain words. */
   blocked?: string;
+  /**
+   * Set when the change will be applied but has a consequence the operator
+   * should know about first. Distinct from `blocked`: this one still happens.
+   */
+  warning?: string;
+  /**
+   * What `apply` needs to carry the change out, for the changes whose `to` is
+   * a sentence meant for a human rather than a value an endpoint accepts. A
+   * ruleset reads as "v*.x, 1 approval" in the report; the API wants the
+   * policy object it came from.
+   */
+  payload?: unknown;
 }
