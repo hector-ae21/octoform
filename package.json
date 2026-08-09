@@ -1,0 +1,42 @@
+{
+  "name": "octoform",
+  "version": "0.1.0",
+  "description": "Declarative plan/apply governance for GitHub repositories",
+  "license": "MIT",
+  "author": "Hector Arrechea",
+  "type": "module",
+  "bin": {
+    "octoform": "bin/octoform.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "example.yml"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc && node --test \"dist/**/*.test.js\"",
+    "start": "node bin/octoform.js"
+  },
+  "dependencies": {
+    "@octokit/rest": "^21.0.0",
+    "yaml": "^2.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "github",
+    "governance",
+    "octokit",
+    "rulesets",
+    "branch-protection",
+    "repository-settings",
+    "compliance"
+  ]
+}

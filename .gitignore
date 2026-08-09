@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.tsbuildinfo
+*.log
+
+# Real configuration files describe someone's actual repositories, including
+# private ones. Only example.yml is meant to be committed here.
+octoform.yml
+*.octoform.yml
+!example.yml
