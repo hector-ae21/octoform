@@ -1,7 +1,9 @@
 # octoform configuration.
 #
 # Everything specific to your setup lives here. octoform itself knows nothing
-# about npm, Moodle, or what any of these type names mean.
+# about any ecosystem, and the type names below are invented for this example —
+# `library`, `application`, `internal` mean whatever your file says they mean.
+# Call them anything you like.
 #
 # Every setting is tri-state:
 #
@@ -20,6 +22,8 @@
 #   repos.<name>.<key>: null   stop managing that one setting there
 #   repos.<name>.manage: false audit it, apply nothing
 #   exclude.repos: [...]       drop it entirely
+#
+# Full reference for every key: docs/configuration.md
 
 # A GitHub organisation or a personal account — octoform asks the API which
 # one this is, so nothing else in this file changes either way. The main
@@ -38,8 +42,8 @@ owner: example-org
 # this file's own content overrides every import. See examples/shared-presets/.
 #
 # imports:
-#   - presets/npm-library.yml
-#   - presets/security-baseline.yml
+#   - presets/baseline.yml
+#   - presets/library.yml
 
 # Where a repository's type comes from. Omit this block and everything falls
 # under `defaults`. The custom property is the usual source on an
@@ -49,12 +53,18 @@ owner: example-org
 classify:
   property: project-type
   rules:
-    - when: { file_exists: version.php }
-      type: moodle-plugin
+    # First match wins, so order matters and narrower rules go first: a
+    # package.json with `private: true` has to be tested before plain
+    # package.json, or the second would swallow every application. octoform
+    # has no idea which of your rules is the narrower one — that is why the
+    # order is yours to decide.
     - when: { file_exists: package.json, json: { private: true } }
-      type: frontend-app
+      type: application
     - when: { file_exists: package.json }
-      type: npm-package
+      type: library
+    # An empty `when` matches everything, which is how you write a catch-all.
+    - when: { visibility: private }
+      type: internal
 
 # Read-only expectations. These never change anything; they exist so that
 # "every public repository needs a description" is configuration, not code.
@@ -97,10 +107,16 @@ defaults:
 # decision for your own project, not something octoform prescribes — the
 # three types below make three different, equally arbitrary choices, and
 # examples/branch-patterns/ walks through more.
+#
+# NOTE: `rulesets`, `environments`, `files` and `ensure_branches` are lists,
+# and lists REPLACE rather than merge. A type declaring `rulesets` does not
+# inherit the ones in `defaults` — it replaces them, and has to restate
+# anything it still wants. That is what lets a repository opt out of a rule
+# its type declares.
 types:
-  npm-package:
+  library:
     environments:
-      - name: npm
+      - name: release
     files:
       # `from` is a local path, resolved against THIS file — so a preset that
       # is imported from somewhere else still finds the files sitting next to
@@ -108,35 +124,45 @@ types:
       # what is absent is safe, overwriting whatever a repository already has
       # at that path is not.
       - path: .github/dependabot.yml
-        from: files/dependabot/npm.yml
+        from: files/dependabot.yml
         mode: create-if-missing
     rulesets:
-      - name: default-branch
-        target_branches: ['~DEFAULT_BRANCH']
+      - name: release-branches
+        # One branch per maintained major, plus the default branch itself so
+        # the rule is still correct before that scheme is adopted.
+        target_branches: ['v*.x', '~DEFAULT_BRANCH']
         required_approvals: 1
-        required_checks: [verify]
+        # Name a check only if the repository's CI actually produces it. A
+        # required check that never reports blocks every merge on that branch,
+        # permanently, with no override short of editing the ruleset.
+        required_checks: [build]
         block_force_push: true
         block_deletion: true
 
-  moodle-plugin:
+  application:
     ensure_branches: [main]
-    files:
-      - path: .github/dependabot.yml
-        from: files/dependabot/composer.yml
-        mode: create-if-missing
     rulesets:
-      - name: main-branch
-        target_branches: [main]
+      # Two rulesets rather than one, because the two branches want different
+      # things: merging into what production runs deserves a review, while
+      # requiring one on a daily integration branch only teaches everyone to
+      # work around it.
+      - name: stable-branch
+        target_branches: ['~DEFAULT_BRANCH']
         required_approvals: 1
-        required_checks: ['CI complete']
+        block_force_push: true
+        block_deletion: true
+      - name: integration-branch
+        target_branches: [develop]
         block_force_push: true
         block_deletion: true
 
-  service:
+  internal:
     rulesets:
-      - name: default-branch
+      - name: protected-branches
         target_branches: ['~DEFAULT_BRANCH']
-        required_approvals: 1
+        # No required_approvals: this is also what you want for a repository a
+        # bot pushes to, since a rule requiring a pull request applies to
+        # GITHUB_TOKEN exactly as it applies to a person.
         block_force_push: true
         block_deletion: true
 

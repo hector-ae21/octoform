@@ -131,9 +131,9 @@ Proposes a type for each repository that has none, using
 ```
 3 proposal(s):
 
-  some-library      npm-package
-  some-plugin       moodle-plugin
-  some-app          frontend-app
+  some-library      library
+  some-service      application
+  some-tooling      internal
 
 1 matched no rule and are left alone: mystery-repo
 
