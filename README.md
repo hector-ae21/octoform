@@ -44,6 +44,7 @@ together or not at all.
 | [docs/concepts.md](docs/concepts.md) | Tri-state settings, layered precedence, and why nothing is ever skipped in silence. **Read this first.** |
 | [docs/configuration.md](docs/configuration.md) | Every key `octoform.yml` accepts, what it does, what it maps to on GitHub, and when it cannot be applied. |
 | [docs/commands.md](docs/commands.md) | Every command and flag, what each is allowed to change, exit codes, and token scopes. |
+| [docs/domain-model.md](docs/domain-model.md) | The types themselves, as a diagram — declared policy, observed state, and the `Change` produced by comparing them. |
 
 ## Why
 
