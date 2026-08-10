@@ -107,12 +107,12 @@ that have none.
 classify:
   property: project-type
   rules:
-    - when: { file_exists: version.php }
-      type: moodle-plugin
     - when: { file_exists: package.json, json: { private: true } }
-      type: frontend-app
+      type: application
     - when: { file_exists: package.json }
-      type: npm-package
+      type: library
+    - when: { visibility: private }
+      type: internal
 ```
 
 | Key | Type | Meaning |
