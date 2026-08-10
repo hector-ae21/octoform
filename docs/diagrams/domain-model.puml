@@ -87,7 +87,7 @@ class RepoDetail <<Repo>> {
 }
 
 class RepoStructure <<Repo>> {
-    +string[] environments
+    +ExistingEnvironment[] environments
     +ExistingRuleset[] rulesets
     +Map branches
 }
