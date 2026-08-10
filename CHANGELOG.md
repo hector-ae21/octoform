@@ -9,11 +9,16 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-08-10
+## [0.2.1] - 2026-08-10
 
 The configuration model was complete in 0.1.0; `apply` was not. This closes
 that gap — everything the YAML can declare, `apply` now carries out — and
 turns the branching scheme this tool prescribes on the tool itself.
+
+0.2.0 was tagged but never published: the release pipeline caught the
+`--help` exit code below and stopped before publishing, which is what it is
+there for. Nothing was released under that number, so this is the first
+version carrying any of the changes here.
 
 ### Added
 
@@ -55,6 +60,12 @@ turns the branching scheme this tool prescribes on the tool itself.
 - `ci.yml` skipped its entire test matrix on a manual tag push. A reusable
   workflow inherits the caller's event, so `github.event_name` was still
   `push` and the gate `release.yml` depends on ran nothing at all.
+- `octoform --help` exited 2. Asking for help is not a usage error, and a
+  release job running it as a smoke test — or any script checking the exit
+  code — is right to treat a non-zero as failure. Running with no command at
+  all still exits 2, because there the usage text really is an error message.
+  Never caught before because 0.1.0 was published by hand, so the step that
+  runs it had never actually executed.
 - The CLI ran a stale build without saying so. `bin/octoform.js` executes
   `dist/`, so a failed or forgotten `npm run build` meant the previous build
   kept running — and its failure mode is quietly doing less than you asked
