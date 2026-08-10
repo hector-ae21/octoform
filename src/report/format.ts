@@ -1,9 +1,19 @@
 import { UNREADABLE } from '../config/types.js';
 import type { Change } from '../config/types.js';
 
-/** One planned change, as a single line: `key: from -> to`. */
+/**
+ * One planned change, as a single line: `key: from -> to`.
+ *
+ * A blocked change says why it will not happen; a warned one says what it will
+ * break on its way through. Both are appended rather than filtered out — the
+ * point of the report is that nothing is silently dropped.
+ */
 export function formatChange(change: Change): string {
-  const suffix = change.blocked ? `  [skipped: ${change.blocked}]` : '';
+  const suffix = change.blocked
+    ? `  [skipped: ${change.blocked}]`
+    : change.warning
+      ? `  [warning: ${change.warning}]`
+      : '';
   return `${change.key}: ${display(change.from)} -> ${display(change.to)}${suffix}`;
 }
 

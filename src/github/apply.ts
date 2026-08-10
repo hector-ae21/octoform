@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
 import type { Octokit } from '@octokit/rest';
-import type { Change } from '../config/types.js';
+import { toRefName } from './client.js';
+import type { Change, EnvironmentPolicy, FilePolicy, RulesetPolicy } from '../config/types.js';
 
 export interface AppliedChange extends Change {
   outcome: 'applied' | 'failed';
@@ -31,6 +33,16 @@ const SECURITY_AND_ANALYSIS_FIELDS: Record<string, string> = {
 };
 
 /**
+ * Security toggles that are their own endpoint, enabled with PUT and disabled
+ * with DELETE, with no request body either way.
+ */
+const PUT_DELETE_TOGGLES: Record<string, string> = {
+  'security.vulnerability_alerts': '/repos/{owner}/{repo}/vulnerability-alerts',
+  'security.automated_security_fixes': '/repos/{owner}/{repo}/automated-security-fixes',
+  'security.private_vulnerability_reporting': '/repos/{owner}/{repo}/private-vulnerability-reporting',
+};
+
+/**
  * Apply every change `plan` found for one repository that is not blocked.
  *
  * Grouped by the endpoint each key actually belongs to, not one call per
@@ -38,12 +50,15 @@ const SECURITY_AND_ANALYSIS_FIELDS: Record<string, string> = {
  * merge options, description, homepage, and the two security_and_analysis
  * toggles, which GitHub nests inside the same PATCH rather than exposing
  * separately — goes in a single request. Enabling five such settings costs
- * one API call, not five. Topics, vulnerability alerts and code scanning
- * default setup each have their own endpoint and are called on their own.
+ * one API call, not five. Everything else has an endpoint of its own.
  *
  * Each group succeeds or fails together: if the one PATCH request for a
  * repository's settings fails, every change bundled into it is reported as
  * failed with the same reason, since none of them actually happened.
+ *
+ * Order is deliberate where it matters. The default branch is renamed before
+ * anything that could name a branch, so a ruleset or a seeded file lands
+ * against the name the configuration actually declares.
  */
 export async function applyRepoChanges(
   octokit: Octokit,
@@ -104,13 +119,12 @@ export async function applyRepoChanges(
     );
   }
 
-  const alerts = changes.find((c) => c.key === 'security.vulnerability_alerts');
-  if (alerts) {
+  for (const [key, path] of Object.entries(PUT_DELETE_TOGGLES)) {
+    const change = changes.find((c) => c.key === key);
+    if (!change) continue;
     results.push(
-      await attempt(alerts, () =>
-        alerts.to
-          ? octokit.request('PUT /repos/{owner}/{repo}/vulnerability-alerts', { owner, repo })
-          : octokit.request('DELETE /repos/{owner}/{repo}/vulnerability-alerts', { owner, repo }),
+      await attempt(change, () =>
+        octokit.request(`${change.to ? 'PUT' : 'DELETE'} ${path}`, { owner, repo }),
       ),
     );
   }
@@ -128,7 +142,196 @@ export async function applyRepoChanges(
     );
   }
 
+  const rename = changes.find((c) => c.key === 'default_branch.name');
+  if (rename) {
+    const payload = rename.payload as { from: string; to: string } | undefined;
+    results.push(
+      await attempt(rename, async () => {
+        if (!payload) throw new Error('no branch to rename from');
+        // GitHub retargets open pull requests and redirects the old name on
+        // its own. What it does not do is rewrite workflows or anyone's
+        // clone — plan already warned about the former.
+        await octokit.request('POST /repos/{owner}/{repo}/branches/{branch}/rename', {
+          owner,
+          repo,
+          branch: payload.from,
+          new_name: payload.to,
+        });
+      }),
+    );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('ensure_branches.'))) {
+    const payload = change.payload as { branch: string; from: string } | undefined;
+    results.push(
+      await attempt(change, async () => {
+        if (!payload?.from) throw new Error('no source branch to create from');
+        // Points the new branch at whatever the source branch currently is.
+        // Creating it is the whole contract: octoform never moves a branch
+        // that already exists.
+        const { data } = await octokit.request('GET /repos/{owner}/{repo}/git/ref/{ref}', {
+          owner,
+          repo,
+          ref: `heads/${payload.from}`,
+        });
+        await octokit.request('POST /repos/{owner}/{repo}/git/refs', {
+          owner,
+          repo,
+          ref: `refs/heads/${payload.branch}`,
+          sha: (data as { object: { sha: string } }).object.sha,
+        });
+      }),
+    );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('environments.'))) {
+    const payload = change.payload as { environment: EnvironmentPolicy } | undefined;
+    results.push(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no environment to create');
+        const reviewers = await resolveReviewers(octokit, payload.environment.reviewers ?? []);
+        // Sent unconditionally, empty list included: an environment declared
+        // with no reviewers means no reviewers, which is a policy, not an
+        // omission.
+        await octokit.request('PUT /repos/{owner}/{repo}/environments/{environment_name}', {
+          owner,
+          repo,
+          environment_name: payload.environment.name,
+          reviewers,
+        });
+      }),
+    );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('rulesets.'))) {
+    const payload = change.payload as { ruleset: RulesetPolicy; id?: number } | undefined;
+    results.push(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no ruleset to apply');
+        const body = rulesetBody(payload.ruleset);
+        // The route goes through a `string` variable on purpose, which selects
+        // Octokit's generic request signature instead of the one generated for
+        // this specific endpoint. The generated type expects `rules` to be a
+        // discriminated union, and these rules are assembled conditionally, so
+        // there is no point at which TypeScript can tell which member each one
+        // is. Same gap as the PATCH above, one step further along. `probe` in
+        // client.ts relies on the same fallback.
+        const route: string =
+          payload.id === undefined
+            ? 'POST /repos/{owner}/{repo}/rulesets'
+            : 'PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}';
+        await octokit.request(route, {
+          owner,
+          repo,
+          ...(payload.id === undefined ? {} : { ruleset_id: payload.id }),
+          ...body,
+        });
+      }),
+    );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('files.'))) {
+    const payload = change.payload as { file: FilePolicy } | undefined;
+    results.push(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no file to seed');
+        let content: string;
+        try {
+          content = readFileSync(payload.file.from, 'utf8');
+        } catch {
+          throw new Error(`cannot read local file ${payload.file.from}`);
+        }
+        // No `sha` on purpose: this endpoint updates in place when given one,
+        // and create-if-missing must never overwrite. Without it, a file that
+        // appeared since `plan` ran makes GitHub refuse the write rather than
+        // silently replacing someone's work.
+        await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
+          owner,
+          repo,
+          path: payload.file.path,
+          message: `chore: add ${payload.file.path}`,
+          content: Buffer.from(content, 'utf8').toString('base64'),
+        });
+      }),
+    );
+  }
+
   return results;
+}
+
+/**
+ * The environments endpoint identifies reviewers by numeric id, while a
+ * configuration file sensibly names them by login. A login that does not
+ * resolve fails the whole change rather than quietly creating an environment
+ * with fewer reviewers than were asked for.
+ */
+async function resolveReviewers(
+  octokit: Octokit,
+  logins: string[],
+): Promise<Array<{ type: 'User'; id: number }>> {
+  const resolved: Array<{ type: 'User'; id: number }> = [];
+  for (const login of logins) {
+    try {
+      const { data } = await octokit.request('GET /users/{username}', { username: login });
+      resolved.push({ type: 'User', id: (data as { id: number }).id });
+    } catch {
+      throw new Error(`cannot resolve reviewer "${login}" to a GitHub user`);
+    }
+  }
+  return resolved;
+}
+
+/**
+ * Translate a declared ruleset into GitHub's own shape.
+ *
+ * GitHub names its rules after what they permit rather than what they block,
+ * and requires every parameter of a rule to be present even when only one of
+ * them is interesting. Both are contained here so the configuration model can
+ * stay in the shape a person would write.
+ */
+function rulesetBody(policy: RulesetPolicy): Record<string, unknown> {
+  const rules: Array<Record<string, unknown>> = [];
+
+  if (policy.required_approvals !== undefined) {
+    rules.push({
+      type: 'pull_request',
+      parameters: {
+        required_approving_review_count: policy.required_approvals,
+        dismiss_stale_reviews_on_push: false,
+        require_code_owner_review: false,
+        require_last_push_approval: false,
+        required_review_thread_resolution: false,
+      },
+    });
+  }
+
+  if (policy.required_checks?.length) {
+    rules.push({
+      type: 'required_status_checks',
+      parameters: {
+        required_status_checks: policy.required_checks.map((context) => ({ context })),
+        // "strict" would additionally require the branch to be up to date
+        // before merging, which is a separate policy nobody declared here.
+        strict_required_status_checks_policy: false,
+      },
+    });
+  }
+
+  if (policy.block_force_push) rules.push({ type: 'non_fast_forward' });
+  if (policy.block_deletion) rules.push({ type: 'deletion' });
+
+  return {
+    name: policy.name,
+    target: 'branch',
+    enforcement: 'active',
+    conditions: {
+      ref_name: {
+        include: policy.target_branches.map(toRefName),
+        exclude: [],
+      },
+    },
+    rules,
+  };
 }
 
 async function attempt(change: Change, call: () => Promise<unknown>): Promise<AppliedChange> {

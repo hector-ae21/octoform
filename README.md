@@ -18,6 +18,7 @@ the handful of files GitHub does not inherit from a `.github` repository.
 - [It knows nothing about your stack](#it-knows-nothing-about-your-stack)
 - [Install](#install)
 - [Quick start](#quick-start)
+- [Documentation](#documentation)
 - [Organisations and personal accounts](#organisations-and-personal-accounts)
 - [Configuration](#configuration)
   - [Every setting is tri-state](#every-setting-is-tri-state)
@@ -29,6 +30,20 @@ the handful of files GitHub does not inherit from a `.github` repository.
 - [Contributing](#contributing)
 - [Contributors](#contributors)
 - [License](#license)
+
+## Documentation
+
+This README is the tour. [`docs/`](docs/) is the reference, and it is in this
+repository rather than in a wiki on purpose: a wiki is a separate git
+repository that no pull request touches, so it starts lying the moment somebody
+adds an option. Here, a change in behaviour and its documentation are reviewed
+together or not at all.
+
+| Document | Answers |
+|---|---|
+| [docs/concepts.md](docs/concepts.md) | Tri-state settings, layered precedence, and why nothing is ever skipped in silence. **Read this first.** |
+| [docs/configuration.md](docs/configuration.md) | Every key `octoform.yml` accepts, what it does, what it maps to on GitHub, and when it cannot be applied. |
+| [docs/commands.md](docs/commands.md) | Every command and flag, what each is allowed to change, exit codes, and token scopes. |
 
 ## Why
 
@@ -107,8 +122,11 @@ for a configuration that only ever manages one person's own repositories.
 
 ## Configuration
 
-See [`example.yml`](example.yml) for a fully annotated reference, and
-[Examples](#examples) below for configurations you can actually run.
+The three ideas below are the ones everything else follows from.
+[docs/configuration.md](docs/configuration.md) is the complete reference — every
+key, what it maps to on GitHub, and when it cannot be applied.
+[`example.yml`](example.yml) is the same thing as an annotated file you can
+copy, and [Examples](#examples) below are configurations you can actually run.
 
 ### Every setting is tri-state
 
@@ -187,19 +205,8 @@ All of them accept `--config <path>`; `plan` and `apply` additionally accept
 
 `audit`, `plan` and `classify` without `--apply` never change anything.
 
-### Renaming a default branch
-
-Worth calling out, because it is the one change that reaches outside a
-repository's settings. `default_branch.rename_from` lists the names you are
-willing to rename away from; a repository whose default branch is not one of
-them is reported and left alone, rather than renamed on the strength of a
-policy that never contemplated it.
-
-GitHub retargets open pull requests and redirects the old name by itself. What
-it does not do is fix a workflow that names the branch — `on: push: branches:
-[master]` keeps parsing perfectly and simply stops matching anything, with no
-error anywhere. So `plan` reads the workflow files first and names the ones
-that will break, as a warning attached to the change.
+Flags, exit codes, token scopes and what each command's output looks like are
+in [docs/commands.md](docs/commands.md).
 
 ## Programmatic use
 

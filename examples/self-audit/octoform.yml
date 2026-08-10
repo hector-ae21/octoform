@@ -1,0 +1,28 @@
+# The configuration octoform runs against itself, every Monday, from
+# .github/workflows/audit.yml.
+#
+# It declares audit rules and nothing else: no defaults, no types, no repos.
+# That is the point — `audit` is the one command that cannot change anything,
+# and a configuration with no policies in it cannot become an `apply` that
+# does something nobody reviewed, however it is invoked.
+#
+# This is also the answer to "what does a read-only configuration look like",
+# which is worth having as an example in its own right: auditing a fleet you
+# are not ready to reconfigure yet is the sensible way to start.
+#
+# Unlike the other examples, the owner here is real rather than a placeholder:
+# it is the account that owns octoform, auditing its own public repositories.
+# The scheduled run uses the workflow's own token, which sees public
+# repositories only — a broader token would also list private ones, and their
+# names would end up in a public workflow log.
+owner: hector-ae21
+
+audit:
+  # No require_type: this account has no custom properties (they are an
+  # organisation feature) and does not classify its repositories, so asking
+  # for a type would report every single repository as a finding forever.
+  require_description:
+    visibility: public
+  require_topics:
+    visibility: public
+  max_topics: 8

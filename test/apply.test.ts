@@ -123,8 +123,108 @@ test('a failure in one endpoint does not stop the others from being attempted', 
 
 test('a change with no known target is simply not attempted', async () => {
   const { octokit, calls } = fakeOctokit(() => {});
-  const results = await applyRepoChanges(octokit, 'owner', 'thing', [change('rulesets.something', 'x')]);
+  const results = await applyRepoChanges(octokit, 'owner', 'thing', [change('nonsense.thing', 'x')]);
 
   assert.equal(calls.length, 0);
   assert.equal(results.length, 0);
+});
+
+test('the PUT/DELETE security toggles pick their verb from the value', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  await applyRepoChanges(octokit, 'owner', 'thing', [
+    change('security.automated_security_fixes', true),
+    change('security.private_vulnerability_reporting', false),
+  ]);
+
+  assert.deepEqual(calls.map((c) => c.route).sort(), [
+    'DELETE /repos/{owner}/{repo}/private-vulnerability-reporting',
+    'PUT /repos/{owner}/{repo}/automated-security-fixes',
+  ]);
+});
+
+test('renaming the default branch uses the name it is renaming from, not the target', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  const rename: Change = {
+    repo: 'thing',
+    key: 'default_branch.name',
+    from: 'master',
+    to: 'main',
+    payload: { from: 'master', to: 'main' },
+  };
+
+  const results = await applyRepoChanges(octokit, 'owner', 'thing', [rename]);
+
+  assert.equal(calls[0]?.route, 'POST /repos/{owner}/{repo}/branches/{branch}/rename');
+  assert.equal(calls[0]?.params.branch, 'master');
+  assert.equal(calls[0]?.params.new_name, 'main');
+  assert.equal(results[0]?.outcome, 'applied');
+});
+
+test('a ruleset with no id is created, and one with an id is updated in place', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  const ruleset = { name: 'protect', target_branches: ['v*.x'], block_deletion: true };
+
+  await applyRepoChanges(octokit, 'owner', 'thing', [
+    { repo: 'thing', key: 'rulesets.protect', from: null, to: 'x', payload: { ruleset } },
+    { repo: 'thing', key: 'rulesets.other', from: 'a', to: 'b', payload: { ruleset, id: 9 } },
+  ]);
+
+  assert.equal(calls[0]?.route, 'POST /repos/{owner}/{repo}/rulesets');
+  assert.equal(calls[1]?.route, 'PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}');
+  assert.equal(calls[1]?.params.ruleset_id, 9);
+});
+
+test('branch names become refs, and the special ~ targets are left alone', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  const ruleset = { name: 'protect', target_branches: ['v*.x', '~DEFAULT_BRANCH'] };
+
+  await applyRepoChanges(octokit, 'owner', 'thing', [
+    { repo: 'thing', key: 'rulesets.protect', from: null, to: 'x', payload: { ruleset } },
+  ]);
+
+  const conditions = calls[0]?.params.conditions as { ref_name: { include: string[] } };
+  assert.deepEqual(conditions.ref_name.include, ['refs/heads/v*.x', '~DEFAULT_BRANCH']);
+});
+
+test('a declared rule becomes GitHub own shape, and an undeclared one is absent', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  const ruleset = {
+    name: 'protect',
+    target_branches: ['main'],
+    required_approvals: 2,
+    block_force_push: true,
+  };
+
+  await applyRepoChanges(octokit, 'owner', 'thing', [
+    { repo: 'thing', key: 'rulesets.protect', from: null, to: 'x', payload: { ruleset } },
+  ]);
+
+  const rules = calls[0]?.params.rules as Array<{ type: string; parameters?: Record<string, unknown> }>;
+  const types = rules.map((r) => r.type).sort();
+  assert.deepEqual(types, ['non_fast_forward', 'pull_request']);
+  assert.equal(
+    rules.find((r) => r.type === 'pull_request')?.parameters?.required_approving_review_count,
+    2,
+  );
+  // block_deletion was not declared, so no deletion rule is invented for it.
+  assert.equal(rules.find((r) => r.type === 'deletion'), undefined);
+});
+
+test('seeding a file that cannot be read locally fails that change and no other', async () => {
+  const { octokit } = fakeOctokit(() => {});
+  const results = await applyRepoChanges(octokit, 'owner', 'thing', [
+    change('features.issues', true),
+    {
+      repo: 'thing',
+      key: 'files.LICENSE',
+      from: null,
+      to: 'x',
+      payload: { file: { path: 'LICENSE', from: '/no/such/file', mode: 'create-if-missing' } },
+    },
+  ]);
+
+  assert.equal(results.find((r) => r.key === 'features.issues')?.outcome, 'applied');
+  const file = results.find((r) => r.key === 'files.LICENSE');
+  assert.equal(file?.outcome, 'failed');
+  assert.match(String(file?.error), /cannot read local file/);
 });

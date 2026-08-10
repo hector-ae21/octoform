@@ -79,6 +79,17 @@ defaults:
     vulnerability_alerts: true
     automated_security_fixes: true
     private_vulnerability_reporting: true
+  # Renaming the default branch is the one change here that is visible outside
+  # the repository's settings, so it is deliberately hard to trigger by
+  # accident: `rename_from` lists the names you are willing to rename, and a
+  # repository whose default branch is not one of them is reported and left
+  # alone rather than renamed anyway. `plan` also names any workflow file that
+  # mentions the old branch — GitHub redirects the branch itself, but a
+  # workflow that says `branches: [master]` keeps parsing fine and quietly
+  # stops matching anything.
+  default_branch:
+    name: main
+    rename_from: [master]
 
 # `target_branches` accepts a literal branch name, `~DEFAULT_BRANCH` (whatever
 # that repository's default branch is, so it survives a rename), or a glob.
@@ -91,6 +102,11 @@ types:
     environments:
       - name: npm
     files:
+      # `from` is a local path, resolved against THIS file — so a preset that
+      # is imported from somewhere else still finds the files sitting next to
+      # it. `create-if-missing` is the only mode, and deliberately: seeding
+      # what is absent is safe, overwriting whatever a repository already has
+      # at that path is not.
       - path: .github/dependabot.yml
         from: files/dependabot/npm.yml
         mode: create-if-missing
