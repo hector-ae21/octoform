@@ -207,9 +207,15 @@ test('ensure_branches creates what is missing and leaves what is there alone', (
   assert.deepEqual(changes[0]?.payload, { branch: 'develop', from: 'main' });
 });
 
-test('an environment that exists is not re-created', () => {
-  const policy: PolicySet = { environments: [{ name: 'npm' }] };
-  const state = repo({ structure: { environments: ['npm'] } });
+test('an environment that exists with the same reviewers is not touched', () => {
+  const policy: PolicySet = { environments: [{ name: 'npm', reviewers: ['alice'] }] };
+  const state = repo({ structure: { environments: [{ name: 'npm', reviewers: ['alice'] }] } });
+  assert.deepEqual(planRepo(state, policy, OPTIONS), []);
+});
+
+test('reviewer order does not count as drift, same as topics', () => {
+  const policy: PolicySet = { environments: [{ name: 'npm', reviewers: ['alice', 'bob'] }] };
+  const state = repo({ structure: { environments: [{ name: 'npm', reviewers: ['bob', 'alice'] }] } });
   assert.deepEqual(planRepo(state, policy, OPTIONS), []);
 });
 
@@ -219,7 +225,27 @@ test('a missing environment is planned with its reviewers', () => {
   const changes = planRepo(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.equal(changes[0]?.key, 'environments.npm');
+  assert.equal(changes[0]?.from, null);
   assert.match(String(changes[0]?.to), /someone/);
+});
+
+test('an existing environment with different reviewers is corrected, not skipped', () => {
+  const policy: PolicySet = { environments: [{ name: 'npm', reviewers: ['alice'] }] };
+  const state = repo({ structure: { environments: [{ name: 'npm', reviewers: ['bob'] }] } });
+  const changes = planRepo(state, policy, OPTIONS);
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0]?.key, 'environments.npm');
+  assert.match(String(changes[0]?.from), /bob/);
+  assert.match(String(changes[0]?.to), /alice/);
+  assert.deepEqual(changes[0]?.payload, { environment: policy.environments?.[0] });
+});
+
+test('an environment guarded by a team is blocked, never read as having no reviewers', () => {
+  const policy: PolicySet = { environments: [{ name: 'npm', reviewers: ['alice'] }] };
+  const state = repo({ structure: { environments: [{ name: 'npm', reviewers: UNREADABLE }] } });
+  const changes = planRepo(state, policy, OPTIONS);
+  assert.equal(changes.length, 1);
+  assert.match(String(changes[0]?.blocked), /team/);
 });
 
 test('a file that is already there is never re-seeded', () => {
@@ -266,7 +292,7 @@ test('a repository that already matches its whole policy plans nothing', () => {
     settings: { ...repo().settings, 'repo.topics': ['a'] },
     structure: {
       branches: { main: true },
-      environments: ['npm'],
+      environments: [{ name: 'npm', reviewers: [] }],
       files: { LICENSE: true },
       rulesets: [
         {

@@ -266,6 +266,12 @@ function planRulesets(
  * Environments are created when missing and their reviewers corrected, but an
  * environment nobody declared is left alone: this is not the place to discover
  * that a deployment target somebody set up by hand has disappeared.
+ *
+ * An environment guarded by a team rather than a user is a third case, neither
+ * matching nor safely correctable: octoform cannot resolve a team the way it
+ * resolves a user login (see `resolveReviewers` in github/apply.ts), so it is
+ * reported as blocked instead of being read as "no reviewers" — which would
+ * make a normal-looking change quietly replace the team's protection.
  */
 function planEnvironments(repo: RepoDetail, policy: PolicySet, changes: Change[]): void {
   if (!policy.environments?.length) return;
@@ -284,12 +290,36 @@ function planEnvironments(repo: RepoDetail, policy: PolicySet, changes: Change[]
       });
       continue;
     }
-    if (existing.includes(declared.name)) continue;
+
+    const current = existing.find((e) => e.name === declared.name);
+    if (!current) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: null,
+        to: describeEnvironment(declared),
+        payload: { environment: declared },
+      });
+      continue;
+    }
+
+    if (current.reviewers === UNREADABLE) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: UNREADABLE,
+        to: describeEnvironment(declared),
+        blocked: 'has a team as a required reviewer — octoform only resolves users, and comparing would risk replacing the team',
+      });
+      continue;
+    }
+
+    if (same(current.reviewers, declared.reviewers ?? [])) continue;
 
     changes.push({
       repo: repo.name,
       key,
-      from: null,
+      from: describeExistingEnvironment(current.reviewers),
       to: describeEnvironment(declared),
       payload: { environment: declared },
     });
@@ -343,6 +373,10 @@ function describeEnvironment(environment: EnvironmentPolicy): string {
   return environment.reviewers?.length
     ? `reviewers: ${environment.reviewers.join(', ')}`
     : 'no required reviewers';
+}
+
+function describeExistingEnvironment(reviewers: string[]): string {
+  return reviewers.length ? `reviewers: ${reviewers.join(', ')}` : 'no required reviewers';
 }
 
 /**

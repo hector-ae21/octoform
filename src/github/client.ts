@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/rest';
 import { UNREADABLE } from '../config/types.js';
 import type {
+  ExistingEnvironment,
   ExistingRuleset,
   OwnerKind,
   PolicySet,
@@ -284,18 +285,43 @@ async function getRepoStructure(
   return asked ? structure : undefined;
 }
 
+interface RawEnvironment {
+  name: string;
+  protection_rules?: Array<{
+    type: string;
+    reviewers?: Array<{ type: string; reviewer?: { login?: string } }>;
+  }>;
+}
+
 async function listEnvironments(
   octokit: Octokit,
   owner: string,
   repo: string,
-): Promise<string[] | undefined> {
+): Promise<ExistingEnvironment[] | undefined> {
   try {
+    // The list endpoint embeds each environment's protection_rules already —
+    // no second request per environment needed to see its reviewers.
     const { data } = await octokit.request('GET /repos/{owner}/{repo}/environments', { owner, repo });
-    const list = (data as { environments?: Array<{ name: string }> }).environments ?? [];
-    return list.map((e) => e.name);
+    const list = (data as { environments?: RawEnvironment[] }).environments ?? [];
+    return list.map((e) => ({ name: e.name, reviewers: reviewerLogins(e) }));
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Only `User`-type required reviewers, by login. `Team` reviewers exist on
+ * the same GitHub feature but are not modeled here: `apply`'s
+ * `resolveReviewers` only ever resolves a declared reviewer to a user id, so
+ * a team it did not create can be neither compared against nor written by
+ * it. Their presence turns the whole field `UNREADABLE` instead of silently
+ * reporting "no reviewers" — see the type's own doc comment for why.
+ */
+function reviewerLogins(environment: RawEnvironment): string[] | typeof UNREADABLE {
+  const rule = environment.protection_rules?.find((r) => r.type === 'required_reviewers');
+  const reviewers = rule?.reviewers ?? [];
+  if (reviewers.some((r) => r.type !== 'User')) return UNREADABLE;
+  return reviewers.map((r) => r.reviewer?.login).filter((login): login is string => Boolean(login));
 }
 
 /**
