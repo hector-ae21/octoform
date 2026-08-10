@@ -1,0 +1,120 @@
+@startuml
+' --- Configuración Visual General ---
+skinparam roundcorner 12
+skinparam shadow true
+skinparam defaultFontName "Segoe UI", Arial, sans-serif
+skinparam classFontSize 15
+skinparam classAttributeFontSize 13
+skinparam nodesep 60
+skinparam ranksep 60
+
+' --- Paleta de Colores por Dominio ---
+skinparam class {
+    ' Dominio Configuración
+    BackgroundColor<<Config>> #E8F8F5
+    HeaderBackgroundColor<<Config>> #1ABC9C
+    BorderColor<<Config>> #16A085
+
+    ' Dominio Políticas
+    BackgroundColor<<Policy>> #EBF5FB
+    HeaderBackgroundColor<<Policy>> #3498DB
+    BorderColor<<Policy>> #2980B9
+
+    ' Dominio Repositorio
+    BackgroundColor<<Repo>> #FEF9E7
+    HeaderBackgroundColor<<Repo>> #F1C40F
+    BorderColor<<Repo>> #F39C12
+
+    ' Dominio Cambios
+    BackgroundColor<<Change>> #FDEDEC
+    HeaderBackgroundColor<<Change>> #E74C3C
+    BorderColor<<Change>> #C0392B
+
+    ' Tipografía común
+    FontColor White
+    AttributeFontColor #333333
+}
+
+skinparam arrow {
+    Color #34495E
+    Thickness 2
+}
+
+' --- Definición de Clases ---
+class Config <<Config>> {
+    +string owner
+    +string[] imports
+    +ClassifyConfig classify
+    +AuditConfig audit
+}
+
+class PolicySet <<Policy>> {
+    +boolean manage
+    +FeaturePolicy features
+    +MergePolicy merge
+    +SecurityPolicy security
+    +DefaultBranchPolicy default_branch
+    +string[] ensure_branches
+}
+
+class RulesetPolicy <<Policy>> {
+    +string name
+    +string[] target_branches
+    +number required_approvals
+    +boolean block_force_push
+}
+
+class EnvironmentPolicy <<Policy>> {
+    +string name
+    +string[] reviewers
+}
+
+class FilePolicy <<Policy>> {
+    +string path
+    +string from
+    +string mode
+    }
+
+class RepoState <<Repo>> {
+    +string name
+    +string visibility
+    +string default_branch
+}
+
+class RepoDetail <<Repo>> {
+    +Map settings
+    +RepoStructure structure
+}
+
+class RepoStructure <<Repo>> {
+    +string[] environments
+    +ExistingRuleset[] rulesets
+    +Map branches
+}
+
+class Change <<Change>> {
+    +string repo
+    +string key
+    +any from
+    +any to
+    +string blocked
+    +string warning
+}
+
+class AppliedChange <<Change>> {
+    +string outcome
+    +string error
+}
+
+' --- Relaciones ---
+Config "1" *-- "1..*" PolicySet : defaults / types / repos
+PolicySet "1" *-- "0..*" RulesetPolicy : rulesets
+PolicySet "1" *-- "0..*" EnvironmentPolicy : environments
+PolicySet "1" *-- "0..*" FilePolicy : files
+RepoState <|-- RepoDetail
+RepoDetail "1" *-- "0..1" RepoStructure : structure
+Change <|-- AppliedChange
+PolicySet ..> Change : reconciled against RepoDetail, produces
+RepoDetail ..> Change : reconciled against PolicySet, produces
+
+@enduml
