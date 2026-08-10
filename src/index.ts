@@ -52,6 +52,7 @@ export type {
   EnvironmentPolicy,
   FilePolicy,
   ExistingRuleset,
+  ExistingEnvironment,
   RepoStructure,
   DefaultBranchPolicy,
 } from './config/types.js';

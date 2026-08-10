@@ -355,9 +355,20 @@ which is what the endpoint wants; a login that does not resolve fails the whole
 change rather than quietly creating an environment with fewer reviewers than
 you asked for.
 
-**Known limitation:** only *missing* environments are created. An environment
-that already exists is left alone, so a change to its `reviewers` is not
-currently detected or applied.
+A missing environment is created; an existing one has its reviewers
+**corrected**, not just left alone — GitHub's list endpoint already returns
+each environment's required-reviewers rule, so this costs no extra request.
+Reviewers are compared as a set, same as `topics`: order is never drift.
+
+**One case is deliberately left blocked instead of corrected.** If an
+environment's required reviewer is a **team** rather than a user, octoform
+reports it as blocked rather than acting on it. It only ever resolves a
+declared reviewer to a *user* id — it has no way to compare against or write
+a team — so reading that case as "no reviewers" would make a normal-looking
+change quietly replace the team's protection with your declared users the
+moment `apply` ran. If you manage an environment through a team reviewer,
+octoform leaves it alone until you either switch it to user reviewers or team
+reviewers are supported.
 
 ### `files`
 
@@ -398,6 +409,6 @@ of one would silently stop that inheritance.
 |---|---|
 | `features.discussions` | GitHub has no REST field for it anywhere — `repos/update` does not accept `has_discussions` and there is no dedicated endpoint. It is GraphQL-only. Reported as blocked rather than attempted. |
 | Anything on an **archived** repository | Archived repositories are read-only on GitHub's side. Reporting changes that can never be applied would be noise on every run. |
-| Environment `reviewers`, when the environment already exists | Not implemented yet. See [`environments`](#environments). |
+| Environment `reviewers`, when the current reviewer is a **team** | octoform only resolves a declared reviewer to a *user* id — comparing against a team would risk silently replacing it. See [`environments`](#environments). |
 | Rulesets on private repositories without an enforcing plan | They would exist without being enforced. See [`rulesets`](#rulesets). |
 | Any setting whose current value could not be read | Planning a change from an answer you never got is how a tool reports drift that does not exist. See [concepts.md](concepts.md#3-blocked-is-not-skipped). |

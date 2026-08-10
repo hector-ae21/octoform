@@ -211,6 +211,23 @@ export interface ExistingRuleset {
 }
 
 /**
+ * An environment as it exists on GitHub right now, reduced to what octoform
+ * compares.
+ *
+ * `reviewers` is `UNREADABLE` rather than an empty list when the
+ * environment's required-reviewers rule includes a team: octoform only ever
+ * resolves a declared reviewer to a *user* id (see `resolveReviewers` in
+ * github/apply.ts), so it has no way to represent a team's protection — and
+ * must not silently overwrite it. Reading it as "no reviewers" would make
+ * `plan` propose what looks like a pure addition but would actually replace
+ * the team when applied.
+ */
+export interface ExistingEnvironment {
+  name: string;
+  reviewers: string[] | typeof UNREADABLE;
+}
+
+/**
  * State that costs an extra request each, so it is only gathered when a policy
  * actually asks about it.
  *
@@ -219,8 +236,8 @@ export interface ExistingRuleset {
  * the two would make `plan` offer to create things it simply failed to look at.
  */
 export interface RepoStructure {
-  /** Names of the environments that exist. */
-  environments?: string[];
+  /** Environments that exist, each with its current required reviewers. */
+  environments?: ExistingEnvironment[];
   rulesets?: ExistingRuleset[];
   /** Path -> whether it exists, for the paths a `files` policy named. */
   files?: Record<string, boolean>;
