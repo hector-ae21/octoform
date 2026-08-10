@@ -88,7 +88,12 @@ export async function main(argv: string[]): Promise<number> {
 
   if (args.help || !args.command) {
     console.log(USAGE);
-    return args.command ? 0 : 2;
+    // Asking for help is not a usage error. `octoform --help` is the canonical
+    // way to ask, and a shell that checks the exit code — or a release job
+    // running it as a smoke test — is right to treat a non-zero as failure.
+    // Running with no command at all is a different thing: the usage text is
+    // an error message there, and 2 is what says so.
+    return args.help ? 0 : 2;
   }
 
   try {
