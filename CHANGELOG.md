@@ -9,6 +9,31 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-10
+
+### Added
+
+- `plan`/`apply` now correct an **existing** environment's `reviewers`, not
+  just create the environment when it's missing. GitHub's list endpoint
+  already returns each environment's required-reviewers rule, so this costs
+  no extra request. Reviewers are compared as a set — order is never drift,
+  same as `topics`.
+- An environment whose required reviewer is a **team** is reported as
+  blocked rather than corrected: octoform only resolves a declared reviewer
+  to a *user* id, so it has no way to compare against — or safely write over
+  — a team's protection. Reading that case as "no reviewers" would have made
+  a normal-looking change quietly replace the team the moment `apply` ran.
+- [`docs/domain-model.md`](docs/domain-model.md): a diagram of the actual
+  types behind `plan()` — what's declared, what's observed, and the `Change`
+  produced by comparing them.
+
+### Changed
+
+- **Breaking (type-level):** `RepoStructure.environments` is now
+  `ExistingEnvironment[]` (`{ name, reviewers }`) instead of `string[]`. Only
+  affects programmatic use of `getRepoDetail`'s return value directly — the
+  CLI and `octoform.yml` are unaffected.
+
 ## [0.2.1] - 2026-08-10
 
 The configuration model was complete in 0.1.0; `apply` was not. This closes
