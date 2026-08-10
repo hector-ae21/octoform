@@ -41,6 +41,10 @@ turns the branching scheme this tool prescribes on the tool itself.
 - The version branch scheme (`vMAJOR.x`) this project prescribes now applies
   to this project. `v0.x` is the default branch, and `SECURITY.md` states the
   whole policy explicitly rather than deferring it to 1.0.
+- `docs/`: a full reference for every configuration key and every command,
+  alongside the concepts the rest depends on. In the repository rather than in
+  a wiki on purpose — a wiki is a separate git repository that no pull request
+  touches, so it starts lying the moment somebody adds an option.
 
 ### Fixed
 
