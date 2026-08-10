@@ -4,7 +4,7 @@ Not a diagram drawn for the occasion — this is the actual shape of the types
 underneath `plan()`, in [`src/config/types.ts`](../src/config/types.ts) and
 [`src/core/plan.ts`](../src/core/plan.ts).
 
-![octoform domain model](https://www.plantuml.com/plantuml/proxy?cache=no&fmt=svg&src=https://raw.githubusercontent.com/hector-ae21/octoform/v0.x/docs/domain-model.puml)
+![octoform domain model](https://www.plantuml.com/plantuml/proxy?cache=no&fmt=svg&src=https://raw.githubusercontent.com/hector-ae21/octoform/v0.x/docs/diagrams/domain-model.puml)
 
 Four groups, and the grouping is the argument:
 
