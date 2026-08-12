@@ -9,6 +9,17 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+### Fixed
+
+- Private repositories owned by personal accounts no longer have their
+  rulesets blocked merely because organisation-wide rulesets do not exist for
+  that kind of owner. `plan` now probes the capability for each private
+  repository and current token through GitHub's read-only branch-protection
+  endpoint, which has the same plan availability as repository rulesets. This
+  supports GitHub Pro benefits such as Education without hard-coding plan
+  names, while still blocking a ruleset when the owner plan or token does not
+  permit it.
+
 ## [0.3.0] - 2026-08-10
 
 ### Added

@@ -84,9 +84,9 @@ that fails, because you find out months later, from the consequences.
 Three shapes of "not done":
 
 **Blocked** — it cannot happen, and `apply` will not attempt it. A policy with
-no REST endpoint, a value this GitHub plan does not expose, a ruleset on a
-private repository where it would not be enforced, a current value that could
-not be read at all.
+no REST endpoint, a value this GitHub plan does not expose, a ruleset the
+current owner plan and token cannot manage on a private repository, a current
+value that could not be read at all.
 
 ```
   my-repo
