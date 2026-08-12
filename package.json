@@ -1,6 +1,6 @@
 {
   "name": "@hector21/octoform",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Declarative plan/apply governance for GitHub repositories: settings, branch rules, environments and files, from one YAML file",
   "keywords": [
     "github",

@@ -9,6 +9,8 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-08-12
+
 ### Fixed
 
 - Private repositories owned by personal accounts no longer have their
