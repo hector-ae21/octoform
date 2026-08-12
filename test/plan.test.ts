@@ -88,7 +88,7 @@ test('a policy with no REST endpoint at all is blamed on the API, not on the con
   assert.equal(changes[0]?.blocked, 'not applicable over the REST API');
 });
 
-test('rulesets on a private repository are blocked when the plan does not enforce them', () => {
+test('rulesets on a private repository are blocked when the owner and token cannot manage them', () => {
   const policy: PolicySet = {
     rulesets: [{ name: 'protect', target_branches: ['main'] }],
   };
@@ -96,7 +96,7 @@ test('rulesets on a private repository are blocked when the plan does not enforc
     rulesetsEnforcedOnPrivate: false,
   });
   assert.equal(changes.length, 1);
-  assert.match(String(changes[0]?.blocked), /not enforced on private/);
+  assert.match(String(changes[0]?.blocked), /current owner plan and token/);
 });
 
 test('a public repository is not blocked for that reason, and a missing ruleset is created', () => {

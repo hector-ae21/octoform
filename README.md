@@ -120,6 +120,9 @@ The practical differences:
 Everything else — `plan`, `audit`, the whole configuration model — behaves
 identically. See [`examples/personal-account/`](examples/personal-account/)
 for a configuration that only ever manages one person's own repositories.
+For a private repository with declared rulesets, `plan` uses a read-only probe
+to determine whether the current owner plan and token expose the capability;
+it does not infer that answer from an owner kind or hard-coded plan name.
 
 ## Configuration
 
@@ -195,7 +198,7 @@ same two preset files.
 | Command | Effect |
 |---|---|
 | `octoform audit` | Read-only inventory: every repository, its recorded type, and configurable findings (missing type, missing description or topics on public repositories, too many topics). |
-| `octoform plan` | Read-only diff between the configuration and each repository's actual state: features, merge options, security settings, description and topics, the default branch, branches that must exist, rulesets, environments and seeded files. Anything that cannot be applied — a policy with no REST endpoint, a value this GitHub plan does not expose, a ruleset on a private repository the plan would not enforce — is reported as blocked, with the reason, never dropped in silence. |
+| `octoform plan` | Read-only diff between the configuration and each repository's actual state: features, merge options, security settings, description and topics, the default branch, branches that must exist, rulesets, environments and seeded files. Anything that cannot be applied — a policy with no REST endpoint, a value this GitHub plan does not expose, or a private-repository ruleset the current owner plan and token cannot manage — is reported as blocked, with the reason, never dropped in silence. |
 | `octoform apply` | Shows the same diff `plan` would, asks for confirmation, then calls the GitHub API. Applies everything `plan` diffs. |
 | `octoform classify` | Proposes a type for each repository that has none, from `classify.rules`. Prints and stops unless `--apply` is given, which records the proposals in the custom property (organisations only). Never re-examines a repository that already has a type. |
 | `octoform properties sync` | Creates or updates the custom property that stores the type, and records the types declared under `repos.<name>.type`. Its allowed values are the keys of `types` — there is no second list to keep in step. Organisations only: custom properties do not exist for a personal account. |
@@ -215,14 +218,17 @@ The pieces the CLI is built from are exported, for planning a repository from
 a script instead of shelling out and parsing text:
 
 ```ts
-import { loadConfig, createClient, detectOwnerKind, listRepos, getRepoDetail, resolvePolicy, planRepo, applyRepoChanges } from '@hector21/octoform';
+import { loadConfig, createClient, detectOwnerKind, detectPrivateRulesetCapability, listRepos, getRepoDetail, resolvePolicy, planRepo, applyRepoChanges } from '@hector21/octoform';
 
 const config = loadConfig('octoform.yml');
 const octokit = createClient();
 const kind = await detectOwnerKind(octokit, config.owner);
 const [repo] = await listRepos(octokit, config.owner, kind);
-const detail = await getRepoDetail(octokit, config.owner, repo);
-const changes = planRepo(detail, resolvePolicy(config, repo), { rulesetsEnforcedOnPrivate: true });
+const policy = resolvePolicy(config, repo);
+const detail = await getRepoDetail(octokit, config.owner, repo, policy);
+const rulesetsEnforcedOnPrivate = repo.visibility !== 'private' || !policy.rulesets?.length
+  || await detectPrivateRulesetCapability(octokit, config.owner, repo.name, repo.default_branch);
+const changes = planRepo(detail, policy, { rulesetsEnforcedOnPrivate });
 
 // Only when you actually want to change something:
 const results = await applyRepoChanges(octokit, config.owner, repo.name, changes);

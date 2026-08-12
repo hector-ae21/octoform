@@ -17,6 +17,7 @@ export {
   putPropertySchema,
   setPropertyValues,
   detectLimits,
+  detectPrivateRulesetCapability,
   AuthError,
 } from './github/client.js';
 export { planRepo } from './core/plan.js';

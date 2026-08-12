@@ -212,6 +212,47 @@ export async function getRepoDetail(
 }
 
 /**
+ * Whether the current owner plan and token can manage rulesets on one private
+ * repository.
+ *
+ * GitHub exposes no direct "can manage private rulesets" capability. Branch
+ * protection has the same plan availability as repository rulesets, however,
+ * and its read-only endpoint distinguishes an unprotected branch from a plan
+ * or permission failure: 404 "Branch not protected" means the feature is
+ * available but unused, while 403 means this owner/token combination cannot
+ * manage it. A generic 404 is deliberately not accepted as proof, since
+ * GitHub also uses opaque 404s when a token cannot see a resource.
+ */
+export async function detectPrivateRulesetCapability(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  defaultBranch: string,
+): Promise<boolean> {
+  if (!defaultBranch) return false;
+
+  try {
+    await octokit.request('GET /repos/{owner}/{repo}/branches/{branch}/protection', {
+      owner,
+      repo,
+      branch: defaultBranch,
+    });
+    return true;
+  } catch (error) {
+    const apiError = error as {
+      status?: number;
+      message?: string;
+      response?: { data?: { message?: string } };
+    };
+    const message = apiError.response?.data?.message ?? apiError.message ?? '';
+
+    if (apiError.status === 404) return /^branch not protected$/i.test(message.trim());
+    if (apiError.status === 403) return false;
+    throw error;
+  }
+}
+
+/**
  * Gather only what this repository's policy actually asks about.
  *
  * Each of these costs at least one request, several cost one per declared

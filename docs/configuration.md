@@ -39,7 +39,7 @@ What changes between the two:
 |---|---|---|
 | Custom properties | available | **do not exist** — types come from `repos.<name>.type` |
 | Which repositories are listed | all the org's | yours only, and private ones only when the token is your own |
-| Rulesets on private repositories | needs a paid plan | reported as not enforced (see [`rulesets`](#rulesets)) |
+| Rulesets on private repositories | capability probed per repository and token | capability probed per repository and token |
 
 ### `imports`
 
@@ -328,14 +328,19 @@ to strip whatever somebody configured by hand. A ruleset that exists and is
 configurable, on purpose: a ruleset in evaluate mode reads like protection that
 is not there.
 
-**Private repositories.** Rulesets are only enforced on private repositories on
-paid plans. Where they would not be enforced, octoform reports them as blocked
-instead of creating one, because a ruleset that exists but does nothing is
-worse than no ruleset at all. For a **personal account** this is currently
-assumed rather than probed, so a personal Pro account may see its private
-repositories reported as unenforceable when they are not — verifying it
-properly would mean creating a real ruleset to see whether it holds, which is
-too invasive for a read-only command.
+**Private repositories.** GitHub only enforces rulesets there when the owner
+plan and token permit it. octoform probes that capability for each private
+repository that declares rulesets, without naming or interpreting GitHub
+plans: it reads the default branch's protection, whose availability follows
+the same plan matrix as repository rulesets. Existing protection and GitHub's
+explicit `Branch not protected` response both prove the capability is
+available; a forbidden or opaque not-found response does not.
+
+The probe never creates, changes or deletes anything. If the repository is
+empty and has no default branch, the capability cannot be established safely,
+so the ruleset remains blocked until there is a branch to probe. This applies
+identically to organisation and personal owners, including paid access granted
+through GitHub Education rather than a separately reported plan name.
 
 ### `environments`
 
@@ -410,5 +415,5 @@ of one would silently stop that inheritance.
 | `features.discussions` | GitHub has no REST field for it anywhere — `repos/update` does not accept `has_discussions` and there is no dedicated endpoint. It is GraphQL-only. Reported as blocked rather than attempted. |
 | Anything on an **archived** repository | Archived repositories are read-only on GitHub's side. Reporting changes that can never be applied would be noise on every run. |
 | Environment `reviewers`, when the current reviewer is a **team** | octoform only resolves a declared reviewer to a *user* id — comparing against a team would risk silently replacing it. See [`environments`](#environments). |
-| Rulesets on private repositories without an enforcing plan | They would exist without being enforced. See [`rulesets`](#rulesets). |
+| Rulesets on private repositories where the owner plan and token do not expose the capability | They would exist without being enforced, or could not be written by this token. See [`rulesets`](#rulesets). |
 | Any setting whose current value could not be read | Planning a change from an answer you never got is how a tool reports drift that does not exist. See [concepts.md](concepts.md#3-blocked-is-not-skipped). |

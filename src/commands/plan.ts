@@ -1,6 +1,12 @@
 import type { Octokit } from '@octokit/rest';
 import { isExcluded, resolvePolicy } from '../config/resolve.js';
-import { detectLimits, detectOwnerKind, getRepoDetail, listRepos, readPropertyValues } from '../github/client.js';
+import {
+  detectOwnerKind,
+  detectPrivateRulesetCapability,
+  getRepoDetail,
+  listRepos,
+  readPropertyValues,
+} from '../github/client.js';
 import { planRepo } from '../core/plan.js';
 import { formatChange, groupByRepo } from '../report/format.js';
 import type { Change, Config } from '../config/types.js';
@@ -26,7 +32,6 @@ export async function plan(
   opts?: { quiet?: boolean },
 ): Promise<PlanResult> {
   const kind = await detectOwnerKind(octokit, config.owner);
-  const limits = await detectLimits(octokit, config.owner, kind);
   const all = await listRepos(octokit, config.owner, kind);
 
   // Custom properties are an organisation feature; a personal account has no
@@ -47,12 +52,6 @@ export async function plan(
     return { changes: [], blocked: [] };
   }
 
-  // Rulesets are only enforced on private repositories on paid plans, and
-  // organisation-wide rulesets are a paid feature outright — and simply do
-  // not exist for a personal account. `orgRulesets` doubles as the answer to
-  // both, since a plan without one does not have the other either.
-  const options = { rulesetsEnforcedOnPrivate: limits.orgRulesets };
-
   const changes: Change[] = [];
   const blocked: Change[] = [];
 
@@ -61,8 +60,17 @@ export async function plan(
     // GitHub about costs a request per declared item, so the policy decides
     // what is worth looking up at all.
     const policy = resolvePolicy(config, repo);
+    const rulesetsEnforcedOnPrivate =
+      repo.visibility !== 'private' || !policy.rulesets?.length
+        ? true
+        : await detectPrivateRulesetCapability(
+            octokit,
+            config.owner,
+            repo.name,
+            repo.default_branch,
+          );
     const detail = await getRepoDetail(octokit, config.owner, repo, policy);
-    for (const change of planRepo(detail, policy, options)) {
+    for (const change of planRepo(detail, policy, { rulesetsEnforcedOnPrivate })) {
       (change.blocked ? blocked : changes).push(change);
     }
   }
