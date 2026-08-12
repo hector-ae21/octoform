@@ -9,6 +9,12 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+### Documentation
+
+- Added an audited `v0.3.1` behavior baseline covering the published artifact,
+  CLI and exit behavior, configuration surface, desired-state coverage, REST
+  operations, authentication boundaries, and confirmed documentation gaps.
+
 ## [0.3.1] - 2026-08-12
 
 ### Fixed

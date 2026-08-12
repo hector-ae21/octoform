@@ -28,7 +28,7 @@ change is still a change, just one `apply` will refuse to make.
 
 ## Source
 
-[`domain-model.puml`](domain-model.puml) — plain PlantUML, rendered above
+[`domain-model.puml`](diagrams/domain-model.puml) — plain PlantUML, rendered above
 through the public PlantUML server against the raw file on `v0.x`. Edit the
 `.puml`, not the image: there is no image to edit, the link above always
 renders whatever is currently on the default branch.

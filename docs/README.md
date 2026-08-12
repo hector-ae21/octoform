@@ -9,6 +9,7 @@ run, and how to reason about the two together.
 | [commands.md](commands.md) | Every command and flag, what each one is allowed to change, its exit code, and the token it needs. |
 | [concepts.md](concepts.md) | The three ideas the rest depends on: tri-state settings, layered precedence, and why a plan that cannot do something says so instead of skipping it. |
 | [domain-model.md](domain-model.md) | The types themselves, as a diagram: what's declared, what's observed, and the `Change` that comes from comparing the two. |
+| [reference/v0.3.1-baseline.md](reference/v0.3.1-baseline.md) | Audited behavior of the published `v0.3.1` package, including its CLI, configuration, API use, permissions, and known limitations. |
 
 Start with [concepts.md](concepts.md) if you are new to this — the reference
 reads as arbitrary until those three are in place. Start with
