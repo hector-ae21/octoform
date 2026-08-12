@@ -14,6 +14,9 @@ a zero major means. Security fixes are always a patch bump. See
 - Added an audited `v0.3.1` behavior baseline covering the published artifact,
   CLI and exit behavior, configuration surface, desired-state coverage, REST
   operations, authentication boundaries, and confirmed documentation gaps.
+- Added a reproducible disposition register for 1,063 relevant REST operations
+  and 274 GraphQL mutations, with pinned source evidence and verification that
+  blocks unreviewed API surface changes.
 
 ## [0.3.1] - 2026-08-12
 

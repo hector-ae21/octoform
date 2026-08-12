@@ -1,7 +1,7 @@
 # octoform documentation
 
-Three documents, and the split is deliberate: what you can write, what you can
-run, and how to reason about the two together.
+The documentation is split deliberately by purpose: what you can write, what
+you can run, how the model works, and the evidence behind the public contract.
 
 | Document | Answers |
 |---|---|
@@ -10,6 +10,7 @@ run, and how to reason about the two together.
 | [concepts.md](concepts.md) | The three ideas the rest depends on: tri-state settings, layered precedence, and why a plan that cannot do something says so instead of skipping it. |
 | [domain-model.md](domain-model.md) | The types themselves, as a diagram: what's declared, what's observed, and the `Change` that comes from comparing the two. |
 | [reference/v0.3.1-baseline.md](reference/v0.3.1-baseline.md) | Audited behavior of the published `v0.3.1` package, including its CLI, configuration, API use, permissions, and known limitations. |
+| [reference/github-api-surface.md](reference/github-api-surface.md) | Generated disposition of every relevant REST operation and GraphQL mutation as observational, declarative, sensitive, operational, or excluded. |
 
 Start with [concepts.md](concepts.md) if you are new to this — the reference
 reads as arbitrary until those three are in place. Start with
