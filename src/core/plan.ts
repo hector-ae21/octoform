@@ -218,7 +218,7 @@ function planRulesets(
         to: describeRuleset(ruleset),
         // A ruleset that exists but is never enforced is worse than none at
         // all: it reads as protection that is not there.
-        blocked: 'rulesets are not enforced on private repositories on this plan',
+        blocked: 'rulesets cannot be managed on this private repository with the current owner plan and token',
       });
     }
     return;
