@@ -10,7 +10,8 @@ export const CLI_CONTRACT: CliContract = {
   commands: [
     {
       path: ['audit'],
-      usage: 'octoform audit      [--config <path>] [--owner <login>]... [--repo <name>] [--fail-fast]',
+      usage:
+        'octoform audit      [--config <path>] [--owner <login>]... [--repo <name>] [--fail-fast]',
       summary: 'Inspect repositories and report configured audit findings.',
       mode: 'read-only',
       options: ['config', 'owner', 'repo', 'strict', 'fail-fast', 'help'],
@@ -95,7 +96,8 @@ export const CLI_CONTRACT: CliContract = {
     },
     {
       path: ['inspect', 'config'],
-      usage: 'octoform inspect config       [--config <path>] [--owner <login>]... [--format <text|json>]',
+      usage:
+        'octoform inspect config       [--config <path>] [--owner <login>]... [--format <text|json>]',
       summary:
         'Print the fully resolved configuration for the selection, with secrets redacted. Never contacts GitHub.',
       mode: 'read-only',
@@ -160,7 +162,8 @@ export const CLI_CONTRACT: CliContract = {
     {
       id: 'out',
       syntax: '--out <path>',
-      description: 'plan: also save the plan as a signed-evidence JSON file apply --plan can consume',
+      description:
+        'plan: also save the plan as a signed-evidence JSON file apply --plan can consume',
     },
     {
       id: 'plan',
@@ -195,8 +198,7 @@ export const CLI_CONTRACT: CliContract = {
     },
     {
       code: 1,
-      meaning:
-        'audit or plan found drift, or apply was declined; nothing was applied.',
+      meaning: 'audit or plan found drift, or apply was declined; nothing was applied.',
     },
     {
       code: 2,

@@ -33,8 +33,9 @@ try {
     resolve(root, 'src/config/shape.ts'),
     'configModel',
   );
-  const schema = generateConfigurationSchema();
-  const planArtifactSchema = generatePlanArtifactSchema();
+  const docsLine = documentationLine(packageMetadata.version);
+  const schema = generateConfigurationSchema(docsLine);
+  const planArtifactSchema = generatePlanArtifactSchema(docsLine);
   const capabilities = generateCapabilities(capabilityConfig, packageMetadata.version);
   const permissions = generatePermissions(
     capabilityConfig,
@@ -80,7 +81,22 @@ function parseArgs(args) {
   throw new Error(`Unknown argument: ${args.join(' ')}`);
 }
 
-function generateConfigurationSchema() {
+/**
+ * The documentation site publishes one immutable line per MAJOR.MINOR, so the
+ * schema URL each release points at follows the release rather than a pinned
+ * literal that has to be remembered at every version bump.
+ */
+function documentationLine(version) {
+  const [major, minor] = version.split('.');
+  return `${major}.${minor}`;
+}
+
+/** The published, immutable address of one generated schema. */
+function schemaUrl(docsLine, name) {
+  return 'https://hector-ae21.github.io/octoform-docs/' + docsLine + '/assets/' + name;
+}
+
+function generateConfigurationSchema(docsLine) {
   const generated = createGenerator({
     path: resolve(root, 'src/types/config.ts'),
     tsconfig: resolve(root, 'tsconfig.json'),
@@ -92,12 +108,12 @@ function generateConfigurationSchema() {
     sortProps: true,
   }).createSchema('Config');
   return {
-    $id: 'https://hector-ae21.github.io/octoform-docs/0.3/assets/config.schema.json',
+    $id: schemaUrl(docsLine, 'config.schema.json'),
     ...generated,
   };
 }
 
-function generatePlanArtifactSchema() {
+function generatePlanArtifactSchema(docsLine) {
   const generated = createGenerator({
     path: resolve(root, 'src/types/plan-artifact.ts'),
     tsconfig: resolve(root, 'tsconfig.json'),
@@ -109,7 +125,7 @@ function generatePlanArtifactSchema() {
     sortProps: true,
   }).createSchema('PlanArtifact');
   return {
-    $id: 'https://hector-ae21.github.io/octoform-docs/0.4/assets/plan-artifact.schema.json',
+    $id: schemaUrl(docsLine, 'plan-artifact.schema.json'),
     ...generated,
   };
 }

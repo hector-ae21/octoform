@@ -52,13 +52,18 @@ export function reportInspectedConfig(entries: InspectedOwner[]): void {
 /** Print one owner's capability report as text. */
 export function reportInspectedCapabilities(owner: string, report: InspectedCapabilities): void {
   const label = report.discovery.kind === 'org' ? 'Organisation' : 'Personal account';
-  console.log(`${label}: ${owner} (id ${report.discovery.id})${report.plan ? ` — ${report.plan} plan` : ''}`);
-  console.log(`  organisation-wide rulesets: ${report.organizationRulesets ? 'available' : 'not available'}`);
+  console.log(
+    `${label}: ${owner} (id ${report.discovery.id})${report.plan ? ` — ${report.plan} plan` : ''}`,
+  );
+  console.log(
+    `  organisation-wide rulesets: ${report.organizationRulesets ? 'available' : 'not available'}`,
+  );
   if (report.notApplicable.length === 0) {
     console.log('  no declarations that do not apply to this owner');
   } else {
     console.log('  declarations that do not apply to this owner:');
-    for (const finding of report.notApplicable) console.log(`    ${finding.path}: ${finding.reason}`);
+    for (const finding of report.notApplicable)
+      console.log(`    ${finding.path}: ${finding.reason}`);
   }
   console.log('');
 }

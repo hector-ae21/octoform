@@ -9,6 +9,8 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-15
+
 ### Added
 
 - One configuration can now describe several GitHub accounts. A root `owners`
@@ -122,6 +124,11 @@ a zero major means. Security fixes are always a patch bump. See
   `errorStatus` are no longer exported from the package entry point. They
   were internal execution and error-classification helpers, never part of the
   documented programmatic API.
+- `buildPlanArtifact` and `verifyPlanArtifact` take the authenticated actor
+  and the owners' numeric identities as data rather than a client, and
+  `verifyPlanArtifact` is now synchronous. Deciding whether a saved plan is
+  still valid no longer performs requests of its own. Only programmatic
+  callers are affected.
 
 ### Security
 

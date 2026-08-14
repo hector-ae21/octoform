@@ -9,14 +9,13 @@
  */
 
 import { readFileSync } from 'node:fs';
-import type { Octokit } from '@octokit/rest';
 import { structuralDigest } from './digest.js';
 import { ConfigError, loadConfigWithSources } from './resolve.js';
-import { authenticatedLogin, discoverOwner } from '../github/client.js';
 import type {
   OwnerScope,
   PlanArtifact,
   PlanArtifactOwner,
+  PlanIdentity,
   PlanResult,
   PlanVerification,
 } from '../types/index.js';
@@ -28,11 +27,15 @@ export const DEFAULT_PLAN_EXPIRY_MINUTES = 60;
 
 /**
  * Assemble a saved plan from the results already computed for each selected
- * owner. Does not read anything new from GitHub beyond the authenticated
- * actor: everything else is the same data the terminal report was built from.
+ * owner.
+ *
+ * Nothing here talks to GitHub: the actor and the owners' numeric identities
+ * arrive as data, gathered once by the caller that already holds a client.
+ * That keeps the artifact — the thing an operator reviews and an automated
+ * apply trusts — decided entirely by inputs a test can hand it.
  */
-export async function buildPlanArtifact(
-  octokit: Octokit,
+export function buildPlanArtifact(
+  actor: string | undefined,
   configPath: string,
   sourceDigests: Record<string, string>,
   selectedOwners: OwnerScope[],
@@ -40,8 +43,7 @@ export async function buildPlanArtifact(
   ownerIds: ReadonlyMap<string, number>,
   octoformVersion: string,
   expiryMinutes: number = DEFAULT_PLAN_EXPIRY_MINUTES,
-): Promise<PlanArtifact> {
-  const actor = await authenticatedLogin(octokit);
+): PlanArtifact {
   if (!actor) {
     throw new ConfigError(
       'Cannot save a plan: this token does not expose an authenticated login to record as the actor.',
@@ -76,11 +78,15 @@ export async function buildPlanArtifact(
  * anything. Each failure mode is distinct and named, rather than a single
  * generic "stale plan" — the operator needs to know which check failed to
  * decide whether to re-plan or investigate.
+ *
+ * `observed` carries what the current run resolved about the identities the
+ * plan named. Taking it as data rather than a client is what lets every
+ * rejection path be exercised without a network.
  */
-export async function verifyPlanArtifact(
-  octokit: Octokit,
+export function verifyPlanArtifact(
   artifact: PlanArtifact,
-): Promise<PlanVerification> {
+  observed: PlanIdentity,
+): PlanVerification {
   if (artifact.schemaVersion !== SCHEMA_VERSION) {
     return {
       valid: false,
@@ -93,19 +99,18 @@ export async function verifyPlanArtifact(
     return { valid: false, reason: 'expired', detail: `the plan expired at ${artifact.expiresAt}` };
   }
 
-  const actor = await authenticatedLogin(octokit);
-  if (actor !== artifact.actor) {
+  if (observed.actor !== artifact.actor) {
     return {
       valid: false,
       reason: 'actor-mismatch',
-      detail: `the plan was produced by "${artifact.actor}", but the current token authenticates as ` +
-        `"${actor ?? 'an identity this token does not expose'}"`,
+      detail:
+        `the plan was produced by "${artifact.actor}", but the current token authenticates as ` +
+        `"${observed.actor ?? 'an identity this token does not expose'}"`,
     };
   }
 
   for (const owner of artifact.owners) {
-    const discovered = await discoverOwner(octokit, owner.login);
-    if (discovered.id !== owner.id) {
+    if (observed.ownerIds.get(owner.login) !== owner.id) {
       return {
         valid: false,
         reason: 'owner-identity-mismatch',

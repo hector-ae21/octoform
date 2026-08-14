@@ -222,7 +222,10 @@ test('an import of a file that does not exist names the file it tried to read', 
 
 test('an import path is resolved against its own file, not the process directory', () => {
   write(join('outside', 'shared.yml'), 'version: 1\nowners:\n  account: {}\n');
-  const path = write(join('nested', 'main.yml'), 'version: 1\nimports: ["../outside/shared.yml"]\n');
+  const path = write(
+    join('nested', 'main.yml'),
+    'version: 1\nimports: ["../outside/shared.yml"]\n',
+  );
 
   assert.deepEqual(
     loadConfig(path).owners.map((scope) => scope.owner),

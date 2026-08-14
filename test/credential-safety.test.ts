@@ -20,7 +20,6 @@ import { ConfigError, loadConfig } from '../src/config/resolve.js';
 import { formatChange } from '../src/report/format.js';
 import { planRepo } from '../src/core/plan.js';
 import { capability } from '../src/github/capabilities.js';
-import type { Octokit } from '@octokit/rest';
 import type { OwnerScope, PlanResult, RepoDetail } from '../src/types/index.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'octoform-credentials-'));
@@ -69,19 +68,45 @@ function assertRejected(path: string, token: string, expectedPath: RegExp): void
 }
 
 const FIELDS: ReadonlyArray<[string, string, RegExp]> = [
-  ['a repository description', 'defaults:\n  repo:\n    description: TOKEN\n', /defaults\.repo\.description/],
-  ['a repository homepage', 'defaults:\n  repo:\n    homepage: TOKEN\n', /defaults\.repo\.homepage/],
+  [
+    'a repository description',
+    'defaults:\n  repo:\n    description: TOKEN\n',
+    /defaults\.repo\.description/,
+  ],
+  [
+    'a repository homepage',
+    'defaults:\n  repo:\n    homepage: TOKEN\n',
+    /defaults\.repo\.homepage/,
+  ],
   ['a topic', 'defaults:\n  repo:\n    topics: [TOKEN]\n', /defaults\.repo\.topics\[0\]/],
-  ['a default-branch name', 'defaults:\n  default_branch:\n    name: TOKEN\n', /defaults\.default_branch\.name/],
-  ['an ensured branch', 'defaults:\n  ensure_branches: [TOKEN]\n', /defaults\.ensure_branches\[0\]/],
-  ['a ruleset name', 'defaults:\n  rulesets:\n    - name: TOKEN\n      target_branches: [main]\n', /defaults\.rulesets\[0\]\.name/],
-  ['an environment name', 'defaults:\n  environments:\n    - name: TOKEN\n', /defaults\.environments\[0\]\.name/],
+  [
+    'a default-branch name',
+    'defaults:\n  default_branch:\n    name: TOKEN\n',
+    /defaults\.default_branch\.name/,
+  ],
+  [
+    'an ensured branch',
+    'defaults:\n  ensure_branches: [TOKEN]\n',
+    /defaults\.ensure_branches\[0\]/,
+  ],
+  [
+    'a ruleset name',
+    'defaults:\n  rulesets:\n    - name: TOKEN\n      target_branches: [main]\n',
+    /defaults\.rulesets\[0\]\.name/,
+  ],
+  [
+    'an environment name',
+    'defaults:\n  environments:\n    - name: TOKEN\n',
+    /defaults\.environments\[0\]\.name/,
+  ],
   ['a classify property', 'classify:\n  property: TOKEN\n', /classify\.property/],
 ];
 
 for (const [what, fragment, expectedPath] of FIELDS) {
   test(`a credential in ${what} is rejected without echoing it`, () => {
-    const path = config(`version: 1\nowner: account\n${fragment.replace('TOKEN', SYNTHETIC.classic)}`);
+    const path = config(
+      `version: 1\nowner: account\n${fragment.replace('TOKEN', SYNTHETIC.classic)}`,
+    );
     assertRejected(path, SYNTHETIC.classic, expectedPath);
   });
 }
@@ -130,7 +155,7 @@ test('an ordinary configuration value is never mistaken for a credential', () =>
   assert.equal(findCredentialShapedValue(innocent), undefined);
 });
 
-test('a token in the environment never reaches a saved plan', async () => {
+test('a token in the environment never reaches a saved plan', () => {
   const scope: OwnerScope = { owner: 'account' };
   const observed: RepoDetail = {
     name: 'thing',
@@ -147,15 +172,11 @@ test('a token in the environment never reaches a saved plan', async () => {
     ['account', { changes, blocked: [], errors: [], scanned: 1 }],
   ]);
 
-  const octokit = {
-    users: { getAuthenticated: async () => ({ data: { login: 'an-actor' } }) },
-  } as unknown as Octokit;
-
   const previous = process.env.GITHUB_TOKEN;
   process.env.GITHUB_TOKEN = SYNTHETIC.classic;
   try {
-    const artifact = await buildPlanArtifact(
-      octokit,
+    const artifact = buildPlanArtifact(
+      'an-actor',
       'octoform.yml',
       { 'octoform.yml': 'a-digest' },
       [scope],

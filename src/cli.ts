@@ -11,13 +11,10 @@ import {
   reportInspectedCapabilities,
   reportInspectedConfig,
 } from './commands/inspect.js';
-import {
-  buildPlanArtifact,
-  readPlanArtifact,
-  verifyPlanArtifact,
-} from './config/plan-artifact.js';
+import { buildPlanArtifact, readPlanArtifact, verifyPlanArtifact } from './config/plan-artifact.js';
 import {
   AuthError,
+  authenticatedLogin,
   createClient,
   detectOwnerKind,
   discoverOwner,
@@ -129,7 +126,9 @@ export function parseArgs(argv: string[]): Args {
       if (!value) throw new ConfigError(`${arg} needs a value`);
       const parsed = Number(value);
       if (!Number.isInteger(parsed) || parsed < 1) {
-        throw new ConfigError(`--expires-in must be a positive integer number of minutes, got "${value}"`);
+        throw new ConfigError(
+          `--expires-in must be a positive integer number of minutes, got "${value}"`,
+        );
       }
       args.expiresIn = parsed;
     } else if (arg === '--format') {
@@ -225,7 +224,9 @@ export async function main(argv: string[]): Promise<number> {
             { quiet: args.format === 'json' },
           );
           if (args.format === 'json') {
-            console.log(JSON.stringify(envelope('plan', { owner: scope.owner, ...result }), null, 2));
+            console.log(
+              JSON.stringify(envelope('plan', { owner: scope.owner, ...result }), null, 2),
+            );
           }
           if (args.out) {
             planResults.set(scope.owner, result);
@@ -234,8 +235,8 @@ export async function main(argv: string[]): Promise<number> {
           return { status: planExitStatus(result), summary: toRecord(summarizePlan(result)) };
         });
         if (args.out) {
-          const artifact = await buildPlanArtifact(
-            octokit,
+          const artifact = buildPlanArtifact(
+            await authenticatedLogin(octokit),
             args.config,
             sourceDigests,
             selection.owners,
@@ -267,9 +268,10 @@ export async function main(argv: string[]): Promise<number> {
       case 'classify': {
         await enter(args.apply ? ['repo', 'admin:org'] : ['repo']);
         return await each(async (scope) => ({
-          status: (await classify(octokit, scope, { apply: args.apply })) === 0
-            ? EXIT_SUCCESS
-            : EXIT_FAILED,
+          status:
+            (await classify(octokit, scope, { apply: args.apply })) === 0
+              ? EXIT_SUCCESS
+              : EXIT_FAILED,
         }));
       }
       case 'properties': {
@@ -355,9 +357,18 @@ async function runApplyPlanCommand(planFile: string, skipConfirm: boolean): Prom
     const artifact = readPlanArtifact(planFile);
     const octokit = createClient();
 
-    const verification = await verifyPlanArtifact(octokit, artifact);
+    const ownerIds = new Map<string, number>();
+    for (const owner of artifact.owners) {
+      ownerIds.set(owner.login, (await discoverOwner(octokit, owner.login)).id);
+    }
+    const verification = verifyPlanArtifact(artifact, {
+      actor: await authenticatedLogin(octokit),
+      ownerIds,
+    });
     if (!verification.valid) {
-      console.error(`Refusing to apply ${planFile}: ${verification.detail} (${verification.reason}).`);
+      console.error(
+        `Refusing to apply ${planFile}: ${verification.detail} (${verification.reason}).`,
+      );
       return EXIT_USAGE_ERROR;
     }
 
@@ -389,7 +400,12 @@ async function runApplyPlanCommand(planFile: string, skipConfirm: boolean): Prom
     let applied = 0;
     for (const owner of artifact.owners) {
       for (const [repoName, group] of groupByRepo(owner.changes)) {
-        const results: AppliedChange[] = await applyRepoChanges(octokit, owner.login, repoName, group);
+        const results: AppliedChange[] = await applyRepoChanges(
+          octokit,
+          owner.login,
+          repoName,
+          group,
+        );
         for (const result of results) {
           if (result.outcome === 'applied') applied++;
           else failures++;
@@ -683,9 +699,7 @@ async function preflight(
     } catch {
       continue;
     }
-    const lines = notApplicable(scope, kind).map((finding) =>
-      describeNotApplicable(finding, kind),
-    );
+    const lines = notApplicable(scope, kind).map((finding) => describeNotApplicable(finding, kind));
     if (lines.length === 0) continue;
     if (strict) rejected.push(...lines);
     notes.set(scope.owner, lines);

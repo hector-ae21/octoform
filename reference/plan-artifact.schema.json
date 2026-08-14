@@ -1,0 +1,182 @@
+{
+  "$id": "https://hector-ae21.github.io/octoform-docs/0.4/assets/plan-artifact.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/PlanArtifact",
+  "definitions": {
+    "PlanArtifact": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "$ref": "#/definitions/PlanArtifactSchemaVersion"
+        },
+        "octoformVersion": {
+          "type": "string",
+          "description": "The octoform version that produced this file."
+        },
+        "actor": {
+          "type": "string",
+          "description": "The authenticated login that produced this file."
+        },
+        "observedAt": {
+          "type": "string",
+          "description": "When the plan was observed."
+        },
+        "expiresAt": {
+          "type": "string",
+          "description": "After this time, `apply --plan` refuses the file outright."
+        },
+        "configPath": {
+          "type": "string",
+          "description": "The `--config` path this plan was produced from."
+        },
+        "configDigest": {
+          "type": "string",
+          "description": "Digest of the resolved configuration for exactly the owners below."
+        },
+        "sourceDigests": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Digest of every source file that contributed, by absolute path."
+        },
+        "owners": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PlanArtifactOwner"
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "octoformVersion",
+        "actor",
+        "observedAt",
+        "expiresAt",
+        "configPath",
+        "configDigest",
+        "sourceDigests",
+        "owners"
+      ],
+      "additionalProperties": false,
+      "description": "A frozen plan: exactly what `apply --plan` is allowed to do, and the evidence it checks before doing any of it."
+    },
+    "PlanArtifactSchemaVersion": {
+      "type": "number",
+      "const": 1,
+      "description": "The version of `octoform plan --out`'s file format, independent of the package version."
+    },
+    "PlanArtifactOwner": {
+      "type": "object",
+      "properties": {
+        "login": {
+          "type": "string"
+        },
+        "id": {
+          "type": "number",
+          "description": "GitHub's numeric identity for this owner, re-checked before apply."
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Change"
+          }
+        },
+        "blocked": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Change"
+          }
+        }
+      },
+      "required": [
+        "login",
+        "id",
+        "changes",
+        "blocked"
+      ],
+      "additionalProperties": false,
+      "description": "Everything one owner contributes to a saved plan."
+    },
+    "Change": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable across two runs that plan the same change, so a result can be correlated with the operation that produced it across output formats and across the gap between `plan` and a later `apply`. Never used as API identity — it addresses a change in octoform's own model, not a GitHub object."
+        },
+        "owner": {
+          "type": "string",
+          "description": "The GitHub login this change belongs to."
+        },
+        "repo": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string",
+          "description": "Dotted path of the setting, e.g. \"merge.delete_branch_on_merge\"."
+        },
+        "operation": {
+          "$ref": "#/definitions/OperationKind"
+        },
+        "risk": {
+          "$ref": "#/definitions/Risk"
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Other operations'  {@link  Change.id }  values this one cannot be applied before. Empty today: within one repository's settings nothing octoform plans depends on anything else it plans. Real prerequisites arrive with the cross-resource dependency graph, once a second resource family gives them something to point at."
+        },
+        "from": {},
+        "to": {},
+        "blocked": {
+          "type": "string",
+          "description": "Set when the change cannot be applied; explains why, in plain words."
+        },
+        "warning": {
+          "type": "string",
+          "description": "Set when the change will be applied but has a consequence the operator should know about first. Distinct from `blocked`: this one still happens."
+        },
+        "payload": {
+          "description": "What `apply` needs to carry the change out, for the changes whose `to` is a sentence meant for a human rather than a value an endpoint accepts. A ruleset reads as \"v*.x, 1 approval\" in the report; the API wants the policy object it came from."
+        }
+      },
+      "required": [
+        "id",
+        "owner",
+        "repo",
+        "key",
+        "operation",
+        "risk",
+        "prerequisites",
+        "from",
+        "to"
+      ],
+      "additionalProperties": false,
+      "description": "One difference between what is declared and what the repository has."
+    },
+    "OperationKind": {
+      "type": "string",
+      "enum": [
+        "create",
+        "update",
+        "attach",
+        "detach",
+        "delete"
+      ],
+      "description": "What kind of operation a change represents against GitHub's own model. `attach`/`detach`/`delete` have no producer yet — nothing octoform manages today removes or unlinks a resource — but the type states them so a future resource family does not have to widen a type every consumer already reads."
+    },
+    "Risk": {
+      "type": "string",
+      "enum": [
+        "normal",
+        "sensitive",
+        "destructive",
+        "cost"
+      ],
+      "description": "How much scrutiny a change deserves before it is applied, matching the confirmation levels in the security model: normal metadata, a setting that affects access or merge safety, an irreversible removal, or one with a billing consequence. Nothing octoform manages today is `destructive` or `cost` — those arrive with resource families that can actually produce them."
+    }
+  }
+}

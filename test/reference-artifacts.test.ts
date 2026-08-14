@@ -69,13 +69,26 @@ test('the CLI manifest is the exact runtime help contract', () => {
   for (const option of CLI_CONTRACT.options) assert.match(usage, new RegExp(escape(option.syntax)));
 });
 
+/**
+ * Documentation is published one immutable line per MAJOR.MINOR, so a schema
+ * URL that stayed pinned across a release would point at the previous line's
+ * copy of itself.
+ */
+function publishedSchemaUrl(name: string): string {
+  const [major, minor] = packageMetadata.version.split('.');
+  return `https://hector-ae21.github.io/octoform-docs/${major}.${minor}/assets/${name}`;
+}
+
+test('every generated schema is published under this release documentation line', () => {
+  for (const name of ['config.schema.json', 'plan-artifact.schema.json'] as const) {
+    assert.equal(readJson<JsonSchema>(`reference/${name}`).$id, publishedSchemaUrl(name));
+  }
+});
+
 test('the configuration schema exposes the strict Config contract', () => {
   const schema = readJson<JsonSchema>('reference/config.schema.json');
   const config = schema.definitions.Config;
-  assert.equal(
-    schema.$id,
-    'https://hector-ae21.github.io/octoform-docs/0.3/assets/config.schema.json',
-  );
+  assert.equal(schema.$id, publishedSchemaUrl('config.schema.json'));
   assert.equal(schema.$schema, 'http://json-schema.org/draft-07/schema#');
   assert.equal(schema.$ref, '#/definitions/Config');
   assert.equal(config?.additionalProperties, false);

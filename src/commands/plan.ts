@@ -71,7 +71,10 @@ export async function plan(
             )
           : await detectRulesetCapability(octokit, scope.owner, repo.name, repo.default_branch);
       const detail = await getRepoDetail(octokit, scope.owner, repo, policy);
-      return { repo: repo.name, changes: planRepo(scope.owner, detail, policy, { rulesetCapability }) };
+      return {
+        repo: repo.name,
+        changes: planRepo(scope.owner, detail, policy, { rulesetCapability }),
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return { repo: repo.name, error: message };

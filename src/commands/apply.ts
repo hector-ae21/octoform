@@ -80,13 +80,11 @@ export async function apply(
       try {
         return await applyRepoChanges(octokit, scope.owner, repoName, group);
       } catch (error) {
-        return group.map(
-          (change): AppliedChange => ({
-            ...change,
-            outcome: 'failed',
-            error: (error as Error).message ?? String(error),
-          }),
-        );
+        return group.map((change): AppliedChange => ({
+          ...change,
+          outcome: 'failed',
+          error: (error as Error).message ?? String(error),
+        }));
       }
     },
   );
@@ -107,8 +105,7 @@ export async function apply(
     failures === 0 ? 'All changes applied.' : `${failures} change(s) failed — see above.`,
   );
   const allResults = perRepo.flat();
-  const status =
-    failures > 0 ? EXIT_FAILED : blocked.length > 0 ? EXIT_BLOCKED : EXIT_SUCCESS;
+  const status = failures > 0 ? EXIT_FAILED : blocked.length > 0 ? EXIT_BLOCKED : EXIT_SUCCESS;
   return { status, summary: summarizeApply(allResults, blocked.length) };
 }
 

@@ -37,6 +37,20 @@ export interface PlanArtifact {
   owners: PlanArtifactOwner[];
 }
 
+/**
+ * What the current run resolved about the identities a saved plan named.
+ *
+ * Gathered by whoever holds a GitHub client and handed to verification as
+ * data, so that deciding whether a plan is still valid never depends on a
+ * network call of its own.
+ */
+export interface PlanIdentity {
+  /** The login the current token authenticates as, when it exposes one. */
+  actor: string | undefined;
+  /** GitHub's numeric identity for each owner the plan targets, by login. */
+  ownerIds: ReadonlyMap<string, number>;
+}
+
 /** Why a saved plan was refused. One reason per distinct failure mode. */
 export type PlanRejectionReason =
   | 'unsupported-schema-version'
@@ -47,4 +61,5 @@ export type PlanRejectionReason =
   | 'source-digest-mismatch';
 
 /** The result of checking a saved plan before applying it. */
-export type PlanVerification = { valid: true } | { valid: false; reason: PlanRejectionReason; detail: string };
+export type PlanVerification =
+  { valid: true } | { valid: false; reason: PlanRejectionReason; detail: string };

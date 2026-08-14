@@ -52,7 +52,11 @@ const MERGE_KEYS = [
   'allow_auto_merge',
   'delete_branch_on_merge',
 ] as const;
-const SECURITY_KEYS = ['vulnerability_alerts', 'automated_security_fixes', 'secret_scanning'] as const;
+const SECURITY_KEYS = [
+  'vulnerability_alerts',
+  'automated_security_fixes',
+  'secret_scanning',
+] as const;
 const TOPICS = ['alpha', 'beta', 'gamma', 'delta'] as const;
 
 /** Every settings key the generated policies can possibly ask about. */
@@ -152,7 +156,8 @@ function generateLayer(random: Random, policyNames: readonly string[]): Generate
   if (security) layer.security = security;
 
   const repo: GeneratedLayer['repo'] = {};
-  if (random.int(3) === 0) repo.description = random.int(6) === 0 ? null : `described ${random.int(3)}`;
+  if (random.int(3) === 0)
+    repo.description = random.int(6) === 0 ? null : `described ${random.int(3)}`;
   if (random.int(4) === 0) repo.topics = random.subset(TOPICS);
   if (Object.keys(repo).length > 0) layer.repo = repo;
 
@@ -165,18 +170,14 @@ function generateToggles(
 ): Record<string, boolean | null> | undefined {
   const chosen = random.subset(keys);
   if (chosen.length === 0) return undefined;
-  return Object.fromEntries(
-    chosen.map((key) => [key, random.int(6) === 0 ? null : random.bool()]),
-  );
+  return Object.fromEntries(chosen.map((key) => [key, random.int(6) === 0 ? null : random.bool()]));
 }
 
 /** Render a generated configuration as the YAML an author would have written. */
 export function renderConfig(config: GeneratedConfig, owners = config.owners): string {
   const document: Record<string, unknown> = { version: 1 };
   if (Object.keys(config.policies).length > 0) document.policies = config.policies;
-  document.owners = Object.fromEntries(
-    owners.map(({ owner, ...block }) => [owner, block]),
-  );
+  document.owners = Object.fromEntries(owners.map(({ owner, ...block }) => [owner, block]));
   return stringify(document);
 }
 

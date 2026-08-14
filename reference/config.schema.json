@@ -1,5 +1,5 @@
 {
-  "$id": "https://hector-ae21.github.io/octoform-docs/0.3/assets/config.schema.json",
+  "$id": "https://hector-ae21.github.io/octoform-docs/0.4/assets/config.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/Config",
   "definitions": {
