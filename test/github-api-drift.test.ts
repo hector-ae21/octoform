@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import test from 'node:test';
@@ -40,6 +40,21 @@ test('new operations and structural contract changes require review', async () =
   assert.match(result.report, /createRepository/);
 });
 
+test('reports only through stdout and rejects caller-controlled output paths', async () => {
+  const directory = await mkdtemp(resolve(tmpdir(), 'octoform-api-drift-output-'));
+  try {
+    const reportPath = resolve(directory, 'report.md');
+    const execution = spawnSync(process.execPath, [script, '--report', reportPath], {
+      encoding: 'utf8',
+    });
+    assert.notEqual(execution.status, 0);
+    assert.match(execution.stderr, /Unknown option '--report'/);
+    await assert.rejects(access(reportPath));
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 async function runAudit(currentRest: RestDescription, graphql: GraphqlField[]) {
   const directory = await mkdtemp(resolve(tmpdir(), 'octoform-api-drift-'));
   try {
@@ -47,7 +62,6 @@ async function runAudit(currentRest: RestDescription, graphql: GraphqlField[]) {
     const currentPath = resolve(directory, 'current.json');
     const graphqlPath = resolve(directory, 'graphql.json');
     const configPath = resolve(directory, 'config.json');
-    const reportPath = resolve(directory, 'report.md');
     const baseline = Buffer.from(JSON.stringify(baselineRest()));
     await writeFile(baselinePath, baseline);
     await writeFile(currentPath, JSON.stringify(currentRest));
@@ -80,15 +94,13 @@ async function runAudit(currentRest: RestDescription, graphql: GraphqlField[]) {
         currentPath,
         '--graphql-current',
         graphqlPath,
-        '--report',
-        reportPath,
       ],
       { encoding: 'utf8' },
     );
     return {
       status: execution.status,
       stderr: execution.stderr,
-      report: await readFile(reportPath, 'utf8'),
+      report: execution.stdout,
     };
   } finally {
     await rm(directory, { recursive: true, force: true });

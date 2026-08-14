@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -10,7 +10,6 @@ const { values } = parseArgs({
     config: { type: 'string', default: resolve(root, 'reference/github-api-surface.config.json') },
     'rest-current': { type: 'string' },
     'graphql-current': { type: 'string' },
-    report: { type: 'string' },
   },
   strict: true,
 });
@@ -41,7 +40,6 @@ try {
   report = `# GitHub API contract drift\n\nThe read-only audit could not complete.\n\n\`\`\`text\n${message(error)}\n\`\`\`\n`;
 }
 
-if (values.report) await writeFile(resolve(values.report), report);
 console.log(report);
 process.exitCode = exitCode;
 

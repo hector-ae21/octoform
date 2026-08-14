@@ -31,7 +31,7 @@ jobs:
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/check-github-api-drift.mjs --report "$RUNNER_TEMP/github-api-drift.md"
+        run: node scripts/check-github-api-drift.mjs > "$RUNNER_TEMP/github-api-drift.md"
       - name: Publish audit summary
         if: always()
         run: cat "$RUNNER_TEMP/github-api-drift.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "Contract audit did not produce a report." >> "$GITHUB_STEP_SUMMARY"
