@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,6 +21,9 @@ try {
   if (result.stderr) process.stderr.write(result.stderr);
   if (result.status !== 0) process.exit(result.status ?? 1);
 
+  const generatedReference = JSON.parse(await readFile(output, 'utf8'));
+  await writeFile(output, `${JSON.stringify(normalizeStrings(generatedReference), null, '\t')}\n`);
+
   if (check) {
     const [actual, expected] = await Promise.all([
       readFile(output, 'utf8'),
@@ -33,4 +36,11 @@ try {
   }
 } finally {
   if (temporaryRoot) await rm(temporaryRoot, { recursive: true, force: true });
+}
+
+function normalizeStrings(value) {
+  if (typeof value === 'string') return value.replace(/\r\n?/g, '\n');
+  if (Array.isArray(value)) return value.map(normalizeStrings);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalizeStrings(item)]));
 }

@@ -41,6 +41,14 @@ type PermissionRegister = {
 
 const root = process.cwd();
 const packageMetadata = readJson<{ version: string }>('package.json');
+const releaseReferenceNames = [
+  'api.json',
+  'capabilities.json',
+  'cli.json',
+  'config.schema.json',
+  'github-api-surface.json',
+  'permissions.json',
+] as const;
 
 test('the CLI manifest is the exact runtime help contract', () => {
   const manifest = readJson<Record<string, unknown>>('reference/cli.json');
@@ -104,19 +112,18 @@ test('SHA256SUMS authenticates every generated release reference', () => {
         return [name, digest];
       }),
   );
-  assert.deepEqual([...expected.keys()], [
-    'api.json',
-    'capabilities.json',
-    'cli.json',
-    'config.schema.json',
-    'github-api-surface.json',
-    'permissions.json',
-  ]);
+  assert.deepEqual([...expected.keys()], releaseReferenceNames);
   for (const [name, digest] of expected) {
     const actual = createHash('sha256')
       .update(readFileSync(resolve(root, 'reference', name)))
       .digest('hex');
     assert.equal(actual, digest, name);
+  }
+});
+
+test('release references use canonical LF line endings', () => {
+  for (const name of [...releaseReferenceNames, 'SHA256SUMS']) {
+    assert.doesNotMatch(readFileSync(resolve(root, 'reference', name), 'utf8'), /\r/, name);
   }
 });
 

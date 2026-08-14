@@ -43,6 +43,11 @@ test('the API reference contains no absolute filesystem paths', async () => {
   }
 });
 
+test('the API reference uses platform-independent line endings', async () => {
+  const reference = JSON.parse(await readFile(resolve(root, 'reference/api.json'), 'utf8')) as unknown;
+  for (const value of stringValues(reference)) assert.doesNotMatch(value, /\r/);
+});
+
 function* stringValues(value: unknown): Generator<string> {
   if (typeof value === 'string') {
     yield value;

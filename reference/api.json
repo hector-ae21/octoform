@@ -115,7 +115,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " would, show it, ask before doing anything, and\r\nonly then call the GitHub API.\r\n\r\nReuses "
+								"text": " would, show it, ask before doing anything, and\nonly then call the GitHub API.\n\nReuses "
 							},
 							{
 								"kind": "code",
@@ -131,7 +131,7 @@
 							},
 							{
 								"kind": "text",
-								"text": "\r\ncan never disagree with what "
+								"text": "\ncan never disagree with what "
 							},
 							{
 								"kind": "code",
@@ -289,7 +289,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Read-only. Reports what deviates from the declared expectations and never\r\nchanges anything, so it is safe to run before any of the config is trusted."
+								"text": "Read-only. Reports what deviates from the declared expectations and never\nchanges anything, so it is safe to run before any of the config is trusted."
 							}
 						]
 					},
@@ -481,7 +481,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Propose a type for every repository that has none recorded.\r\n\r\nPrints and stops there unless "
+								"text": "Propose a type for every repository that has none recorded.\n\nPrints and stops there unless "
 							},
 							{
 								"kind": "code",
@@ -497,7 +497,7 @@
 							},
 							{
 								"kind": "text",
-								"text": "\r\nand "
+								"text": "\nand "
 							},
 							{
 								"kind": "code",
@@ -505,7 +505,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " are separate commands: a rule that matches more than its author\r\nexpected is much easier to notice in a list than after it has been written\r\nto seventeen repositories.\r\n\r\nA repository that already has a type is never re-examined. Classification\r\nexists to fill in what is missing, not to argue with a decision somebody\r\nalready made — including one made by hand, against the rules."
+								"text": " are separate commands: a rule that matches more than its author\nexpected is much easier to notice in a list than after it has been written\nto seventeen repositories.\n\nA repository that already has a type is never re-examined. Classification\nexists to fill in what is missing, not to argue with a decision somebody\nalready made — including one made by hand, against the rules."
 							}
 						]
 					},
@@ -721,7 +721,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " would do, and just as importantly what it would\r\nrefuse to do and why.\r\n\r\n"
+								"text": " would do, and just as importantly what it would\nrefuse to do and why.\n\n"
 							},
 							{
 								"kind": "code",
@@ -729,7 +729,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " suppresses the console report without changing what is computed or\r\nreturned: "
+								"text": " suppresses the console report without changing what is computed or\nreturned: "
 							},
 							{
 								"kind": "code",
@@ -737,7 +737,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " calls this to get the same diff without plan's own\r\n\"nothing was changed\" framing, which would be actively wrong to print\r\nmoments before it changes something."
+								"text": " calls this to get the same diff without plan's own\n\"nothing was changed\" framing, which would be actively wrong to print\nmoments before it changes something."
 							}
 						]
 					},
@@ -973,7 +973,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Bring the custom property that stores each repository's type into line with\r\nthe configuration: define it if it does not exist, and record the types the\r\nfile declares under "
+								"text": "Bring the custom property that stores each repository's type into line with\nthe configuration: define it if it does not exist, and record the types the\nfile declares under "
 							},
 							{
 								"kind": "code",
@@ -981,7 +981,7 @@
 							},
 							{
 								"kind": "text",
-								"text": ".\r\n\r\nThe set of allowed values is "
+								"text": ".\n\nThe set of allowed values is "
 							},
 							{
 								"kind": "code",
@@ -989,7 +989,7 @@
 							},
 							{
 								"kind": "text",
-								"text": ", not a separate list. A\r\nconfiguration that declares a policy for "
+								"text": ", not a separate list. A\nconfiguration that declares a policy for "
 							},
 							{
 								"kind": "code",
@@ -997,7 +997,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " has already said\r\n"
+								"text": " has already said\n"
 							},
 							{
 								"kind": "code",
@@ -1005,7 +1005,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " is a type; asking for it twice only creates somewhere for the\r\ntwo answers to differ.\r\n\r\nOrganisations only, and not because of an oversight: custom properties are\r\nan organisation-level feature and a personal account has no such API. There,\r\n"
+								"text": " is a type; asking for it twice only creates somewhere for the\ntwo answers to differ.\n\nOrganisations only, and not because of an oversight: custom properties are\nan organisation-level feature and a personal account has no such API. There,\n"
 							},
 							{
 								"kind": "code",
@@ -1013,7 +1013,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " in the configuration file is the only store there is,\r\nand it already works without this command."
+								"text": " in the configuration file is the only store there is,\nand it already works without this command."
 							}
 						]
 					},
@@ -1142,7 +1142,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "Programmatic entry point.\r\n\r\nThe CLI is the intended way to use octoform, but the pieces it is built from\r\nare exported so that a repository can be planned from a script, a test, or\r\nanother tool without shelling out and parsing text."
+						"text": "Programmatic entry point.\n\nThe CLI is the intended way to use octoform, but the pieces it is built from\nare exported so that a repository can be planned from a script, a test, or\nanother tool without shelling out and parsing text."
 					}
 				]
 			},
@@ -1696,7 +1696,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "Programmatic entry point.\r\n\r\nThe CLI is the intended way to use octoform, but the pieces it is built from\r\nare exported so that a repository can be planned from a script, a test, or\r\nanother tool without shelling out and parsing text."
+						"text": "Programmatic entry point.\n\nThe CLI is the intended way to use octoform, but the pieces it is built from\nare exported so that a repository can be planned from a script, a test, or\nanother tool without shelling out and parsing text."
 					}
 				]
 			},
@@ -1739,7 +1739,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "Programmatic entry point.\r\n\r\nThe CLI is the intended way to use octoform, but the pieces it is built from\r\nare exported so that a repository can be planned from a script, a test, or\r\nanother tool without shelling out and parsing text."
+						"text": "Programmatic entry point.\n\nThe CLI is the intended way to use octoform, but the pieces it is built from\nare exported so that a repository can be planned from a script, a test, or\nanother tool without shelling out and parsing text."
 					}
 				]
 			},
@@ -1754,7 +1754,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Resolve the policy that applies to one repository.\r\n\r\nPrecedence, widest to narrowest: "
+								"text": "Resolve the policy that applies to one repository.\n\nPrecedence, widest to narrowest: "
 							},
 							{
 								"kind": "code",
@@ -1829,7 +1829,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "Programmatic entry point.\r\n\r\nThe CLI is the intended way to use octoform, but the pieces it is built from\r\nare exported so that a repository can be planned from a script, a test, or\r\nanother tool without shelling out and parsing text."
+						"text": "Programmatic entry point.\n\nThe CLI is the intended way to use octoform, but the pieces it is built from\nare exported so that a repository can be planned from a script, a test, or\nanother tool without shelling out and parsing text."
 					}
 				]
 			},
@@ -1844,7 +1844,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "The type recorded for a repository. The custom property is the usual source,\r\nbut a type declared in the configuration file wins: it lets the tool work on\r\nan organisation whose plan does not offer custom properties at all, and is\r\nthe only source available on a personal account, which has no custom\r\nproperties API to read from."
+								"text": "The type recorded for a repository. The custom property is the usual source,\nbut a type declared in the configuration file wins: it lets the tool work on\nan organisation whose plan does not offer custom properties at all, and is\nthe only source available on a personal account, which has no custom\nproperties API to read from."
 							}
 						]
 					},
@@ -1902,7 +1902,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "Programmatic entry point.\r\n\r\nThe CLI is the intended way to use octoform, but the pieces it is built from\r\nare exported so that a repository can be planned from a script, a test, or\r\nanother tool without shelling out and parsing text."
+						"text": "Programmatic entry point.\n\nThe CLI is the intended way to use octoform, but the pieces it is built from\nare exported so that a repository can be planned from a script, a test, or\nanother tool without shelling out and parsing text."
 					}
 				]
 			},
@@ -1956,7 +1956,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "Programmatic entry point.\r\n\r\nThe CLI is the intended way to use octoform, but the pieces it is built from\r\nare exported so that a repository can be planned from a script, a test, or\r\nanother tool without shelling out and parsing text."
+						"text": "Programmatic entry point.\n\nThe CLI is the intended way to use octoform, but the pieces it is built from\nare exported so that a repository can be planned from a script, a test, or\nanother tool without shelling out and parsing text."
 					}
 				]
 			},
@@ -2038,7 +2038,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "A managed setting is tri-state:\r\n\r\n  true       enforce it on\r\n  false      enforce it off\r\n  undefined  not managed at all, leave whatever the repository has\r\n\r\n"
+						"text": "A managed setting is tri-state:\n\n  true       enforce it on\n  false      enforce it off\n  undefined  not managed at all, leave whatever the repository has\n\n"
 					},
 					{
 						"kind": "code",
@@ -2046,7 +2046,7 @@
 					},
 					{
 						"kind": "text",
-						"text": " is accepted as an explicit \"stop managing this\", which is how a\r\nrepository-level entry cancels a policy it would otherwise inherit from its\r\ntype or from the defaults. Both collapse to "
+						"text": " is accepted as an explicit \"stop managing this\", which is how a\nrepository-level entry cancels a policy it would otherwise inherit from its\ntype or from the defaults. Both collapse to "
 					},
 					{
 						"kind": "code",
@@ -2948,7 +2948,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "When false, the repository is still inventoried and audited but no policy\r\nis applied to it. Distinct from "
+								"text": "When false, the repository is still inventoried and audited but no policy\nis applied to it. Distinct from "
 							},
 							{
 								"kind": "code",
@@ -3350,7 +3350,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "Audit-only expectations. These never mutate anything; they exist so that\r\n\"every public repository must have a description\" is a line of configuration\r\nrather than a branch in the code."
+						"text": "Audit-only expectations. These never mutate anything; they exist so that\n\"every public repository must have a description\" is a line of configuration\nrather than a branch in the code."
 					}
 				]
 			},
@@ -3521,7 +3521,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "A GitHub login: an organisation or a personal account. octoform tells\r\nwhich one it is by asking the API, not by anything declared here — an\r\norganisation and a user with the same login are indistinguishable in\r\nconfiguration, and forcing the author to say which invites the file to\r\nbe wrong about it."
+								"text": "A GitHub login: an organisation or a personal account. octoform tells\nwhich one it is by asking the API, not by anything declared here — an\norganisation and a user with the same login are indistinguishable in\nconfiguration, and forcing the author to say which invites the file to\nbe wrong about it."
 							}
 						]
 					},
@@ -3542,7 +3542,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Other configuration files to merge before this one, most general first.\r\nPaths are resolved relative to the file that lists them, so an imported\r\nfile can itself import further files. This is how a set of type\r\npresets is shared across several owners without copying it around: put\r\n"
+								"text": "Other configuration files to merge before this one, most general first.\nPaths are resolved relative to the file that lists them, so an imported\nfile can itself import further files. This is how a set of type\npresets is shared across several owners without copying it around: put\n"
 							},
 							{
 								"kind": "code",
@@ -3566,7 +3566,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " of its own, and import\r\nit from each real configuration."
+								"text": " of its own, and import\nit from each real configuration."
 							}
 						]
 					},
@@ -3803,7 +3803,7 @@
 					},
 					{
 						"kind": "text",
-						"text": " turned out to be an organisation or a personal account.\r\nSeveral features are organisation-only (custom properties, organisation\r\nrulesets), so this changes what gets probed and how findings are worded —\r\nnever what the configuration is allowed to say."
+						"text": " turned out to be an organisation or a personal account.\nSeveral features are organisation-only (custom properties, organisation\nrulesets), so this changes what gets probed and how findings are worded —\nnever what the configuration is allowed to say."
 					}
 				]
 			},
@@ -4012,7 +4012,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "The answer could not be read at all: an endpoint this plan does not expose,\r\nor a field GitHub omitted. Distinct from "
+						"text": "The answer could not be read at all: an endpoint this plan does not expose,\nor a field GitHub omitted. Distinct from "
 					},
 					{
 						"kind": "code",
@@ -4020,7 +4020,7 @@
 					},
 					{
 						"kind": "text",
-						"text": ", which is a real value for\r\na description or a homepage and means \"set to nothing\". Conflating the two\r\nmakes the planner offer to fill in a field it cannot even see."
+						"text": ", which is a real value for\na description or a homepage and means \"set to nothing\". Conflating the two\nmakes the planner offer to fill in a field it cannot even see."
 					}
 				]
 			},
@@ -4093,7 +4093,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "A ruleset as it exists on GitHub right now, reduced to the parts octoform\r\nmanages. Everything else GitHub stores on a ruleset — bypass actors, rules\r\noctoform does not model — is deliberately absent: "
+						"text": "A ruleset as it exists on GitHub right now, reduced to the parts octoform\nmanages. Everything else GitHub stores on a ruleset — bypass actors, rules\noctoform does not model — is deliberately absent: "
 					},
 					{
 						"kind": "code",
@@ -4101,7 +4101,7 @@
 					},
 					{
 						"kind": "text",
-						"text": " must not offer to\r\nremove a rule it never knew how to describe."
+						"text": " must not offer to\nremove a rule it never knew how to describe."
 					}
 				]
 			},
@@ -4219,7 +4219,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "An environment as it exists on GitHub right now, reduced to what octoform\r\ncompares.\r\n\r\n"
+						"text": "An environment as it exists on GitHub right now, reduced to what octoform\ncompares.\n\n"
 					},
 					{
 						"kind": "code",
@@ -4235,7 +4235,7 @@
 					},
 					{
 						"kind": "text",
-						"text": " rather than an empty list when the\r\nenvironment's required-reviewers rule includes a team: octoform only ever\r\nresolves a declared reviewer to a *user* id (see "
+						"text": " rather than an empty list when the\nenvironment's required-reviewers rule includes a team: octoform only ever\nresolves a declared reviewer to a *user* id (see "
 					},
 					{
 						"kind": "code",
@@ -4243,7 +4243,7 @@
 					},
 					{
 						"kind": "text",
-						"text": " in\r\ngithub/apply.ts), so it has no way to represent a team's protection — and\r\nmust not silently overwrite it. Reading it as \"no reviewers\" would make\r\n"
+						"text": " in\ngithub/apply.ts), so it has no way to represent a team's protection — and\nmust not silently overwrite it. Reading it as \"no reviewers\" would make\n"
 					},
 					{
 						"kind": "code",
@@ -4251,7 +4251,7 @@
 					},
 					{
 						"kind": "text",
-						"text": " propose what looks like a pure addition but would actually replace\r\nthe team when applied."
+						"text": " propose what looks like a pure addition but would actually replace\nthe team when applied."
 					}
 				]
 			},
@@ -4316,7 +4316,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "State that costs an extra request each, so it is only gathered when a policy\r\nactually asks about it.\r\n\r\nEvery field distinguishes \"not gathered, or could not be read\" (undefined)\r\nfrom \"gathered, and there is nothing\" (an empty array or map). Collapsing\r\nthe two would make "
+						"text": "State that costs an extra request each, so it is only gathered when a policy\nactually asks about it.\n\nEvery field distinguishes \"not gathered, or could not be read\" (undefined)\nfrom \"gathered, and there is nothing\" (an empty array or map). Collapsing\nthe two would make "
 					},
 					{
 						"kind": "code",
@@ -4475,7 +4475,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Workflow files that mention the current default branch by name. Renaming\r\nthe branch does not rewrite these, so they are the collateral damage of a\r\nrename and have to be named before it happens, not discovered after."
+								"text": "Workflow files that mention the current default branch by name. Renaming\nthe branch does not rewrite these, so they are the collateral damage of a\nrename and have to be named before it happens, not discovered after."
 							}
 						]
 					},
@@ -4882,7 +4882,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Set when the change will be applied but has a consequence the operator\r\nshould know about first. Distinct from "
+								"text": "Set when the change will be applied but has a consequence the operator\nshould know about first. Distinct from "
 							},
 							{
 								"kind": "code",
@@ -4927,7 +4927,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " is\r\na sentence meant for a human rather than a value an endpoint accepts. A\r\nruleset reads as \"v*.x, 1 approval\" in the report; the API wants the\r\npolicy object it came from."
+								"text": " is\na sentence meant for a human rather than a value an endpoint accepts. A\nruleset reads as \"v*.x, 1 approval\" in the report; the API wants the\npolicy object it came from."
 							}
 						]
 					},
@@ -4969,7 +4969,7 @@
 				"summary": [
 					{
 						"kind": "text",
-						"text": "What a rule is allowed to look at. Deliberately small: a rule can ask about\r\na repository's visibility and about files it names, and nothing else. Every\r\nquestion a rule can ask has to be answerable by fetching a known list of\r\npaths up front, which is what keeps classification to one predictable set of\r\nrequests per repository rather than an open-ended crawl."
+						"text": "What a rule is allowed to look at. Deliberately small: a rule can ask about\na repository's visibility and about files it names, and nothing else. Every\nquestion a rule can ask has to be answerable by fetching a known list of\npaths up front, which is what keeps classification to one predictable set of\nrequests per repository rather than an open-ended crawl."
 					}
 				]
 			},
@@ -5114,7 +5114,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "The type the first matching rule proposes, or undefined when none match.\r\n\r\nFirst match wins, so order in the configuration file is significant and\r\nnarrower rules belong above broader ones — \"a package.json with private:\r\ntrue\" has to be tested before \"a package.json\", or nothing would ever reach\r\nthe narrower rule. That is a property of the file, not of this code: octoform\r\nhas no idea which of the two is narrower."
+								"text": "The type the first matching rule proposes, or undefined when none match.\n\nFirst match wins, so order in the configuration file is significant and\nnarrower rules belong above broader ones — \"a package.json with private:\ntrue\" has to be tested before \"a package.json\", or nothing would ever reach\nthe narrower rule. That is a property of the file, not of this code: octoform\nhas no idea which of the two is narrower."
 							}
 						]
 					},
@@ -5226,7 +5226,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Compare one repository against its resolved policy.\r\n\r\nOnly settings the policy actually manages are considered: an absent or\r\ncancelled value is not a difference, it is an instruction to look away."
+								"text": "Compare one repository against its resolved policy.\n\nOnly settings the policy actually manages are considered: an absent or\ncancelled value is not a difference, it is an instruction to look away."
 							}
 						]
 					},
@@ -5418,7 +5418,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Set when the change will be applied but has a consequence the operator\r\nshould know about first. Distinct from "
+								"text": "Set when the change will be applied but has a consequence the operator\nshould know about first. Distinct from "
 							},
 							{
 								"kind": "code",
@@ -5469,7 +5469,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " is\r\na sentence meant for a human rather than a value an endpoint accepts. A\r\nruleset reads as \"v*.x, 1 approval\" in the report; the API wants the\r\npolicy object it came from."
+								"text": " is\na sentence meant for a human rather than a value an endpoint accepts. A\nruleset reads as \"v*.x, 1 approval\" in the report; the API wants the\npolicy object it came from."
 							}
 						]
 					},
@@ -5575,7 +5575,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " found for one repository that is not blocked.\r\n\r\nGrouped by the endpoint each key actually belongs to, not one call per\r\nsetting: everything that fits in the repository PATCH body — features,\r\nmerge options, description, homepage, and the two security_and_analysis\r\ntoggles, which GitHub nests inside the same PATCH rather than exposing\r\nseparately — goes in a single request. Enabling five such settings costs\r\none API call, not five. Everything else has an endpoint of its own.\r\n\r\nEach group succeeds or fails together: if the one PATCH request for a\r\nrepository's settings fails, every change bundled into it is reported as\r\nfailed with the same reason, since none of them actually happened.\r\n\r\nOrder is deliberate where it matters. The default branch is renamed before\r\nanything that could name a branch, so a ruleset or a seeded file lands\r\nagainst the name the configuration actually declares."
+								"text": " found for one repository that is not blocked.\n\nGrouped by the endpoint each key actually belongs to, not one call per\nsetting: everything that fits in the repository PATCH body — features,\nmerge options, description, homepage, and the two security_and_analysis\ntoggles, which GitHub nests inside the same PATCH rather than exposing\nseparately — goes in a single request. Enabling five such settings costs\none API call, not five. Everything else has an endpoint of its own.\n\nEach group succeeds or fails together: if the one PATCH request for a\nrepository's settings fails, every change bundled into it is reported as\nfailed with the same reason, since none of them actually happened.\n\nOrder is deliberate where it matters. The default branch is renamed before\nanything that could name a branch, so a ruleset or a seeded file lands\nagainst the name the configuration actually declares."
 							}
 						]
 					},
@@ -6337,7 +6337,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Whether organisation-wide rulesets are available. Always false for a\r\npersonal account — it is not a plan restriction there, there is simply no\r\nsuch concept — and probed for an organisation, since it needs a paid plan."
+								"text": "Whether organisation-wide rulesets are available. Always false for a\npersonal account — it is not a plan restriction there, there is simply no\nsuch concept — and probed for an organisation, since it needs a paid plan."
 							}
 						]
 					},
@@ -6489,7 +6489,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Fail early and legibly on a missing scope.\r\n\r\nWithout this the first call that needs "
+								"text": "Fail early and legibly on a missing scope.\n\nWithout this the first call that needs "
 							},
 							{
 								"kind": "code",
@@ -6497,7 +6497,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " returns a bare 403 whose\r\nmessage says nothing about which scope is missing, which is the single most\r\ncommon way to get stuck when setting this up."
+								"text": " returns a bare 403 whose\nmessage says nothing about which scope is missing, which is the single most\ncommon way to get stuck when setting this up."
 							}
 						]
 					},
@@ -6794,7 +6794,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " compares against, flattened into the same dotted keys the\r\nconfiguration uses. Gathered per repository, because most of it is not in\r\nthe account-wide listing and some of it has an endpoint of its own.\r\n\r\nOwner-agnostic: "
+								"text": " compares against, flattened into the same dotted keys the\nconfiguration uses. Gathered per repository, because most of it is not in\nthe account-wide listing and some of it has an endpoint of its own.\n\nOwner-agnostic: "
 							},
 							{
 								"kind": "code",
@@ -6802,7 +6802,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " and everything else called here\r\nanswer the same way whether "
+								"text": " and everything else called here\nanswer the same way whether "
 							},
 							{
 								"kind": "code",
@@ -6974,7 +6974,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Whether the current owner plan and token can manage rulesets on one private\r\nrepository.\r\n\r\nGitHub exposes no direct \"can manage private rulesets\" capability. Branch\r\nprotection has the same plan availability as repository rulesets, however,\r\nand its read-only endpoint distinguishes an unprotected branch from a plan\r\nor permission failure: 404 \"Branch not protected\" means the feature is\r\navailable but unused, while 403 means this owner/token combination cannot\r\nmanage it. A generic 404 is deliberately not accepted as proof, since\r\nGitHub also uses opaque 404s when a token cannot see a resource."
+								"text": "Whether the current owner plan and token can manage rulesets on one private\nrepository.\n\nGitHub exposes no direct \"can manage private rulesets\" capability. Branch\nprotection has the same plan availability as repository rulesets, however,\nand its read-only endpoint distinguishes an unprotected branch from a plan\nor permission failure: 404 \"Branch not protected\" means the feature is\navailable but unused, while 403 means this owner/token combination cannot\nmanage it. A generic 404 is deliberately not accepted as proof, since\nGitHub also uses opaque 404s when a token cannot see a resource."
 							}
 						]
 					},
@@ -7130,7 +7130,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Read one custom property for every repository in the organisation.\r\n\r\nCustom properties are an organisation-only feature: callers should not\r\ninvoke this for a personal account at all, since there is nothing to read\r\nthere, not even an empty result. It still degrades to an empty map on a\r\n403/404 from an organisation whose plan does not offer the feature, so that\r\nclassification falls back to the configuration file instead of the whole\r\nrun failing."
+								"text": "Read one custom property for every repository in the organisation.\n\nCustom properties are an organisation-only feature: callers should not\ninvoke this for a personal account at all, since there is nothing to read\nthere, not even an empty result. It still degrades to an empty map on a\n403/404 from an organisation whose plan does not offer the feature, so that\nclassification falls back to the configuration file instead of the whole\nrun failing."
 							}
 						]
 					},
@@ -7291,7 +7291,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "A file's contents, or null when the repository does not have it.\r\n\r\nOnly used for classification, where \"no such file\" is the answer half the\r\nrules are looking for rather than a failure."
+								"text": "A file's contents, or null when the repository does not have it.\n\nOnly used for classification, where \"no such file\" is the answer half the\nrules are looking for rather than a failure."
 							}
 						]
 					},
@@ -7456,7 +7456,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Create or update the custom property definition itself.\r\n\r\n"
+								"text": "Create or update the custom property definition itself.\n\n"
 							},
 							{
 								"kind": "code",
@@ -7464,7 +7464,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " is not declared anywhere in the configuration: it is the\r\nset of type names under "
+								"text": " is not declared anywhere in the configuration: it is the\nset of type names under "
 							},
 							{
 								"kind": "code",
@@ -7472,7 +7472,7 @@
 							},
 							{
 								"kind": "text",
-								"text": ". Asking an author to list them twice is\r\nasking for the two lists to disagree, and the one that would silently win is\r\nthe one GitHub stores rather than the one the file shows."
+								"text": ". Asking an author to list them twice is\nasking for the two lists to disagree, and the one that would silently win is\nthe one GitHub stores rather than the one the file shows."
 							}
 						]
 					},
@@ -7631,7 +7631,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Assign a property value to repositories, in one call for each distinct\r\nvalue: the endpoint takes a list of repositories and a list of properties,\r\nso a whole type's worth of repositories costs a single request."
+								"text": "Assign a property value to repositories, in one call for each distinct\nvalue: the endpoint takes a list of repositories and a list of properties,\nso a whole type's worth of repositories costs a single request."
 							}
 						]
 					},
@@ -7801,7 +7801,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "What the account actually allows.\r\n\r\nProbed rather than inferred from a plan name: the plan is only visible to\r\nan organisation admin (or to a personal account looking at itself), and the\r\nmapping from plan name to feature is not something to hard-code and then be\r\nwrong about. For a personal account, organisation-only features are simply\r\nabsent — there is nothing to probe, and saying so is not a plan limitation."
+								"text": "What the account actually allows.\n\nProbed rather than inferred from a plan name: the plan is only visible to\nan organisation admin (or to a personal account looking at itself), and the\nmapping from plan name to feature is not something to hard-code and then be\nwrong about. For a personal account, organisation-only features are simply\nabsent — there is nothing to probe, and saying so is not a plan limitation."
 							}
 						]
 					},
@@ -7958,7 +7958,7 @@
 							},
 							{
 								"kind": "text",
-								"text": ".\r\n\r\nA blocked change says why it will not happen; a warned one says what it will\r\nbreak on its way through. Both are appended rather than filtered out — the\r\npoint of the report is that nothing is silently dropped."
+								"text": ".\n\nA blocked change says why it will not happen; a warned one says what it will\nbreak on its way through. Both are appended rather than filtered out — the\npoint of the report is that nothing is silently dropped."
 							}
 						]
 					},
