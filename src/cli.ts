@@ -88,11 +88,6 @@ export async function main(argv: string[]): Promise<number> {
 
   if (args.help || !args.command) {
     console.log(USAGE);
-    // Asking for help is not a usage error. `octoform --help` is the canonical
-    // way to ask, and a shell that checks the exit code — or a release job
-    // running it as a smoke test — is right to treat a non-zero as failure.
-    // Running with no command at all is a different thing: the usage text is
-    // an error message there, and 2 is what says so.
     return args.help ? 0 : 2;
   }
 
@@ -103,11 +98,8 @@ export async function main(argv: string[]): Promise<number> {
     switch (args.command) {
       case 'audit': {
         await requireScopes(octokit, ['repo']);
-        const findings = await audit(octokit, config);
-        // Findings are information, not failure: audit reports, it does not
-        // gate. A scheduled run that should fail on drift can check the count
-        // in its own step.
-        return findings === 0 ? 0 : 0;
+        await audit(octokit, config);
+        return 0;
       }
       case 'plan': {
         await requireScopes(octokit, ['repo']);
@@ -119,8 +111,6 @@ export async function main(argv: string[]): Promise<number> {
         return apply(octokit, config, { repo: args.repo, type: args.type, yes: args.yes });
       }
       case 'classify': {
-        // admin:org is only needed to write, and only on an organisation.
-        // Requiring it to merely propose would lock out the read-only use.
         await requireScopes(octokit, args.apply ? ['repo', 'admin:org'] : ['repo']);
         return classify(octokit, config, { apply: args.apply });
       }

@@ -9,6 +9,12 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+### Changed
+
+- Enforced valid TSDoc as the only authored comment format in production and
+  tooling source, with automated rejection of narrative comments, directives,
+  disabled code, and references to private planning material.
+
 ### Documentation
 
 - Replaced the application README with a complete product overview and safe

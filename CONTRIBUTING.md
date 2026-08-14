@@ -63,6 +63,20 @@ reference/    generated and reviewed machine-readable project artifacts
 Tests live in `test/`, not next to the source files. `src/` is what gets
 published; test files have no business shipping inside it.
 
+## Source documentation policy
+
+Authored comments in `src/`, `bin/`, and `scripts/` must be valid TSDoc blocks
+written as `/** ... */`. Use them to document a declaration's public contract,
+parameters, results, errors, or constraints. Put behavioral evidence in tests
+and customer guidance or architectural rationale in the versioned
+[documentation repository](https://github.com/hector-ae21/octoform-docs).
+
+Line comments, ordinary block comments, disabled code, narration, TODO prose,
+and references to private planning material are rejected automatically. The
+allowlist for compiler, linter, and instrumentation comment directives is
+currently empty. A shebang is executable syntax rather than a comment and is
+the only non-TSDoc marker present in shipped code.
+
 ## Making a change
 
 1. Branch as `type/short-description` — `feat/`, `fix/`, `docs/`, `refactor/`,

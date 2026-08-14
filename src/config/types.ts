@@ -239,9 +239,9 @@ export interface RepoStructure {
   /** Environments that exist, each with its current required reviewers. */
   environments?: ExistingEnvironment[];
   rulesets?: ExistingRuleset[];
-  /** Path -> whether it exists, for the paths a `files` policy named. */
+  /** Existence state by path for the paths named by a `files` policy. */
   files?: Record<string, boolean>;
-  /** Branch -> whether it exists, for the branches `ensure_branches` named. */
+  /** Existence state by branch for the branches named by `ensure_branches`. */
   branches?: Record<string, boolean>;
   /**
    * Workflow files that mention the current default branch by name. Renaming

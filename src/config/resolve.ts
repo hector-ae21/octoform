@@ -211,7 +211,8 @@ function mergeLayer<T extends PolicySet>(base: T, over: Partial<T>): T {
 /**
  * Resolve the policy that applies to one repository.
  *
- * Precedence, widest to narrowest: defaults -> types.<type> -> repos.<name>.
+ * Precedence, widest to narrowest: `defaults`, `types.<type>`, then
+ * `repos.<name>`.
  * A repository with no type simply skips that middle layer.
  */
 export function resolvePolicy(config: Config, repo: RepoState): PolicySet {

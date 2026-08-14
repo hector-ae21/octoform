@@ -45,8 +45,10 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.test.json && node scripts/run-tests.mjs && npm run test:readme",
+    "lint": "eslint src bin scripts",
+    "test": "npm run lint && npm run test:source-policy && tsc -p tsconfig.test.json && node scripts/run-tests.mjs && npm run test:readme",
     "test:readme": "node scripts/validate-readme.mjs",
+    "test:source-policy": "node scripts/verify-source-policy.mjs",
     "api-surface": "node scripts/generate-api-surface.mjs",
     "api-surface:check": "node scripts/generate-api-surface.mjs --check",
     "octoform": "node bin/octoform.js",
@@ -57,7 +59,11 @@
     "yaml": "^2.5.0"
   },
   "devDependencies": {
+    "@microsoft/tsdoc": "^0.16.0",
     "@types/node": "^22.0.0",
+    "@typescript-eslint/parser": "^8.67.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-tsdoc": "^0.5.2",
     "typescript": "^5.6.0"
   }
 }

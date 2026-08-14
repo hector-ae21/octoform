@@ -42,8 +42,6 @@ try {
     process.exit(1);
   }
 } catch {
-  // No src/ (an installed package), or no dist/ (the import below will say so
-  // far more clearly than a guess from here would).
 }
 
 const { main } = await import('../dist/cli.js');

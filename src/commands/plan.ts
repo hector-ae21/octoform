@@ -34,8 +34,6 @@ export async function plan(
   const kind = await detectOwnerKind(octokit, config.owner);
   const all = await listRepos(octokit, config.owner, kind);
 
-  // Custom properties are an organisation feature; a personal account has no
-  // such API to call.
   const property = config.classify?.property;
   const types =
     property && kind === 'org'
@@ -56,9 +54,6 @@ export async function plan(
   const blocked: Change[] = [];
 
   for (const repo of targets) {
-    // Resolved first, and handed to the reader: most of what a plan could ask
-    // GitHub about costs a request per declared item, so the policy decides
-    // what is worth looking up at all.
     const policy = resolvePolicy(config, repo);
     const rulesetsEnforcedOnPrivate =
       repo.visibility !== 'private' || !policy.rulesets?.length

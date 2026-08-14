@@ -9,7 +9,7 @@ export interface AppliedChange extends Change {
   error?: string;
 }
 
-/** Dotted plan key -> field name in the PATCH /repos/{owner}/{repo} body. */
+/** Maps dotted plan keys to fields in the repository update body. */
 const PATCH_FIELDS: Record<string, string> = {
   'features.issues': 'has_issues',
   'features.wiki': 'has_wiki',
@@ -26,7 +26,7 @@ const PATCH_FIELDS: Record<string, string> = {
   'repo.web_commit_signoff_required': 'web_commit_signoff_required',
 };
 
-/** Dotted plan key -> key inside the nested security_and_analysis object. */
+/** Maps dotted plan keys to fields in the nested security settings object. */
 const SECURITY_AND_ANALYSIS_FIELDS: Record<string, string> = {
   'security.secret_scanning': 'secret_scanning',
   'security.secret_scanning_push_protection': 'secret_scanning_push_protection',
@@ -92,12 +92,6 @@ export async function applyRepoChanges(
 
   if (bundled.length > 0) {
     try {
-      // security_and_analysis is a real, documented field of this endpoint's
-      // request body, but is missing from the locally installed
-      // @octokit/openapi-types — request()'s route-specific typing would
-      // reject it on a fresh object literal. Building the body as a plain
-      // record first and spreading it sidesteps that gap without losing type
-      // checking on owner/repo, which stay explicit.
       await octokit.request('PATCH /repos/{owner}/{repo}', { owner, repo, ...patchBody });
       for (const change of bundled) results.push({ ...change, outcome: 'applied' });
     } catch (error) {
@@ -148,9 +142,6 @@ export async function applyRepoChanges(
     results.push(
       await attempt(rename, async () => {
         if (!payload) throw new Error('no branch to rename from');
-        // GitHub retargets open pull requests and redirects the old name on
-        // its own. What it does not do is rewrite workflows or anyone's
-        // clone — plan already warned about the former.
         await octokit.request('POST /repos/{owner}/{repo}/branches/{branch}/rename', {
           owner,
           repo,
@@ -166,9 +157,6 @@ export async function applyRepoChanges(
     results.push(
       await attempt(change, async () => {
         if (!payload?.from) throw new Error('no source branch to create from');
-        // Points the new branch at whatever the source branch currently is.
-        // Creating it is the whole contract: octoform never moves a branch
-        // that already exists.
         const { data } = await octokit.request('GET /repos/{owner}/{repo}/git/ref/{ref}', {
           owner,
           repo,
@@ -190,9 +178,6 @@ export async function applyRepoChanges(
       await attempt(change, async () => {
         if (!payload) throw new Error('no environment to create');
         const reviewers = await resolveReviewers(octokit, payload.environment.reviewers ?? []);
-        // Sent unconditionally, empty list included: an environment declared
-        // with no reviewers means no reviewers, which is a policy, not an
-        // omission.
         await octokit.request('PUT /repos/{owner}/{repo}/environments/{environment_name}', {
           owner,
           repo,
@@ -209,13 +194,6 @@ export async function applyRepoChanges(
       await attempt(change, async () => {
         if (!payload) throw new Error('no ruleset to apply');
         const body = rulesetBody(payload.ruleset);
-        // The route goes through a `string` variable on purpose, which selects
-        // Octokit's generic request signature instead of the one generated for
-        // this specific endpoint. The generated type expects `rules` to be a
-        // discriminated union, and these rules are assembled conditionally, so
-        // there is no point at which TypeScript can tell which member each one
-        // is. Same gap as the PATCH above, one step further along. `probe` in
-        // client.ts relies on the same fallback.
         const route: string =
           payload.id === undefined
             ? 'POST /repos/{owner}/{repo}/rulesets'
@@ -241,10 +219,6 @@ export async function applyRepoChanges(
         } catch {
           throw new Error(`cannot read local file ${payload.file.from}`);
         }
-        // No `sha` on purpose: this endpoint updates in place when given one,
-        // and create-if-missing must never overwrite. Without it, a file that
-        // appeared since `plan` ran makes GitHub refuse the write rather than
-        // silently replacing someone's work.
         await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
           owner,
           repo,
@@ -310,8 +284,6 @@ function rulesetBody(policy: RulesetPolicy): Record<string, unknown> {
       type: 'required_status_checks',
       parameters: {
         required_status_checks: policy.required_checks.map((context) => ({ context })),
-        // "strict" would additionally require the branch to be up to date
-        // before merging, which is a separate policy nobody declared here.
         strict_required_status_checks_policy: false,
       },
     });

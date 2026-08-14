@@ -18,9 +18,6 @@ export async function audit(octokit: Octokit, config: Config): Promise<number> {
   const all = await listRepos(octokit, config.owner, kind);
 
   const property = config.classify?.property;
-  // Custom properties are an organisation feature. A personal account has no
-  // such API to call, not even an empty one, so this is skipped rather than
-  // attempted and swallowed.
   const types =
     property && kind === 'org'
       ? await readPropertyValues(octokit, config.owner, property)
