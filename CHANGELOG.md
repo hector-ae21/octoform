@@ -39,6 +39,21 @@ a zero major means. Security fixes are always a patch bump. See
 - `octoform config migrate` converts a single-owner file to the multi-owner
   shape, previewing by default; `--write` updates the file in place and
   refuses to run against a file with uncommitted git changes.
+- `discoverOwner` resolves an owner's kind and GitHub's numeric identity for
+  it in one call, replacing the need to trust a login alone; `detectOwnerKind`
+  is now a thin projection over the same discovery, sharing its cache.
+- Capability decisions carry status, reason, source, and an observation
+  timestamp instead of a bare boolean. `detectRulesetCapability` replaces
+  `detectPrivateRulesetCapability` and reports `supported`, `forbidden`, or
+  `unknown` — an opaque `404` no longer reads the same as a confirmed denial.
+- Requests now send the pinned `X-GitHub-Api-Version` header, published as
+  `REST_API_VERSION`.
+- `requireScopes` now also returns the core rate-limit budget, read from the
+  same response rather than a dedicated request. `audit`, `plan`, `apply`,
+  `classify`, and `properties sync` print a one-line warning when it is low
+  enough to threaten the rest of the run.
+- `detectLimits` is now cached per owner for the life of the client, the same
+  way owner discovery already was.
 
 ### Changed
 
@@ -52,6 +67,11 @@ a zero major means. Security fixes are always a patch bump. See
   rather than a single-owner object, and `resolvePolicy`, `repoType`, and
   `isExcluded` take one of those scopes. Configuration files are unaffected;
   programmatic callers that read `config.owner` read `config.owners[n].owner`.
+- A blocked ruleset change on a private repository now states the specific
+  reason the capability was unavailable, instead of a single generic message.
+- `PlanOptions.rulesetsEnforcedOnPrivate: boolean` is now
+  `PlanOptions.rulesetCapability: CapabilityResult`. Only programmatic callers
+  of `planRepo` are affected.
 
 ### Compatibility
 

@@ -8,3 +8,11 @@ export interface MigrateOptions {
    */
   write?: boolean;
 }
+
+/** The result of migrating one file's content. */
+export interface MigratedConfig {
+  /** The rewritten file content, ready to preview or write back. */
+  yaml: string;
+  /** The owner the file declared, now the key under `owners`. */
+  owner: string;
+}

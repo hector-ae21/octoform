@@ -7,6 +7,7 @@ import {
   createClient,
   detectOwnerKind,
   listRepos,
+  rateLimitWarning,
   requireScopes,
 } from './github/client.js';
 import { audit } from './commands/audit.js';
@@ -109,30 +110,34 @@ export async function main(argv: string[]): Promise<number> {
     printScopeSummary(config, selection, args);
     const each = async (run: (scope: OwnerScope) => Promise<number>): Promise<number> =>
       await forEachOwner(octokit, selection, args.strict, run);
+    const enter = async (scopes: string[]): Promise<void> => {
+      const note = rateLimitWarning(await requireScopes(octokit, scopes));
+      if (note) console.error(`Note: ${note}.`);
+    };
 
     switch (args.command) {
       case 'audit': {
-        await requireScopes(octokit, ['repo']);
+        await enter(['repo']);
         return await each(async (scope) => {
           await audit(octokit, scope);
           return 0;
         });
       }
       case 'plan': {
-        await requireScopes(octokit, ['repo']);
+        await enter(['repo']);
         return await each(async (scope) => {
           await plan(octokit, scope, { repo: selection.repoName, type: args.type });
           return 0;
         });
       }
       case 'apply': {
-        await requireScopes(octokit, ['repo']);
+        await enter(['repo']);
         return await each((scope) =>
           apply(octokit, scope, { repo: selection.repoName, type: args.type, yes: args.yes }),
         );
       }
       case 'classify': {
-        await requireScopes(octokit, args.apply ? ['repo', 'admin:org'] : ['repo']);
+        await enter(args.apply ? ['repo', 'admin:org'] : ['repo']);
         return await each((scope) => classify(octokit, scope, { apply: args.apply }));
       }
       case 'properties': {
@@ -145,7 +150,7 @@ export async function main(argv: string[]): Promise<number> {
           console.error(USAGE);
           return 2;
         }
-        await requireScopes(octokit, ['repo', 'admin:org']);
+        await enter(['repo', 'admin:org']);
         return await each((scope) => propertiesSync(octokit, scope));
       }
       default:

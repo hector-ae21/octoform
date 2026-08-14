@@ -358,7 +358,8 @@
         "personal"
       ],
       "readRoutes": [
-        "GET /orgs/{org}"
+        "GET /orgs/{org}",
+        "GET /users/{username}"
       ],
       "writeRoutes": [],
       "readPermissions": [

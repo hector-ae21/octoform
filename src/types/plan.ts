@@ -1,11 +1,12 @@
 /** Types describing what `plan` needs and what it returns. */
 
+import type { CapabilityResult } from './capabilities.js';
 import type { Change } from './repository.js';
 
 /** Capability evidence required to plan one repository safely. */
 export interface PlanOptions {
-  /** False when the plan does not enforce rulesets on private repositories. */
-  rulesetsEnforcedOnPrivate: boolean;
+  /** Whether rulesets can be managed on this repository, and why. */
+  rulesetCapability: CapabilityResult;
 }
 
 /** Mutable and blocked operations produced by a read-only plan. */

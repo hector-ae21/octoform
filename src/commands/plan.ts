@@ -2,11 +2,12 @@ import type { Octokit } from '@octokit/rest';
 import { isExcluded, resolvePolicy } from '../config/resolve.js';
 import {
   detectOwnerKind,
-  detectPrivateRulesetCapability,
+  detectRulesetCapability,
   getRepoDetail,
   listRepos,
   readPropertyValues,
 } from '../github/client.js';
+import { capability } from '../github/capabilities.js';
 import { planRepo } from '../core/plan.js';
 import { formatChange, groupByRepo } from '../report/format.js';
 import type { Change, OwnerScope, PlanResult } from '../types/index.js';
@@ -53,17 +54,16 @@ export async function plan(
 
   for (const repo of targets) {
     const policy = resolvePolicy(scope, repo);
-    const rulesetsEnforcedOnPrivate =
+    const rulesetCapability =
       repo.visibility !== 'private' || !policy.rulesets?.length
-        ? true
-        : await detectPrivateRulesetCapability(
-            octokit,
-            scope.owner,
-            repo.name,
-            repo.default_branch,
-          );
+        ? capability(
+            'supported',
+            'rulesets are always available on public repositories',
+            'resource-state',
+          )
+        : await detectRulesetCapability(octokit, scope.owner, repo.name, repo.default_branch);
     const detail = await getRepoDetail(octokit, scope.owner, repo, policy);
-    for (const change of planRepo(detail, policy, { rulesetsEnforcedOnPrivate })) {
+    for (const change of planRepo(detail, policy, { rulesetCapability })) {
       (change.blocked ? blocked : changes).push(change);
     }
   }

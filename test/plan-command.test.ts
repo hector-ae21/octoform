@@ -26,6 +26,7 @@ test('a personal owner can plan rulesets for a private repository when the capab
     request: async (route: string) => {
       routes.push(route);
       if (route === 'GET /orgs/{org}') throw apiError(404, 'Not Found');
+      if (route === 'GET /users/{username}') return { data: { id: 1 } };
       if (route === 'GET /repos/{owner}/{repo}/branches/{branch}/protection') {
         throw apiError(404, 'Branch not protected');
       }

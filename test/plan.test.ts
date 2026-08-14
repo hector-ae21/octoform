@@ -2,9 +2,12 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { planRepo } from '../src/core/plan.js';
 import { UNREADABLE } from '../src/config/sentinels.js';
+import { capability } from '../src/github/capabilities.js';
 import type { PolicySet, RepoDetail } from '../src/types/index.js';
 
-const OPTIONS = { rulesetsEnforcedOnPrivate: true };
+const SUPPORTED = capability('supported', 'available in this fixture', 'resource-state');
+const FORBIDDEN = capability('forbidden', 'not available in this fixture', 'permission');
+const OPTIONS = { rulesetCapability: SUPPORTED };
 
 const repo = (over: Partial<RepoDetail> = {}): RepoDetail => ({
   name: 'thing',
@@ -96,10 +99,10 @@ test('rulesets on a private repository are blocked when the owner and token cann
     rulesets: [{ name: 'protect', target_branches: ['main'] }],
   };
   const changes = planRepo(repo({ visibility: 'private' }), policy, {
-    rulesetsEnforcedOnPrivate: false,
+    rulesetCapability: FORBIDDEN,
   });
   assert.equal(changes.length, 1);
-  assert.match(String(changes[0]?.blocked), /current owner plan and token/);
+  assert.match(String(changes[0]?.blocked), /not available in this fixture/);
 });
 
 test('a public repository is not blocked for that reason, and a missing ruleset is created', () => {
@@ -107,7 +110,7 @@ test('a public repository is not blocked for that reason, and a missing ruleset 
     rulesets: [{ name: 'protect', target_branches: ['main'] }],
   };
   const changes = planRepo(repo({ structure: { rulesets: [] } }), policy, {
-    rulesetsEnforcedOnPrivate: false,
+    rulesetCapability: FORBIDDEN,
   });
   assert.equal(changes.length, 1);
   assert.equal(changes[0]?.key, 'rulesets.protect');

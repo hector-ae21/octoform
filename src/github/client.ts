@@ -1,17 +1,29 @@
 import { Octokit } from '@octokit/rest';
 import { UNREADABLE } from '../config/sentinels.js';
+import { capability, errorMessage, errorStatus } from './capabilities.js';
 import type {
+  CapabilityResult,
   ExistingEnvironment,
   ExistingRuleset,
+  OwnerDiscovery,
   OwnerKind,
   PlanLimits,
   PolicySet,
+  RateLimitStatus,
   RepoDetail,
   RepoState,
   RepoStructure,
 } from '../types/index.js';
 
-export type { PlanLimits } from '../types/index.js';
+export type {
+  CapabilityResult,
+  OwnerDiscovery,
+  PlanLimits,
+  RateLimitStatus,
+} from '../types/index.js';
+
+/** The GitHub REST API version octoform is written against. */
+export const REST_API_VERSION = '2022-11-28';
 
 /** Authentication or token-scope error that can be corrected by the operator. */
 export class AuthError extends Error {}
@@ -29,55 +41,98 @@ export function createClient(): Octokit {
     auth: token,
     userAgent: 'octoform',
     log: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} },
+    request: { headers: { 'x-github-api-version': REST_API_VERSION } },
   });
 }
 
 /**
- * Fail early and legibly on a missing scope.
+ * Fail early and legibly on a missing scope, and return the core rate-limit
+ * budget this same response already carried.
  *
- * Without this the first call that needs `admin:org` returns a bare 403 whose
- * message says nothing about which scope is missing, which is the single most
- * common way to get stuck when setting this up.
+ * Without the scope check, the first call that needs `admin:org` returns a
+ * bare 403 whose message says nothing about which scope is missing, which is
+ * the single most common way to get stuck when setting this up. The rate
+ * limit is read from this request's own headers rather than a dedicated one:
+ * every authenticated GitHub response carries it for free, so a second
+ * request to ask the same question would only spend more of the budget it is
+ * trying to report on.
  */
-export async function requireScopes(octokit: Octokit, needed: string[]): Promise<void> {
+export async function requireScopes(octokit: Octokit, needed: string[]): Promise<RateLimitStatus> {
   const res = await octokit.request('GET /user');
   const header = res.headers['x-oauth-scopes'];
 
-  if (typeof header !== 'string') return;
-
-  const granted = header
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const missing = needed.filter((scope) => !granted.includes(scope));
-  if (missing.length > 0) {
-    throw new AuthError(
-      `Token is missing the ${missing.join(', ')} scope(s). ` +
-        `Run: gh auth refresh -h github.com -s ${missing.join(',')}`,
-    );
+  if (typeof header === 'string') {
+    const granted = header
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const missing = needed.filter((scope) => !granted.includes(scope));
+    if (missing.length > 0) {
+      throw new AuthError(
+        `Token is missing the ${missing.join(', ')} scope(s). ` +
+          `Run: gh auth refresh -h github.com -s ${missing.join(',')}`,
+      );
+    }
   }
+
+  return rateLimitFromHeaders(res.headers);
 }
 
-const ownerKinds = new WeakMap<Octokit, Map<string, Promise<OwnerKind>>>();
+function rateLimitFromHeaders(headers: Record<string, unknown>): RateLimitStatus {
+  const asNumber = (value: unknown): number | undefined => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+  return {
+    remaining: asNumber(headers['x-ratelimit-remaining']),
+    limit: asNumber(headers['x-ratelimit-limit']),
+    reset: asNumber(headers['x-ratelimit-reset']),
+  };
+}
 
 /**
- * Whether `owner` is an organisation or a personal account. This drives which
- * listing endpoint to use and which features even apply, and it is asked of
- * the API rather than declared in configuration: an org and a user can share
- * a login, and configuration is the wrong place to get that wrong.
+ * A one-line warning when the core rate-limit budget is low enough to
+ * threaten the rest of the run, or `undefined` when there is nothing to say.
  *
- * The answer is remembered for the life of the client. A run that governs
- * several owners asks about each of them from more than one place, and an
- * account does not stop being an organisation halfway through a run. Nothing
- * is written outside the process, and a fresh client asks again.
+ * A run against several owners can spend its budget on the first few and fail
+ * partway through the rest with a bare `403`; surfacing the remaining budget
+ * up front, while there is still time to wait for the reset or narrow the
+ * selection, is more useful than discovering it from a failure later.
  */
-export async function detectOwnerKind(octokit: Octokit, owner: string): Promise<OwnerKind> {
-  const known = ownerKinds.get(octokit) ?? new Map<string, Promise<OwnerKind>>();
-  ownerKinds.set(octokit, known);
+export function rateLimitWarning(status: RateLimitStatus): string | undefined {
+  if (status.remaining === undefined || !status.limit) return undefined;
+  if (status.remaining > status.limit * 0.1) return undefined;
+
+  const resetAt =
+    status.reset !== undefined ? new Date(status.reset * 1000).toISOString() : 'an unknown time';
+  return `only ${status.remaining}/${status.limit} API requests remain; resets at ${resetAt}`;
+}
+
+const ownerDiscoveries = new WeakMap<Octokit, Map<string, Promise<OwnerDiscovery>>>();
+
+/**
+ * Resolve what an owner login actually is: an organisation or a personal
+ * account, and GitHub's numeric identity for it.
+ *
+ * Kind is asked of the API rather than declared in configuration, because an
+ * org and a user can share a login and configuration is the wrong place to
+ * get that wrong. The numeric id is the identity that survives a rename;
+ * addressing an owner by it elsewhere is how two logins that briefly collide
+ * during a rename cannot be confused with each other.
+ *
+ * The answer is remembered for the life of the client, keyed by login. A run
+ * that governs several owners asks about each of them from more than one
+ * place — `detectOwnerKind` below shares this same cache — and an account
+ * does not stop being an organisation halfway through a run. Nothing is
+ * written outside the process, and a fresh client asks again.
+ */
+export async function discoverOwner(octokit: Octokit, owner: string): Promise<OwnerDiscovery> {
+  const known = ownerDiscoveries.get(octokit) ?? new Map<string, Promise<OwnerDiscovery>>();
+  ownerDiscoveries.set(octokit, known);
   const cached = known.get(owner);
   if (cached) return cached;
 
-  const pending = requestOwnerKind(octokit, owner);
+  const pending = requestOwnerDiscovery(octokit, owner);
   known.set(owner, pending);
   try {
     return await pending;
@@ -87,14 +142,20 @@ export async function detectOwnerKind(octokit: Octokit, owner: string): Promise<
   }
 }
 
-async function requestOwnerKind(octokit: Octokit, owner: string): Promise<OwnerKind> {
+/** The owner kind alone, for callers that have no use for the numeric identity. */
+export async function detectOwnerKind(octokit: Octokit, owner: string): Promise<OwnerKind> {
+  return (await discoverOwner(octokit, owner)).kind;
+}
+
+async function requestOwnerDiscovery(octokit: Octokit, owner: string): Promise<OwnerDiscovery> {
   try {
-    await octokit.request('GET /orgs/{org}', { org: owner });
-    return 'org';
+    const { data } = await octokit.request('GET /orgs/{org}', { org: owner });
+    return { login: owner, kind: 'org', id: data.id };
   } catch (error) {
-    if ((error as { status?: number }).status === 404) return 'user';
-    throw error;
+    if (errorStatus(error) !== 404) throw error;
   }
+  const { data } = await octokit.request('GET /users/{username}', { username: owner });
+  return { login: owner, kind: 'user', id: data.id };
 }
 
 /**
@@ -238,16 +299,19 @@ export async function getRepoDetail(
  * and its read-only endpoint distinguishes an unprotected branch from a plan
  * or permission failure: 404 "Branch not protected" means the feature is
  * available but unused, while 403 means this owner/token combination cannot
- * manage it. A generic 404 is deliberately not accepted as proof, since
- * GitHub also uses opaque 404s when a token cannot see a resource.
+ * manage it. A generic 404 is deliberately not treated as proof of either,
+ * since GitHub also uses opaque 404s when a token cannot see a resource at
+ * all — that case is reported `unknown`, not guessed at.
  */
-export async function detectPrivateRulesetCapability(
+export async function detectRulesetCapability(
   octokit: Octokit,
   owner: string,
   repo: string,
   defaultBranch: string,
-): Promise<boolean> {
-  if (!defaultBranch) return false;
+): Promise<CapabilityResult> {
+  if (!defaultBranch) {
+    return capability('unknown', 'the repository has no default branch to probe', 'resource-state');
+  }
 
   try {
     await octokit.request('GET /repos/{owner}/{repo}/branches/{branch}/protection', {
@@ -255,17 +319,32 @@ export async function detectPrivateRulesetCapability(
       repo,
       branch: defaultBranch,
     });
-    return true;
+    return capability('supported', 'branch protection is readable for this repository', 'endpoint');
   } catch (error) {
-    const apiError = error as {
-      status?: number;
-      message?: string;
-      response?: { data?: { message?: string } };
-    };
-    const message = apiError.response?.data?.message ?? apiError.message ?? '';
+    const status = errorStatus(error);
+    const message = errorMessage(error);
 
-    if (apiError.status === 404) return /^branch not protected$/i.test(message.trim());
-    if (apiError.status === 403) return false;
+    if (status === 404 && /^branch not protected$/i.test(message.trim())) {
+      return capability(
+        'supported',
+        'the endpoint answered; this branch simply has no protection configured yet',
+        'endpoint',
+      );
+    }
+    if (status === 404) {
+      return capability(
+        'unknown',
+        'GitHub returned an unexplained 404 for branch protection',
+        'endpoint',
+      );
+    }
+    if (status === 403) {
+      return capability(
+        'forbidden',
+        'the current owner plan and token cannot manage rulesets on private repositories',
+        'permission',
+      );
+    }
     throw error;
   }
 }
@@ -509,7 +588,7 @@ async function workflowsNaming(
     );
     return naming.filter((path): path is string => path !== undefined);
   } catch (error) {
-    if ((error as { status?: number }).status === 404) return [];
+    if (errorStatus(error) === 404) return [];
     return undefined;
   }
 }
@@ -534,7 +613,7 @@ async function probe(
     await octokit.request(route, { owner, repo, ...extra });
     return true;
   } catch (error) {
-    const status = (error as { status?: number }).status;
+    const status = errorStatus(error);
     if (status === 404) return false;
     return UNREADABLE;
   }
@@ -606,7 +685,7 @@ export async function readPropertyValues(
       if (match?.value) values.set(entry.repository_name, match.value);
     }
   } catch (error) {
-    const status = (error as { status?: number }).status;
+    const status = errorStatus(error);
     if (status === 403 || status === 404) return values;
     throw error;
   }
@@ -681,6 +760,35 @@ export async function setPropertyValues(
   });
 }
 
+const planLimits = new WeakMap<Octokit, Map<string, Promise<PlanLimits>>>();
+
+/**
+ * Remembered for the life of the client, keyed by owner.
+ *
+ * `audit` and a future `inspect capabilities` command both ask about the same
+ * owner, and the probes behind this call cost a request each — there is no
+ * reason a second question in the same run should pay for them again.
+ */
+export async function detectLimits(
+  octokit: Octokit,
+  owner: string,
+  kind: OwnerKind,
+): Promise<PlanLimits> {
+  const known = planLimits.get(octokit) ?? new Map<string, Promise<PlanLimits>>();
+  planLimits.set(octokit, known);
+  const cached = known.get(owner);
+  if (cached) return cached;
+
+  const pending = requestLimits(octokit, owner, kind);
+  known.set(owner, pending);
+  try {
+    return await pending;
+  } catch (error) {
+    known.delete(owner);
+    throw error;
+  }
+}
+
 /**
  * What the account actually allows.
  *
@@ -690,7 +798,7 @@ export async function setPropertyValues(
  * wrong about. For a personal account, organisation-only features are simply
  * absent — there is nothing to probe, and saying so is not a plan limitation.
  */
-export async function detectLimits(
+async function requestLimits(
   octokit: Octokit,
   owner: string,
   kind: OwnerKind,
@@ -717,7 +825,7 @@ export async function detectLimits(
   try {
     await octokit.request('GET /orgs/{org}/rulesets', { org: owner, per_page: 1 });
   } catch (error) {
-    if ((error as { status?: number }).status === 403) orgRulesets = false;
+    if (errorStatus(error) === 403) orgRulesets = false;
   }
 
   return { ownerKind: 'org', plan, orgRulesets };

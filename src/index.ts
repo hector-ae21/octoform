@@ -21,6 +21,7 @@ export { PRECEDENCE, collectionSemantics, configModel } from './config/shape.js'
 export {
   createClient,
   requireScopes,
+  rateLimitWarning,
   listRepos,
   getRepoDetail,
   readRepoFile,
@@ -28,9 +29,13 @@ export {
   putPropertySchema,
   setPropertyValues,
   detectLimits,
-  detectPrivateRulesetCapability,
+  detectOwnerKind,
+  discoverOwner,
+  detectRulesetCapability,
+  REST_API_VERSION,
   AuthError,
 } from './github/client.js';
+export { capability } from './github/capabilities.js';
 export { planRepo } from './core/plan.js';
 export { classifyRepo, pathsUsedBy } from './core/classify.js';
 export { applyRepoChanges } from './github/apply.js';
@@ -40,12 +45,19 @@ export { plan } from './commands/plan.js';
 export { apply } from './commands/apply.js';
 export { classify } from './commands/classify.js';
 export { propertiesSync } from './commands/properties.js';
+export { validateConfig, migrateConfig } from './commands/config.js';
+export { selectOwners, parseRepoSelector, narrowToQualifiedRepo } from './config/selectors.js';
+export { migrateToMultiOwner } from './config/migrate.js';
 
 export type {
+  Actor,
   Applicability,
   AppliedChange,
   ApplyOptions,
   AuditConfig,
+  CapabilityResult,
+  CapabilitySource,
+  CapabilityStatus,
   Change,
   ClassifyConfig,
   ClassifyOptions,
@@ -63,18 +75,23 @@ export type {
   Managed,
   MergePolicy,
   MergeSemantics,
+  MigratedConfig,
+  MigrateOptions,
   NotApplicable,
   OwnerBlock,
+  OwnerDiscovery,
   OwnerKind,
   OwnerScope,
   PlanLimits,
   PlanOptions,
   PlanResult,
   PolicySet,
+  RateLimitStatus,
   RepoDetail,
   RepoEntry,
   RepoFacts,
   RepoPolicy,
+  RepoSelector,
   RepoState,
   RepoStructure,
   ResolvedConfig,

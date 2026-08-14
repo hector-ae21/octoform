@@ -197,15 +197,14 @@ function planRulesets(
 ): void {
   if (!policy.rulesets?.length) return;
 
-  if (!options.rulesetsEnforcedOnPrivate && repo.visibility === 'private') {
+  if (options.rulesetCapability.status !== 'supported' && repo.visibility === 'private') {
     for (const ruleset of policy.rulesets) {
       changes.push({
         repo: repo.name,
         key: `rulesets.${ruleset.name}`,
         from: null,
         to: describeRuleset(ruleset),
-        blocked:
-          'rulesets cannot be managed on this private repository with the current owner plan and token',
+        blocked: `rulesets cannot be managed on this private repository: ${options.rulesetCapability.reason}`,
       });
     }
     return;

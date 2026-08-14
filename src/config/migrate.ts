@@ -11,16 +11,11 @@
 
 import { Pair, Scalar, YAMLMap, parseDocument } from 'yaml';
 import { ConfigError } from './resolve.js';
+import type { MigratedConfig } from '../types/index.js';
+
+export type { MigratedConfig } from '../types/index.js';
 
 const OWNER_SCOPED_KEYS = ['classify', 'audit', 'defaults', 'types', 'repos', 'exclude'];
-
-/** The result of migrating one file's content. */
-export interface MigratedConfig {
-  /** The rewritten file content, ready to preview or write back. */
-  yaml: string;
-  /** The owner the file declared, now the key under `owners`. */
-  owner: string;
-}
 
 /**
  * Migrate one file's raw content in memory. Never touches disk.

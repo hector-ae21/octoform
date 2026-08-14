@@ -18,3 +18,4 @@ export * from './classify.js';
 export * from './audit.js';
 export * from './selectors.js';
 export * from './config-command.js';
+export * from './capabilities.js';
