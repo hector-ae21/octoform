@@ -75,14 +75,11 @@ test('topics, vulnerability alerts and code scanning each get their own call', a
   const results = await applyRepoChanges(octokit, 'owner', 'thing', changes);
 
   assert.equal(calls.length, 3);
-  assert.deepEqual(
-    calls.map((c) => c.route).sort(),
-    [
-      'PATCH /repos/{owner}/{repo}/code-scanning/default-setup',
-      'PUT /repos/{owner}/{repo}/topics',
-      'PUT /repos/{owner}/{repo}/vulnerability-alerts',
-    ],
-  );
+  assert.deepEqual(calls.map((c) => c.route).sort(), [
+    'PATCH /repos/{owner}/{repo}/code-scanning/default-setup',
+    'PUT /repos/{owner}/{repo}/topics',
+    'PUT /repos/{owner}/{repo}/vulnerability-alerts',
+  ]);
   const codeScanningCall = calls.find((c) => c.route.includes('code-scanning'));
   assert.equal(codeScanningCall?.params.state, 'not-configured');
   const topicsCall = calls.find((c) => c.route.includes('topics'));
@@ -123,7 +120,9 @@ test('a failure in one endpoint does not stop the others from being attempted', 
 
 test('a change with no known target is simply not attempted', async () => {
   const { octokit, calls } = fakeOctokit(() => {});
-  const results = await applyRepoChanges(octokit, 'owner', 'thing', [change('nonsense.thing', 'x')]);
+  const results = await applyRepoChanges(octokit, 'owner', 'thing', [
+    change('nonsense.thing', 'x'),
+  ]);
 
   assert.equal(calls.length, 0);
   assert.equal(results.length, 0);
@@ -199,7 +198,10 @@ test('a declared rule becomes GitHub own shape, and an undeclared one is absent'
     { repo: 'thing', key: 'rulesets.protect', from: null, to: 'x', payload: { ruleset } },
   ]);
 
-  const rules = calls[0]?.params.rules as Array<{ type: string; parameters?: Record<string, unknown> }>;
+  const rules = calls[0]?.params.rules as Array<{
+    type: string;
+    parameters?: Record<string, unknown>;
+  }>;
   const types = rules.map((r) => r.type).sort();
   assert.deepEqual(types, ['non_fast_forward', 'pull_request']);
   assert.equal(
@@ -207,7 +209,10 @@ test('a declared rule becomes GitHub own shape, and an undeclared one is absent'
     2,
   );
   // block_deletion was not declared, so no deletion rule is invented for it.
-  assert.equal(rules.find((r) => r.type === 'deletion'), undefined);
+  assert.equal(
+    rules.find((r) => r.type === 'deletion'),
+    undefined,
+  );
 });
 
 test('seeding a file that cannot be read locally fails that change and no other', async () => {

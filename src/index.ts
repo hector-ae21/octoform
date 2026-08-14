@@ -6,7 +6,14 @@
  * another tool without shelling out and parsing text.
  */
 
-export { loadConfig, resolvePolicy, repoType, isExcluded, isManaged, ConfigError } from './config/resolve.js';
+export {
+  loadConfig,
+  resolvePolicy,
+  repoType,
+  isExcluded,
+  isManaged,
+  ConfigError,
+} from './config/resolve.js';
 export {
   createClient,
   requireScopes,

@@ -44,7 +44,8 @@ export async function plan(
 
   let targets = all.filter((r) => !isExcluded(config, r.name));
   if (only?.repo) targets = targets.filter((r) => r.name === only.repo);
-  if (only?.type) targets = targets.filter((r) => (config.repos?.[r.name]?.type ?? r.type) === only.type);
+  if (only?.type)
+    targets = targets.filter((r) => (config.repos?.[r.name]?.type ?? r.type) === only.type);
 
   if (targets.length === 0) {
     if (!opts?.quiet) console.log('No repositories match.');

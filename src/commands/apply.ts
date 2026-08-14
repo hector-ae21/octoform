@@ -20,7 +20,11 @@ export interface ApplyOptions {
  * Reuses `plan` for the diff itself rather than recomputing it, so `apply`
  * can never disagree with what `octoform plan` just told you it would do.
  */
-export async function apply(octokit: Octokit, config: Config, options: ApplyOptions = {}): Promise<number> {
+export async function apply(
+  octokit: Octokit,
+  config: Config,
+  options: ApplyOptions = {},
+): Promise<number> {
   const { changes, blocked } = await plan(
     octokit,
     config,
@@ -44,7 +48,9 @@ export async function apply(octokit: Octokit, config: Config, options: ApplyOpti
     console.log('');
   }
   if (blocked.length > 0) {
-    console.log(`(${blocked.length} more are blocked and will not be attempted — see 'octoform plan')\n`);
+    console.log(
+      `(${blocked.length} more are blocked and will not be attempted — see 'octoform plan')\n`,
+    );
   }
 
   if (!options.yes && !(await confirm(`Apply ${changes.length} change(s)?`))) {
@@ -64,7 +70,9 @@ export async function apply(octokit: Octokit, config: Config, options: ApplyOpti
   }
 
   console.log('');
-  console.log(failures === 0 ? 'All changes applied.' : `${failures} change(s) failed — see above.`);
+  console.log(
+    failures === 0 ? 'All changes applied.' : `${failures} change(s) failed — see above.`,
+  );
   return failures === 0 ? 0 : 1;
 }
 

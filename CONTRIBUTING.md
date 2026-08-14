@@ -26,13 +26,46 @@ git clone https://github.com/hector-ae21/octoform.git
 cd octoform
 npm install
 npm run build      # compiles src/ to dist/
-npm test           # compiles src/ + test/ separately, then runs them
+npm run format     # formats code, tests, scripts, workflows and configuration
+npm run format:check  # verifies formatting without changing files
+npm run verify     # runs every deterministic local and package verification gate
+npm test           # alias for the complete verification contract
 npm run typecheck  # type-checks without emitting
 npm run api-docs   # refreshes the machine-readable public API reference
 npm run reference-artifacts  # refreshes schema, CLI, capability and permission data
+npm run audit:github-api  # compares reviewed REST and GraphQL contracts with GitHub
 ```
 
 Node 20 or newer.
+
+`npm run verify` is the canonical pre-PR command. It never rewrites tracked
+files: formatting and generated references run in check mode, test and build
+outputs are cleaned before compilation, and the package smoke suite works in a
+temporary directory. The suite packs the real npm tarball, rejects development
+or private files, installs it without lifecycle scripts, imports its public
+entry point, loads a policy, produces a local plan, and executes CLI help.
+
+Pull requests run this contract on Node 20, 22, and 24. Dependency restoration
+uses `npm ci --ignore-scripts`, and the npm cache is keyed by the committed
+lockfile. Every external GitHub Action is pinned to a complete commit SHA;
+updates must review and replace both the SHA and its adjacent release label.
+The protected version branch only creates the immutable version tag and starts
+publication after the required pull-request check has passed, so the complete
+suite is not repeated after merge or during publishing.
+
+Security checks run independently from the deterministic test matrix.
+Dependency review rejects pull requests that introduce a known vulnerability
+of moderate or greater severity in any dependency scope. CodeQL analyzes
+JavaScript, TypeScript, and GitHub Actions pull requests with the extended
+security query suite and refreshes the default-branch baseline on its weekly
+schedule. GitHub secret scanning and push protection remain enabled at
+repository level.
+
+`npm run audit:github-api` is the only network-dependent quality command and
+requires `GITHUB_TOKEN` for read-only GraphQL introspection. The scheduled
+workflow compares GitHub's current REST contract and GraphQL mutations with the
+reviewed immutable baseline. It writes a report and fails on drift, but never
+updates the baseline, opens an issue, or calls a mutation endpoint.
 
 ## Running the CLI locally
 

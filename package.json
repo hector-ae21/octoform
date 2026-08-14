@@ -1,6 +1,6 @@
 {
   "name": "@hector21/octoform",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Declarative plan/apply governance for GitHub repositories: settings, branch rules, environments and files, from one YAML file",
   "keywords": [
     "github",
@@ -43,18 +43,28 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc",
+    "clean": "node scripts/clean.mjs",
+    "clean:build": "node scripts/clean.mjs build",
+    "clean:test": "node scripts/clean.mjs test",
+    "build": "npm run clean:build && tsc",
+    "format": "prettier --write src test scripts bin .github/workflows package.json tsconfig.json tsconfig.test.json typedoc.json eslint.config.mjs .prettierrc.json",
+    "format:check": "prettier --check src test scripts bin .github/workflows package.json tsconfig.json tsconfig.test.json typedoc.json eslint.config.mjs .prettierrc.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src bin scripts",
-    "test": "npm run lint && npm run test:source-policy && npm run api-docs:check && npm run reference-artifacts:check && tsc -p tsconfig.test.json && node scripts/run-tests.mjs && npm run test:readme",
-    "test:readme": "node scripts/validate-readme.mjs",
+    "test": "npm run verify",
+    "test:unit": "npm run clean:test && tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
+    "test:package": "npm run build && node scripts/verify-package.mjs",
     "test:source-policy": "node scripts/verify-source-policy.mjs",
+    "verify": "npm run format:check && npm run lint && npm run test:source-policy && npm run verify:workflows && npm run typecheck && npm run verify:generated && npm run test:unit && npm run test:package",
+    "verify:generated": "npm run api-docs:check && npm run reference-artifacts:check && npm run api-surface:check",
+    "verify:workflows": "node scripts/verify-workflows.mjs",
     "api-docs": "node scripts/generate-api-docs.mjs",
     "api-docs:check": "node scripts/generate-api-docs.mjs --check",
     "reference-artifacts": "node scripts/generate-reference-artifacts.mjs",
     "reference-artifacts:check": "node scripts/generate-reference-artifacts.mjs --check",
     "api-surface": "node scripts/generate-api-surface.mjs",
     "api-surface:check": "node scripts/generate-api-surface.mjs --check",
+    "audit:github-api": "node scripts/check-github-api-drift.mjs",
     "octoform": "node bin/octoform.js",
     "prepublishOnly": "npm run build"
   },
@@ -68,6 +78,7 @@
     "@typescript-eslint/parser": "^8.67.0",
     "eslint": "^9.39.5",
     "eslint-plugin-tsdoc": "^0.5.2",
+    "prettier": "3.9.6",
     "ts-json-schema-generator": "2.3.0",
     "typedoc": "^0.28.20",
     "typescript": "^5.6.0"

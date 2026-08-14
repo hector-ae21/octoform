@@ -28,7 +28,11 @@ try {
   const cliContract = await loadTypeScriptContract(resolve(root, 'src/cli-contract.ts'));
   const schema = generateConfigurationSchema();
   const capabilities = generateCapabilities(capabilityConfig, packageMetadata.version);
-  const permissions = generatePermissions(capabilityConfig, apiSurfaceConfig, packageMetadata.version);
+  const permissions = generatePermissions(
+    capabilityConfig,
+    apiSurfaceConfig,
+    packageMetadata.version,
+  );
   const cli = { ...cliContract, productVersion: packageMetadata.version };
   const generated = new Map([
     ['config.schema.json', json(schema)],
@@ -169,7 +173,8 @@ function generatePermissions(config, apiSurfaceConfig, productVersion) {
     schemaVersion: config.schemaVersion,
     productVersion,
     sources: config.sources,
-    tokenModel: 'Profiles for classic and fine-grained credentials are alternatives, not cumulative grants.',
+    tokenModel:
+      'Profiles for classic and fine-grained credentials are alternatives, not cumulative grants.',
     profiles: config.permissions
       .map((permission) => ({
         ...permission,
@@ -242,7 +247,8 @@ function assertSafe(name, content) {
     /\.codex[\\/]personal[\\/]octoform[\\/]proposal/i,
   ];
   for (const pattern of forbidden) {
-    if (pattern.test(content)) throw new Error(`${name} contains forbidden private or credential data`);
+    if (pattern.test(content))
+      throw new Error(`${name} contains forbidden private or credential data`);
   }
 }
 
@@ -252,7 +258,9 @@ async function assertCurrent(name) {
     readFile(resolve(referenceRoot, name), 'utf8').catch(() => ''),
   ]);
   if (actual !== expected) {
-    throw new Error(`Generated artifact ${name} is stale. Run npm run reference-artifacts and commit it.`);
+    throw new Error(
+      `Generated artifact ${name} is stale. Run npm run reference-artifacts and commit it.`,
+    );
   }
 }
 

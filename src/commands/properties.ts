@@ -1,5 +1,10 @@
 import type { Octokit } from '@octokit/rest';
-import { detectOwnerKind, putPropertySchema, readPropertyValues, setPropertyValues } from '../github/client.js';
+import {
+  detectOwnerKind,
+  putPropertySchema,
+  readPropertyValues,
+  setPropertyValues,
+} from '../github/client.js';
 import type { Config } from '../config/types.js';
 
 /**

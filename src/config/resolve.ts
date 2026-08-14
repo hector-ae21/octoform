@@ -30,7 +30,9 @@ export function loadConfig(path: string): Config {
 /** Read, parse and fold in this file's own imports, most general first. */
 function resolveFile(absolutePath: string, stack: string[]): Draft {
   if (stack.includes(absolutePath)) {
-    throw new ConfigError(`Circular import:\n  ${[...stack, absolutePath].join('\n  imports -> ')}`);
+    throw new ConfigError(
+      `Circular import:\n  ${[...stack, absolutePath].join('\n  imports -> ')}`,
+    );
   }
   const nextStack = [...stack, absolutePath];
 
@@ -111,7 +113,10 @@ function mergeConfig(base: Draft, over: Draft): Draft {
     owner: over.owner ?? base.owner,
     classify: mergeClassify(base.classify, over.classify),
     audit: mergeAudit(base.audit, over.audit),
-    defaults: base.defaults || over.defaults ? mergeLayer(base.defaults ?? {}, over.defaults ?? {}) : undefined,
+    defaults:
+      base.defaults || over.defaults
+        ? mergeLayer(base.defaults ?? {}, over.defaults ?? {})
+        : undefined,
     types: mergeNamedPolicies(base.types, over.types),
     repos: mergeNamedPolicies(base.repos, over.repos),
     exclude: mergeExclude(base.exclude, over.exclude),

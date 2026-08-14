@@ -8,27 +8,21 @@ on:
   push:
     branches: ['v*.x']
   pull_request:
-  workflow_call: # reused by release.yml as its quality gate
+
+permissions: {}
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # The suite only needs to run once per change, on the pull request (or on a
-  # manual tag push via release.yml's workflow_call). A push to a vX.x branch
-  # is always a merge of a PR that already passed this same gate, so it skips
-  # straight to tagging instead of re-running everything.
-  #
-  # The ref_type check is what keeps the manual-tag path honest. A reusable
-  # workflow inherits the caller's github context, so when release.yml is
-  # triggered by a tag push and calls this workflow, github.event_name is
-  # still 'push' — without ref_type, the gate release.yml relies on would
-  # silently skip every test and publish untested code.
+  # The suite runs once on the pull request. A push to a vX.x branch is a merge
+  # that already passed this required gate, so it proceeds directly to tagging.
   test:
     name: node ${{ matrix.node }}
-    if: github.event_name != 'push' || github.ref_type == 'tag'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     strategy:
@@ -36,26 +30,29 @@ jobs:
       matrix:
         node: [20, 22, 24]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npm test
+          cache-dependency-path: package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm run verify
+      - name: Verification must not change tracked files
+        run: git diff --exit-code
 
   # Single stable name for branch protection to require. Matrix job names
   # change whenever the matrix does, which makes them fragile as a required
   # check; this one never changes and only succeeds once every entry above did.
   verify:
     name: CI complete
-    if: always() && (github.event_name != 'push' || github.ref_type == 'tag')
+    if: always() && github.event_name == 'pull_request'
     needs: [test]
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 5
+    permissions: {}
     steps:
       - name: Check matrix result
         run: |
@@ -77,14 +74,16 @@ jobs:
       startsWith(github.ref, 'refs/heads/v') &&
       (needs.verify.result == 'success' || needs.verify.result == 'skipped')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: verify
     permissions:
       contents: write
       actions: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: true
 
       - name: Read package version
         id: package

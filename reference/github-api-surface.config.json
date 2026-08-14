@@ -5,6 +5,7 @@
       "apiVersion": "2026-03-10",
       "commit": "b26c240ded1c8b79cb0fb09dee4a21239061fa23",
       "url": "https://raw.githubusercontent.com/github/rest-api-description/b26c240ded1c8b79cb0fb09dee4a21239061fa23/descriptions/api.github.com/api.github.com.2026-03-10.json",
+      "driftUrl": "https://raw.githubusercontent.com/github/rest-api-description/main/descriptions/api.github.com/api.github.com.2026-03-10.json",
       "sha256": "6f36bc90e67debdb256880d0c5daaaba0afa8ce7bde343db7cc7f608492a997f"
     },
     "scopePrefixes": [

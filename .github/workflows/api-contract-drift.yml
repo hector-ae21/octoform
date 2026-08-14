@@ -1,0 +1,88 @@
+name: GitHub API contract drift
+
+on:
+  schedule:
+    - cron: '37 4 * * 3'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: github-api-contract-drift
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: REST and GraphQL contract drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 20
+      - name: Compare reviewed and current contracts
+        id: compare
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/check-github-api-drift.mjs > "$RUNNER_TEMP/github-api-drift.md"
+      - name: Publish audit summary
+        if: always()
+        run: cat "$RUNNER_TEMP/github-api-drift.md" >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "Contract audit did not produce a report." >> "$GITHUB_STEP_SUMMARY"
+      - name: Open or update contract drift issue
+        if: steps.compare.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRIFT_ISSUE_TITLE: 'chore: review GitHub API contract drift'
+        run: |
+          ISSUE_BODY="$RUNNER_TEMP/github-api-drift-issue.md"
+          {
+            echo "The scheduled read-only contract audit requires maintainer review."
+            echo
+            echo "[Inspect the workflow run]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID)."
+            echo
+            cat "$RUNNER_TEMP/github-api-drift.md" 2>/dev/null || echo "The audit did not produce a report. Inspect the workflow logs for the underlying failure."
+          } > "$ISSUE_BODY"
+
+          ISSUE_NUMBER="$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state open \
+            --search "$DRIFT_ISSUE_TITLE in:title" \
+            --json number \
+            --jq '.[0].number // empty')"
+
+          if [ -n "$ISSUE_NUMBER" ]; then
+            gh issue edit "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body-file "$ISSUE_BODY"
+          else
+            gh issue create \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$DRIFT_ISSUE_TITLE" \
+              --body-file "$ISSUE_BODY"
+          fi
+      - name: Close resolved contract drift issue
+        if: steps.compare.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRIFT_ISSUE_TITLE: 'chore: review GitHub API contract drift'
+        run: |
+          ISSUE_NUMBER="$(gh issue list \
+            --repo "$GITHUB_REPOSITORY" \
+            --state open \
+            --search "$DRIFT_ISSUE_TITLE in:title" \
+            --json number \
+            --jq '.[0].number // empty')"
+
+          if [ -n "$ISSUE_NUMBER" ]; then
+            gh issue close "$ISSUE_NUMBER" \
+              --repo "$GITHUB_REPOSITORY" \
+              --comment "The scheduled contract audit is clean again. Closing this drift review."
+          fi
+      - name: Fail when contract review is required
+        if: steps.compare.outcome == 'failure'
+        run: exit 1

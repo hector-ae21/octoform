@@ -8,7 +8,9 @@ import { test } from 'node:test';
 const verifier = resolve(process.cwd(), 'scripts/verify-source-policy.mjs');
 
 test('valid TSDoc comments pass the source policy', async () => {
-  const result = await verify({ 'src/example.ts': '/** A supported value. */\nexport const value = 1;\n' });
+  const result = await verify({
+    'src/example.ts': '/** A supported value. */\nexport const value = 1;\n',
+  });
   assert.equal(result.status, 0, result.stderr);
 });
 
@@ -19,7 +21,9 @@ test('line comments fail the source policy', async () => {
 });
 
 test('invalid TSDoc syntax fails the source policy', async () => {
-  const result = await verify({ 'src/example.ts': '/** A value > another value. */\nexport const value = 1;\n' });
+  const result = await verify({
+    'src/example.ts': '/** A value > another value. */\nexport const value = 1;\n',
+  });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /character should be escaped/);
 });

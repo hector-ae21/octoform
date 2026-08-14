@@ -39,7 +39,8 @@ const SECURITY_AND_ANALYSIS_FIELDS: Record<string, string> = {
 const PUT_DELETE_TOGGLES: Record<string, string> = {
   'security.vulnerability_alerts': '/repos/{owner}/{repo}/vulnerability-alerts',
   'security.automated_security_fixes': '/repos/{owner}/{repo}/automated-security-fixes',
-  'security.private_vulnerability_reporting': '/repos/{owner}/{repo}/private-vulnerability-reporting',
+  'security.private_vulnerability_reporting':
+    '/repos/{owner}/{repo}/private-vulnerability-reporting',
 };
 
 /**
