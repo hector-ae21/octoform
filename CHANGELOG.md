@@ -9,8 +9,23 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-08-14
+
+### Compatibility
+
+- This is a maintenance-only patch for `0.3.1`. It does not add or remove
+  configuration fields, CLI commands, public exports, managed GitHub
+  capabilities, or plan/apply behavior. Existing `0.3.1` configurations and
+  integrations remain compatible without migration.
+
 ### Changed
 
+- Standardized formatting and the local verification entry points so the same
+  deterministic checks cover source, generated artifacts, tests, builds, and
+  the packed package.
+- Hardened pull-request and release workflows with pinned actions, explicit
+  permissions, bounded execution, concurrency controls, and a supported Node
+  `20`, `22`, and `24` verification matrix.
 - Added pull-request dependency review, scheduled and pull-request CodeQL
   analysis for application and workflow code, and verified repository-level
   secret scanning with push protection.

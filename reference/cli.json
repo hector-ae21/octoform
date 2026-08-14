@@ -153,5 +153,5 @@
     "apply displays the current plan and requests confirmation unless --yes is present.",
     "Fine-grained tokens are authorized by GitHub per endpoint because they do not expose classic scope headers."
   ],
-  "productVersion": "0.3.1"
+  "productVersion": "0.3.2"
 }
