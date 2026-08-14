@@ -11,6 +11,9 @@ a zero major means. Security fixes are always a patch bump. See
 
 ### Changed
 
+- Added pull-request dependency review, scheduled and pull-request CodeQL
+  analysis for application and workflow code, and verified repository-level
+  secret scanning with push protection.
 - Enforced valid TSDoc as the only authored comment format in production and
   tooling source, with automated rejection of narrative comments, directives,
   disabled code, and references to private planning material.

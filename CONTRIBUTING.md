@@ -52,6 +52,14 @@ The protected version branch only creates the immutable version tag and starts
 publication after the required pull-request check has passed, so the complete
 suite is not repeated after merge or during publishing.
 
+Security checks run independently from the deterministic test matrix.
+Dependency review rejects pull requests that introduce a known vulnerability
+of moderate or greater severity in any dependency scope. CodeQL analyzes
+JavaScript, TypeScript, and GitHub Actions pull requests with the extended
+security query suite and refreshes the default-branch baseline on its weekly
+schedule. GitHub secret scanning and push protection remain enabled at
+repository level.
+
 ## Running the CLI locally
 
 Create a local `octoform.yml` for an owner you control. Do not commit tokens,
