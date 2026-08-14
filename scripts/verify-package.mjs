@@ -2,13 +2,13 @@ import { spawnSync } from 'node:child_process';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const workspace = await mkdtemp(resolve(tmpdir(), 'octoform-readme-'));
+const workspace = await mkdtemp(resolve(tmpdir(), 'octoform-package-'));
 
 try {
+  const metadata = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
   const readme = await readFile(resolve(root, 'README.md'), 'utf8');
   const quickStart = section(readme, '## Safe quick start', '## Configuration model');
   const configurations = fences(quickStart, 'yaml');
@@ -16,45 +16,62 @@ try {
   if (configurations.length !== 1) throw new Error('Safe quick start must contain one YAML block');
   if (shellBlocks.length !== 2) throw new Error('Safe quick start must contain two shell blocks');
 
-  runNpm(['run', 'build'], root);
-  const pack = JSON.parse(runNpm(['pack', '--json', '--pack-destination', workspace], root));
-  const packed = pack[0];
-  if (!packed?.filename || !Array.isArray(packed.files))
-    throw new Error('npm pack returned no artifact');
-
-  const packagedPaths = packed.files.map(({ path }) => path);
-  for (const required of [
-    'README.md',
-    'LICENSE',
-    'bin/octoform.js',
-    'dist/index.js',
-    'dist/index.d.ts',
-  ]) {
-    if (!packagedPaths.includes(required)) throw new Error(`Packed package is missing ${required}`);
-  }
-  const duplicateDocumentation = packagedPaths.filter(
-    (path) => path === 'example.yml' || path.startsWith('docs/') || path.startsWith('examples/'),
+  const pack = JSON.parse(
+    runNpm(['pack', '--json', '--pack-destination', workspace, '--ignore-scripts'], root),
   );
-  if (duplicateDocumentation.length > 0) {
+  const packed = pack[0];
+  if (!packed?.filename || !Array.isArray(packed.files)) {
+    throw new Error('npm pack returned no artifact');
+  }
+
+  const packagedPaths = packed.files.map(({ path }) => path).sort();
+  const required = [
+    'CHANGELOG.md',
+    'LICENSE',
+    'README.md',
+    'bin/octoform.js',
+    'dist/index.d.ts',
+    'dist/index.js',
+    'package.json',
+  ];
+  for (const path of required) {
+    if (!packagedPaths.includes(path)) throw new Error(`Packed package is missing ${path}`);
+  }
+
+  const forbidden = packagedPaths.filter(
+    (path) =>
+      /^(?:\.codex|\.github|docs|examples|reference|scripts|src|test)(?:\/|$)/u.test(path) ||
+      /(?:^|\/)[^/]+\.test\.(?:d\.ts|js|js\.map)$/u.test(path) ||
+      /(?:^|\/)tsconfig(?:\.[^/]*)?\.json$/u.test(path),
+  );
+  if (forbidden.length > 0) {
     throw new Error(
-      `Packed package contains migrated documentation: ${duplicateDocumentation.join(', ')}`,
+      `Packed package contains private or development files: ${forbidden.join(', ')}`,
     );
   }
 
   const installRoot = resolve(workspace, 'install');
   const tarball = resolve(workspace, packed.filename);
   runNpm(
-    ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', installRoot, tarball],
+    [
+      'install',
+      '--ignore-scripts',
+      '--no-audit',
+      '--no-fund',
+      '--package-lock=false',
+      '--prefix',
+      installRoot,
+      tarball,
+    ],
     root,
   );
 
-  const packageRoot = resolve(installRoot, 'node_modules/@hector21/octoform');
-  const policyPath = resolve(workspace, 'octoform.yml');
+  const packageRoot = resolve(installRoot, 'node_modules', metadata.name);
+  const policyPath = resolve(installRoot, 'octoform.yml');
   await writeFile(policyPath, configurations[0], 'utf8');
-  const { loadConfig } = await import(pathToFileURL(resolve(packageRoot, 'dist/index.js')).href);
-  const config = loadConfig(policyPath);
-  if (config.owner !== 'your-account')
-    throw new Error('Packed package did not load the README policy');
+  const smokePath = resolve(installRoot, 'smoke.mjs');
+  await writeFile(smokePath, smokeProgram(metadata.name, policyPath), 'utf8');
+  run(process.execPath, [smokePath], installRoot);
 
   const help = run(
     process.execPath,
@@ -74,9 +91,42 @@ try {
     }
   }
 
-  console.log('Validated README policy and commands against the packed package.');
+  console.log(
+    `Verified ${metadata.name}@${metadata.version}: ${packagedPaths.length} files, clean install, import, configuration, plan, and CLI help.`,
+  );
 } finally {
   await rm(workspace, { recursive: true, force: true });
+}
+
+function smokeProgram(packageName, policyPath) {
+  return `import assert from 'node:assert/strict';
+import { loadConfig, planRepo, resolvePolicy } from ${JSON.stringify(packageName)};
+
+const config = loadConfig(${JSON.stringify(policyPath)});
+assert.equal(config.owner, 'your-account');
+const repository = {
+  name: 'example',
+  visibility: 'public',
+  archived: false,
+  default_branch: 'main',
+  description: null,
+  homepage: null,
+  topics: [],
+  settings: {
+    'features.issues': true,
+    'features.wiki': true,
+    'merge.delete_branch_on_merge': false,
+    'repo.description': null,
+    'repo.topics': [],
+  },
+};
+const changes = planRepo(repository, resolvePolicy(config, repository), {
+  rulesetsEnforcedOnPrivate: true,
+});
+assert.equal(changes.length, 1);
+assert.equal(changes[0]?.key, 'merge.delete_branch_on_merge');
+console.log('Installed package import, configuration, and plan succeeded.');
+`;
 }
 
 function section(document, start, end) {
