@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { plan } from '../src/commands/plan.js';
-import type { Config } from '../src/config/types.js';
+import type { OwnerScope } from '../src/config/types.js';
 
 function apiError(status: number, message: string): Error {
   return Object.assign(new Error(message), {
@@ -48,14 +48,14 @@ test('a personal owner can plan rulesets for a private repository when the capab
       get: async () => ({ data: privateRepo }),
     },
   } as any;
-  const config: Config = {
+  const scope: OwnerScope = {
     owner: 'personal-owner',
     defaults: {
       rulesets: [{ name: 'protect', target_branches: ['main'] }],
     },
   };
 
-  const result = await plan(octokit, config, undefined, { quiet: true });
+  const result = await plan(octokit, scope, undefined, { quiet: true });
 
   assert.equal(result.blocked.length, 0);
   assert.equal(result.changes.length, 1);

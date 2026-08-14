@@ -9,7 +9,7 @@ import {
 } from '../github/client.js';
 import { planRepo } from '../core/plan.js';
 import { formatChange, groupByRepo } from '../report/format.js';
-import type { Change, Config } from '../config/types.js';
+import type { Change, OwnerScope } from '../config/types.js';
 
 /** Mutable and blocked operations produced by a read-only plan. */
 export interface PlanResult {
@@ -28,24 +28,24 @@ export interface PlanResult {
  */
 export async function plan(
   octokit: Octokit,
-  config: Config,
+  scope: OwnerScope,
   only?: { repo?: string; type?: string },
   opts?: { quiet?: boolean },
 ): Promise<PlanResult> {
-  const kind = await detectOwnerKind(octokit, config.owner);
-  const all = await listRepos(octokit, config.owner, kind);
+  const kind = await detectOwnerKind(octokit, scope.owner);
+  const all = await listRepos(octokit, scope.owner, kind);
 
-  const property = config.classify?.property;
+  const property = scope.classify?.property;
   const types =
     property && kind === 'org'
-      ? await readPropertyValues(octokit, config.owner, property)
+      ? await readPropertyValues(octokit, scope.owner, property)
       : new Map<string, string>();
   for (const repo of all) repo.type = types.get(repo.name);
 
-  let targets = all.filter((r) => !isExcluded(config, r.name));
+  let targets = all.filter((r) => !isExcluded(scope, r.name));
   if (only?.repo) targets = targets.filter((r) => r.name === only.repo);
   if (only?.type)
-    targets = targets.filter((r) => (config.repos?.[r.name]?.type ?? r.type) === only.type);
+    targets = targets.filter((r) => (scope.repos?.[r.name]?.type ?? r.type) === only.type);
 
   if (targets.length === 0) {
     if (!opts?.quiet) console.log('No repositories match.');
@@ -56,17 +56,17 @@ export async function plan(
   const blocked: Change[] = [];
 
   for (const repo of targets) {
-    const policy = resolvePolicy(config, repo);
+    const policy = resolvePolicy(scope, repo);
     const rulesetsEnforcedOnPrivate =
       repo.visibility !== 'private' || !policy.rulesets?.length
         ? true
         : await detectPrivateRulesetCapability(
             octokit,
-            config.owner,
+            scope.owner,
             repo.name,
             repo.default_branch,
           );
-    const detail = await getRepoDetail(octokit, config.owner, repo, policy);
+    const detail = await getRepoDetail(octokit, scope.owner, repo, policy);
     for (const change of planRepo(detail, policy, { rulesetsEnforcedOnPrivate })) {
       (change.blocked ? blocked : changes).push(change);
     }

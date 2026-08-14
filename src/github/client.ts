@@ -68,13 +68,36 @@ export async function requireScopes(octokit: Octokit, needed: string[]): Promise
   }
 }
 
+const ownerKinds = new WeakMap<Octokit, Map<string, Promise<OwnerKind>>>();
+
 /**
  * Whether `owner` is an organisation or a personal account. This drives which
  * listing endpoint to use and which features even apply, and it is asked of
  * the API rather than declared in configuration: an org and a user can share
  * a login, and configuration is the wrong place to get that wrong.
+ *
+ * The answer is remembered for the life of the client. A run that governs
+ * several owners asks about each of them from more than one place, and an
+ * account does not stop being an organisation halfway through a run. Nothing
+ * is written outside the process, and a fresh client asks again.
  */
 export async function detectOwnerKind(octokit: Octokit, owner: string): Promise<OwnerKind> {
+  const known = ownerKinds.get(octokit) ?? new Map<string, Promise<OwnerKind>>();
+  ownerKinds.set(octokit, known);
+  const cached = known.get(owner);
+  if (cached) return cached;
+
+  const pending = requestOwnerKind(octokit, owner);
+  known.set(owner, pending);
+  try {
+    return await pending;
+  } catch (error) {
+    known.delete(owner);
+    throw error;
+  }
+}
+
+async function requestOwnerKind(octokit: Octokit, owner: string): Promise<OwnerKind> {
   try {
     await octokit.request('GET /orgs/{org}', { org: owner });
     return 'org';

@@ -14,6 +14,10 @@ export {
   isManaged,
   ConfigError,
 } from './config/resolve.js';
+export { APPLICABILITY, notApplicable, describeNotApplicable } from './config/applicability.js';
+export type { Applicability, NotApplicable } from './config/applicability.js';
+export { PRECEDENCE, collectionSemantics, configModel } from './config/shape.js';
+export type { MergeSemantics, SemanticsEntry } from './config/shape.js';
 export {
   createClient,
   requireScopes,
@@ -43,9 +47,15 @@ export { classify } from './commands/classify.js';
 export type { ClassifyOptions } from './commands/classify.js';
 export { propertiesSync } from './commands/properties.js';
 
-export { UNREADABLE } from './config/types.js';
+export { CONFIG_VERSION, UNREADABLE } from './config/types.js';
 export type {
   Config,
+  ConfigVersion,
+  OwnerBlock,
+  OwnerScope,
+  ResolvedConfig,
+  RepoEntry,
+  ExcludeConfig,
   PolicySet,
   RepoState,
   RepoDetail,

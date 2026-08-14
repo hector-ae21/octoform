@@ -57,3 +57,8 @@ test('the first bare word is the command and the second is its subcommand', () =
 test('a third bare word has nowhere to go and is rejected', () => {
   assert.throws(() => parseArgs(['properties', 'sync', 'extra']), /Unexpected argument/);
 });
+
+test('--strict is accepted and defaults to off', () => {
+  assert.equal(parseArgs(['plan']).strict, false);
+  assert.equal(parseArgs(['plan', '--strict']).strict, true);
+});

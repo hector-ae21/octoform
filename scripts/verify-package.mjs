@@ -103,7 +103,10 @@ function smokeProgram(packageName, policyPath) {
 import { loadConfig, planRepo, resolvePolicy } from ${JSON.stringify(packageName)};
 
 const config = loadConfig(${JSON.stringify(policyPath)});
-assert.equal(config.owner, 'your-account');
+assert.equal(config.version, 1);
+assert.equal(config.owners.length, 1);
+const [scope] = config.owners;
+assert.equal(scope.owner, 'your-account');
 const repository = {
   name: 'example',
   visibility: 'public',
@@ -120,7 +123,7 @@ const repository = {
     'repo.topics': [],
   },
 };
-const changes = planRepo(repository, resolvePolicy(config, repository), {
+const changes = planRepo(repository, resolvePolicy(scope, repository), {
   rulesetsEnforcedOnPrivate: true,
 });
 assert.equal(changes.length, 1);

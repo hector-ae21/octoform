@@ -6,9 +6,20 @@
     "Config": {
       "type": "object",
       "properties": {
+        "version": {
+          "$ref": "#/definitions/ConfigVersion",
+          "description": "The configuration contract version. Optional for a single-owner file so that files written before it existed keep loading; required as soon as `owners` is used, because that shape has never existed without it."
+        },
         "owner": {
           "type": "string",
           "description": "A GitHub login: an organisation or a personal account. octoform tells which one it is by asking the API, not by anything declared here — an organisation and a user with the same login are indistinguishable in configuration, and forcing the author to say which invites the file to be wrong about it."
+        },
+        "owners": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/OwnerBlock"
+          },
+          "description": "Accounts to govern, keyed by GitHub login. Each entry may narrow or override what the root declares for all of them."
         },
         "imports": {
           "type": "array",
@@ -16,6 +27,13 @@
             "type": "string"
           },
           "description": "Other configuration files to merge before this one, most general first. Paths are resolved relative to the file that lists them, so an imported file can itself import further files. This is how a set of type presets is shared across several owners without copying it around: put `types` and `defaults` in a file with no `owner` of its own, and import it from each real configuration."
+        },
+        "policies": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/PolicySet"
+          },
+          "description": "Reusable policy fragments, keyed by a name of the author's choosing, that any layer folds in through its own `policies` list. A policy may reference other policies; a reference cycle is reported with the full chain."
         },
         "classify": {
           "$ref": "#/definitions/ClassifyConfig"
@@ -35,76 +53,52 @@
         "repos": {
           "type": "object",
           "additionalProperties": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "type": {
-                "type": "string"
-              },
-              "manage": {
-                "type": "boolean",
-                "description": "When false, the repository is still inventoried and audited but no policy is applied to it. Distinct from `exclude`, which drops it entirely."
-              },
-              "features": {
-                "$ref": "#/definitions/FeaturePolicy"
-              },
-              "merge": {
-                "$ref": "#/definitions/MergePolicy"
-              },
-              "security": {
-                "$ref": "#/definitions/SecurityPolicy"
-              },
-              "repo": {
-                "$ref": "#/definitions/RepoPolicy"
-              },
-              "default_branch": {
-                "$ref": "#/definitions/DefaultBranchPolicy"
-              },
-              "ensure_branches": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "rulesets": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/RulesetPolicy"
-                }
-              },
-              "environments": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/EnvironmentPolicy"
-                }
-              },
-              "files": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/FilePolicy"
-                }
-              }
-            }
+            "$ref": "#/definitions/RepoEntry"
+          },
+          "description": "Per-repository overrides. Only valid in a single-owner file: a bare repository name identifies nothing on its own once more than one account is in scope, so a multi-owner file declares these under their owner."
+        },
+        "exclude": {
+          "$ref": "#/definitions/ExcludeConfig"
+        }
+      },
+      "additionalProperties": false,
+      "description": "A configuration file as it is written, before normalization.\n\nTwo shapes are accepted. A single-owner file names its account in `owner` and declares policy at the root; a multi-owner file lists accounts under `owners` and keeps the root for what they share. Declaring both is an error: the two cannot be reconciled without deciding, on the author's behalf, which account the root-level policy was meant for."
+    },
+    "ConfigVersion": {
+      "type": "number",
+      "const": 1,
+      "description": "The configuration contract this file is written against.\n\nIt is not the version of octoform. It changes only when the meaning of an existing key changes, which is what lets a future release read an old file correctly instead of guessing."
+    },
+    "OwnerBlock": {
+      "type": "object",
+      "properties": {
+        "classify": {
+          "$ref": "#/definitions/ClassifyConfig"
+        },
+        "audit": {
+          "$ref": "#/definitions/AuditConfig"
+        },
+        "defaults": {
+          "$ref": "#/definitions/PolicySet"
+        },
+        "types": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/PolicySet"
+          }
+        },
+        "repos": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/RepoEntry"
           }
         },
         "exclude": {
-          "type": "object",
-          "properties": {
-            "repos": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "additionalProperties": false
+          "$ref": "#/definitions/ExcludeConfig"
         }
       },
-      "required": [
-        "owner"
-      ],
       "additionalProperties": false,
-      "description": "A complete root configuration after imported files have been resolved."
+      "description": "Everything one GitHub owner can declare under `owners`."
     },
     "ClassifyConfig": {
       "type": "object",
@@ -200,6 +194,13 @@
     "PolicySet": {
       "type": "object",
       "properties": {
+        "policies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Named entries of the root `policies` block to fold in before this layer's own keys, in declaration order.\n\nA policy is a reusable fragment of ordinary policy, nothing more: it has no meaning of its own and cannot express anything a layer could not express inline. Referencing one never overrides a key the referencing layer states itself, so reading a layer top to bottom still tells the whole story."
+        },
         "manage": {
           "type": "boolean",
           "description": "When false, the repository is still inventoried and audited but no policy is applied to it. Distinct from `exclude`, which drops it entirely."
@@ -517,6 +518,79 @@
       "type": "string",
       "const": "create-if-missing",
       "description": "Supported behavior when reconciling a declared repository file."
+    },
+    "RepoEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "policies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Named entries of the root `policies` block to fold in before this layer's own keys, in declaration order.\n\nA policy is a reusable fragment of ordinary policy, nothing more: it has no meaning of its own and cannot express anything a layer could not express inline. Referencing one never overrides a key the referencing layer states itself, so reading a layer top to bottom still tells the whole story."
+        },
+        "manage": {
+          "type": "boolean",
+          "description": "When false, the repository is still inventoried and audited but no policy is applied to it. Distinct from `exclude`, which drops it entirely."
+        },
+        "features": {
+          "$ref": "#/definitions/FeaturePolicy"
+        },
+        "merge": {
+          "$ref": "#/definitions/MergePolicy"
+        },
+        "security": {
+          "$ref": "#/definitions/SecurityPolicy"
+        },
+        "repo": {
+          "$ref": "#/definitions/RepoPolicy"
+        },
+        "default_branch": {
+          "$ref": "#/definitions/DefaultBranchPolicy"
+        },
+        "ensure_branches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rulesets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RulesetPolicy"
+          }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EnvironmentPolicy"
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilePolicy"
+          }
+        }
+      },
+      "description": "A repository entry: a policy layer plus the type it is classified as."
+    },
+    "ExcludeConfig": {
+      "type": "object",
+      "properties": {
+        "repos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Repositories dropped from every command, by name."
     }
   }
 }

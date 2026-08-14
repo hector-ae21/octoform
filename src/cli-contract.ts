@@ -47,7 +47,7 @@ export const CLI_CONTRACT: CliContract = {
       usage: 'octoform audit      [--config <path>]',
       summary: 'Inspect repositories and report configured audit findings.',
       mode: 'read-only',
-      options: ['config', 'help'],
+      options: ['config', 'strict', 'help'],
       classicScopes: ['repo'],
     },
     {
@@ -55,7 +55,7 @@ export const CLI_CONTRACT: CliContract = {
       usage: 'octoform plan       [--config <path>] [--repo <name>] [--type <type>]',
       summary: 'Compare desired and observed state without changing GitHub.',
       mode: 'read-only',
-      options: ['config', 'repo', 'type', 'help'],
+      options: ['config', 'repo', 'type', 'strict', 'help'],
       classicScopes: ['repo'],
     },
     {
@@ -63,7 +63,7 @@ export const CLI_CONTRACT: CliContract = {
       usage: 'octoform apply      [--config <path>] [--repo <name>] [--type <type>] [--yes]',
       summary: 'Plan again, request confirmation, and apply unblocked changes.',
       mode: 'confirmed-write',
-      options: ['config', 'repo', 'type', 'yes', 'help'],
+      options: ['config', 'repo', 'type', 'yes', 'strict', 'help'],
       classicScopes: ['repo'],
     },
     {
@@ -71,7 +71,7 @@ export const CLI_CONTRACT: CliContract = {
       usage: 'octoform classify   [--config <path>] [--apply]',
       summary: 'Propose repository types and optionally write organization property values.',
       mode: 'conditional-write',
-      options: ['config', 'apply', 'help'],
+      options: ['config', 'apply', 'strict', 'help'],
       classicScopes: ['repo'],
       mutationClassicScopes: ['repo', 'admin:org'],
     },
@@ -80,7 +80,7 @@ export const CLI_CONTRACT: CliContract = {
       usage: 'octoform properties sync [--config <path>]',
       summary: 'Synchronize the organization property schema and declared repository values.',
       mode: 'write',
-      options: ['config', 'help'],
+      options: ['config', 'strict', 'help'],
       classicScopes: ['repo', 'admin:org'],
     },
   ],
@@ -98,6 +98,11 @@ export const CLI_CONTRACT: CliContract = {
       id: 'apply',
       syntax: '--apply',
       description: 'Classify: record proposals instead of only printing them',
+    },
+    {
+      id: 'strict',
+      syntax: '--strict',
+      description: 'Fail when a declaration does not apply to the owner that declared it',
     },
     { id: 'help', syntax: '--help, -h', description: 'Show this message' },
   ],
@@ -120,6 +125,7 @@ export const CLI_CONTRACT: CliContract = {
     'audit, plan, and classify without --apply are read-only.',
     'apply displays the current plan and requests confirmation unless --yes is present.',
     'Fine-grained tokens are authorized by GitHub per endpoint because they do not expose classic scope headers.',
+    'A configuration that names several owners runs each of them in turn, in the order it names them.',
   ],
 };
 

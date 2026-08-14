@@ -12,6 +12,7 @@
       "mode": "read-only",
       "options": [
         "config",
+        "strict",
         "help"
       ],
       "classicScopes": [
@@ -29,6 +30,7 @@
         "config",
         "repo",
         "type",
+        "strict",
         "help"
       ],
       "classicScopes": [
@@ -47,6 +49,7 @@
         "repo",
         "type",
         "yes",
+        "strict",
         "help"
       ],
       "classicScopes": [
@@ -63,6 +66,7 @@
       "options": [
         "config",
         "apply",
+        "strict",
         "help"
       ],
       "classicScopes": [
@@ -83,6 +87,7 @@
       "mode": "write",
       "options": [
         "config",
+        "strict",
         "help"
       ],
       "classicScopes": [
@@ -119,6 +124,11 @@
       "description": "Classify: record proposals instead of only printing them"
     },
     {
+      "id": "strict",
+      "syntax": "--strict",
+      "description": "Fail when a declaration does not apply to the owner that declared it"
+    },
+    {
       "id": "help",
       "syntax": "--help, -h",
       "description": "Show this message"
@@ -151,7 +161,8 @@
   "notes": [
     "audit, plan, and classify without --apply are read-only.",
     "apply displays the current plan and requests confirmation unless --yes is present.",
-    "Fine-grained tokens are authorized by GitHub per endpoint because they do not expose classic scope headers."
+    "Fine-grained tokens are authorized by GitHub per endpoint because they do not expose classic scope headers.",
+    "A configuration that names several owners runs each of them in turn, in the order it names them."
   ],
   "productVersion": "0.3.2"
 }

@@ -9,6 +9,45 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+### Added
+
+- One configuration can now describe several GitHub accounts. A root `owners`
+  mapping keyed by GitHub login replaces the need for one file per account, and
+  the root of the file holds whatever those accounts share. Each account is
+  planned and applied in the order it is declared.
+- A root `version` field states which configuration contract a file is written
+  against. Version `1` is the only accepted value. It is optional for a
+  single-owner file and required whenever `owners` is used.
+- A root `policies` mapping declares named, reusable policy fragments. Any
+  layer folds them in through its own `policies` list, before that layer's own
+  keys, and a policy may reference other policies.
+- `--strict` fails a run when a configuration declares something that does not
+  apply to the account that declared it, instead of reporting it and
+  continuing.
+- A generated `config-model.json` reference artifact publishes the precedence
+  chain and the combining rule of every collection in the configuration model.
+
+### Changed
+
+- Unknown configuration keys are now rejected instead of ignored. The error
+  names the file, the YAML path, and the closest declared key.
+- Values of the wrong kind, such as a single value where a list is required,
+  are rejected with their YAML path.
+- Notes about declarations that do not apply to an account are now reported for
+  every command rather than only during `audit`.
+- `loadConfig` returns a resolved configuration holding one scope per owner
+  rather than a single-owner object, and `resolvePolicy`, `repoType`, and
+  `isExcluded` take one of those scopes. Configuration files are unaffected;
+  programmatic callers that read `config.owner` read `config.owners[n].owner`.
+
+### Compatibility
+
+- Existing single-owner configurations keep their exact meaning and produce the
+  same plans. `owner`, `defaults`, `types`, `repos`, `classify`, `audit`, and
+  `exclude` at the root are unchanged.
+- Root-level `repos` is rejected only when combined with `owners`, where a bare
+  repository name no longer identifies one repository.
+
 ## [0.3.2] - 2026-08-14
 
 ### Compatibility

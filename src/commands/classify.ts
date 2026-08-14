@@ -8,7 +8,7 @@ import {
   readRepoFile,
   setPropertyValues,
 } from '../github/client.js';
-import type { Config } from '../config/types.js';
+import type { OwnerScope } from '../config/types.js';
 
 /** Mutation control for {@link classify}. */
 export interface ClassifyOptions {
@@ -35,10 +35,10 @@ export interface Proposal {
  */
 export async function classify(
   octokit: Octokit,
-  config: Config,
+  scope: OwnerScope,
   options: ClassifyOptions = {},
 ): Promise<number> {
-  const rules = config.classify?.rules ?? [];
+  const rules = scope.classify?.rules ?? [];
   if (rules.length === 0) {
     console.log(
       'No classify rules declared. Add classify.rules to the configuration to use this command.',
@@ -46,18 +46,18 @@ export async function classify(
     return 0;
   }
 
-  const property = config.classify?.property;
-  const kind = await detectOwnerKind(octokit, config.owner);
-  const all = await listRepos(octokit, config.owner, kind);
+  const property = scope.classify?.property;
+  const kind = await detectOwnerKind(octokit, scope.owner);
+  const all = await listRepos(octokit, scope.owner, kind);
 
   const recorded =
     property && kind === 'org'
-      ? await readPropertyValues(octokit, config.owner, property)
+      ? await readPropertyValues(octokit, scope.owner, property)
       : new Map<string, string>();
   for (const repo of all) repo.type = recorded.get(repo.name);
 
   const unclassified = all.filter(
-    (r) => !isExcluded(config, r.name) && !repoType(config, r) && !r.archived,
+    (r) => !isExcluded(scope, r.name) && !repoType(scope, r) && !r.archived,
   );
 
   if (unclassified.length === 0) {
@@ -72,7 +72,7 @@ export async function classify(
   for (const repo of unclassified) {
     const files: Record<string, string | null> = {};
     for (const path of paths) {
-      files[path] = await readRepoFile(octokit, config.owner, repo.name, path);
+      files[path] = await readRepoFile(octokit, scope.owner, repo.name, path);
     }
 
     const type = classifyRepo(rules, { visibility: repo.visibility, files });
@@ -94,13 +94,13 @@ export async function classify(
       `\nCannot record these automatically: ${
         kind === 'org'
           ? 'no classify.property is declared'
-          : `"${config.owner}" is a personal account, which has no custom properties`
+          : `"${scope.owner}" is a personal account, which has no custom properties`
       }. Copy them into the configuration as repos.<name>.type instead.`,
     );
     return 1;
   }
 
-  return write(octokit, config.owner, property, proposals);
+  return write(octokit, scope.owner, property, proposals);
 }
 
 async function write(

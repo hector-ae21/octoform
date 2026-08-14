@@ -1,11 +1,14 @@
 import { ConfigError, loadConfig } from './config/resolve.js';
-import { AuthError, createClient, requireScopes } from './github/client.js';
+import { describeNotApplicable, notApplicable } from './config/applicability.js';
+import { AuthError, createClient, detectOwnerKind, requireScopes } from './github/client.js';
 import { audit } from './commands/audit.js';
 import { plan } from './commands/plan.js';
 import { apply } from './commands/apply.js';
 import { classify } from './commands/classify.js';
 import { propertiesSync } from './commands/properties.js';
 import { renderUsage } from './cli-contract.js';
+import type { OwnerScope, ResolvedConfig } from './config/types.js';
+import type { Octokit } from '@octokit/rest';
 
 const USAGE = renderUsage();
 
@@ -18,10 +21,17 @@ interface Args {
   type?: string;
   yes: boolean;
   apply: boolean;
+  strict: boolean;
 }
 
 export function parseArgs(argv: string[]): Args {
-  const args: Args = { config: 'octoform.yml', help: false, yes: false, apply: false };
+  const args: Args = {
+    config: 'octoform.yml',
+    help: false,
+    yes: false,
+    apply: false,
+    strict: false,
+  };
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -33,6 +43,8 @@ export function parseArgs(argv: string[]): Args {
       args.yes = true;
     } else if (arg === '--apply') {
       args.apply = true;
+    } else if (arg === '--strict') {
+      args.strict = true;
     } else if (arg === '--config' || arg === '--repo' || arg === '--type') {
       const value = argv[++i];
       if (!value) throw new ConfigError(`${arg} needs a value`);
@@ -71,25 +83,33 @@ export async function main(argv: string[]): Promise<number> {
   try {
     const config = loadConfig(args.config);
     const octokit = createClient();
+    const each = async (run: (scope: OwnerScope) => Promise<number>): Promise<number> =>
+      await forEachOwner(octokit, config, args.strict, run);
 
     switch (args.command) {
       case 'audit': {
         await requireScopes(octokit, ['repo']);
-        await audit(octokit, config);
-        return 0;
+        return await each(async (scope) => {
+          await audit(octokit, scope);
+          return 0;
+        });
       }
       case 'plan': {
         await requireScopes(octokit, ['repo']);
-        await plan(octokit, config, { repo: args.repo, type: args.type });
-        return 0;
+        return await each(async (scope) => {
+          await plan(octokit, scope, { repo: args.repo, type: args.type });
+          return 0;
+        });
       }
       case 'apply': {
         await requireScopes(octokit, ['repo']);
-        return apply(octokit, config, { repo: args.repo, type: args.type, yes: args.yes });
+        return await each((scope) =>
+          apply(octokit, scope, { repo: args.repo, type: args.type, yes: args.yes }),
+        );
       }
       case 'classify': {
         await requireScopes(octokit, args.apply ? ['repo', 'admin:org'] : ['repo']);
-        return classify(octokit, config, { apply: args.apply });
+        return await each((scope) => classify(octokit, scope, { apply: args.apply }));
       }
       case 'properties': {
         if (args.subcommand !== 'sync') {
@@ -102,7 +122,7 @@ export async function main(argv: string[]): Promise<number> {
           return 2;
         }
         await requireScopes(octokit, ['repo', 'admin:org']);
-        return propertiesSync(octokit, config);
+        return await each((scope) => propertiesSync(octokit, scope));
       }
       default:
         console.error(`Unknown command: ${args.command}\n`);
@@ -121,4 +141,68 @@ export async function main(argv: string[]): Promise<number> {
     }
     throw error;
   }
+}
+
+/**
+ * Run one command against every owner the configuration names, in the order it
+ * named them.
+ *
+ * Owners are headed only when there is more than one, so a single-owner file
+ * still produces the output it always has. The worst exit status wins: a run
+ * that succeeded for two accounts and failed for a third did not succeed.
+ */
+async function forEachOwner(
+  octokit: Octokit,
+  config: ResolvedConfig,
+  strict: boolean,
+  run: (scope: OwnerScope) => Promise<number>,
+): Promise<number> {
+  const notes = await preflight(octokit, config, strict);
+  const heading = config.owners.length > 1;
+  let status = 0;
+
+  for (const [index, scope] of config.owners.entries()) {
+    if (heading) {
+      if (index > 0) console.log('');
+      console.log(`=== ${scope.owner} ===\n`);
+    }
+    for (const note of notes.get(scope.owner) ?? []) console.log(`Note: ${note}`);
+    if (notes.get(scope.owner)?.length) console.log('');
+    status = Math.max(status, await run(scope));
+  }
+
+  return status;
+}
+
+/**
+ * Resolve every owner's kind and applicability before running anything.
+ *
+ * Checked up front rather than owner by owner so that a configuration strict
+ * validation would reject is rejected before the first account is touched. A
+ * run that changed two accounts and then refused the third would be the worst
+ * of both answers.
+ */
+async function preflight(
+  octokit: Octokit,
+  config: ResolvedConfig,
+  strict: boolean,
+): Promise<Map<string, string[]>> {
+  const notes = new Map<string, string[]>();
+  const rejected: string[] = [];
+
+  for (const scope of config.owners) {
+    const kind = await detectOwnerKind(octokit, scope.owner);
+    const lines = notApplicable(scope, kind).map((finding) => describeNotApplicable(finding, kind));
+    if (lines.length === 0) continue;
+    if (strict) rejected.push(...lines);
+    notes.set(scope.owner, lines);
+  }
+
+  if (rejected.length > 0) {
+    throw new ConfigError(
+      'Strict validation rejected declarations that do not apply to their owner:\n' +
+        rejected.map((line) => `  ${line}`).join('\n'),
+    );
+  }
+  return notes;
 }

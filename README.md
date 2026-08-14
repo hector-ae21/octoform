@@ -36,7 +36,8 @@ repositories from an explicit YAML policy.
 
 ## Supported scope
 
-Octoform `0.3.x` manages one owner per root configuration and supports:
+One configuration governs one or several GitHub accounts, personal or
+organization, and supports:
 
 | Area | Desired state |
 | --- | --- |
@@ -105,12 +106,25 @@ guides.
 Policy is resolved key by key from the most general layer to the most specific:
 
 ```text
-defaults -> types.<type> -> repos.<name>
+imports -> policies -> root defaults -> owner defaults -> types.<type> -> repos.<name>
 ```
 
-Imports compose reusable presets before those layers are resolved. An imported
-file may omit `owner`; the root file being executed must provide it. Conflicting
-owners and import cycles are rejected.
+A file names one account in `owner`, or several under `owners`, keyed by GitHub
+login. The root of a multi-owner file holds what the accounts share, and each
+entry states only what differs. Declaring both `owner` and `owners` is
+rejected, because nothing would say which account the shared layer was written
+for.
+
+`policies` are named, reusable fragments that any layer folds in through its own
+`policies` list, before that layer's own keys. Imports compose whole files the
+same way. An imported file may omit the owner; the configuration being executed
+must name one. Unknown keys, unresolved references, conflicting owners, and
+import or policy cycles are all rejected, with the file and path that caused
+them.
+
+Declarations that only apply to organizations stay valid under a personal
+account so a shared preset stays shareable; they are reported as not applicable.
+Pass `--strict` to fail on them instead.
 
 For complete field shapes, precedence, selectors, capability behavior, and
 examples, use the versioned

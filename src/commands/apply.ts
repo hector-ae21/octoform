@@ -3,7 +3,7 @@ import type { Octokit } from '@octokit/rest';
 import { applyRepoChanges } from '../github/apply.js';
 import { plan } from './plan.js';
 import { formatChange, groupByRepo } from '../report/format.js';
-import type { Config } from '../config/types.js';
+import type { OwnerScope } from '../config/types.js';
 
 /** Repository selection and confirmation controls for {@link apply}. */
 export interface ApplyOptions {
@@ -22,12 +22,12 @@ export interface ApplyOptions {
  */
 export async function apply(
   octokit: Octokit,
-  config: Config,
+  scope: OwnerScope,
   options: ApplyOptions = {},
 ): Promise<number> {
   const { changes, blocked } = await plan(
     octokit,
-    config,
+    scope,
     { repo: options.repo, type: options.type },
     { quiet: true },
   );
@@ -61,7 +61,7 @@ export async function apply(
   console.log('');
   let failures = 0;
   for (const [repoName, group] of groupByRepo(changes)) {
-    const results = await applyRepoChanges(octokit, config.owner, repoName, group);
+    const results = await applyRepoChanges(octokit, scope.owner, repoName, group);
     for (const result of results) {
       if (result.outcome === 'failed') failures++;
       const outcome = result.outcome === 'applied' ? 'done' : `FAILED — ${result.error}`;

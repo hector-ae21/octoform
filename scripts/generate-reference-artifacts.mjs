@@ -25,7 +25,14 @@ try {
   const apiSurfaceConfig = parseJson(
     await readFile(resolve(referenceRoot, 'github-api-surface.config.json'), 'utf8'),
   );
-  const cliContract = await loadTypeScriptContract(resolve(root, 'src/cli-contract.ts'));
+  const cliContract = await loadTypeScriptExport(
+    resolve(root, 'src/cli-contract.ts'),
+    'CLI_CONTRACT',
+  );
+  const buildConfigModel = await loadTypeScriptExport(
+    resolve(root, 'src/config/shape.ts'),
+    'configModel',
+  );
   const schema = generateConfigurationSchema();
   const capabilities = generateCapabilities(capabilityConfig, packageMetadata.version);
   const permissions = generatePermissions(
@@ -34,8 +41,10 @@ try {
     packageMetadata.version,
   );
   const cli = { ...cliContract, productVersion: packageMetadata.version };
+  const configModel = { ...buildConfigModel(), productVersion: packageMetadata.version };
   const generated = new Map([
     ['config.schema.json', json(schema)],
+    ['config-model.json', json(configModel)],
     ['cli.json', json(cli)],
     ['capabilities.json', json(capabilities)],
     ['permissions.json', json(permissions)],
@@ -86,7 +95,7 @@ function generateConfigurationSchema() {
   };
 }
 
-async function loadTypeScriptContract(path) {
+async function loadTypeScriptExport(path, name) {
   const source = await readFile(path, 'utf8');
   const result = ts.transpileModule(source, {
     fileName: path,
@@ -104,7 +113,7 @@ async function loadTypeScriptContract(path) {
   }
   const encoded = Buffer.from(result.outputText).toString('base64');
   const contractModule = await import(`data:text/javascript;base64,${encoded}`);
-  return contractModule.CLI_CONTRACT;
+  return contractModule[name];
 }
 
 function generateCapabilities(config, productVersion) {
@@ -224,6 +233,7 @@ async function generateChecksums(generated) {
     'api.json',
     'capabilities.json',
     'cli.json',
+    'config-model.json',
     'config.schema.json',
     'github-api-surface.json',
     'permissions.json',
