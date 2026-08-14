@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { classifyRepo, pathsUsedBy } from '../src/core/classify.js';
-import type { ClassifyRule } from '../src/config/types.js';
+import type { ClassifyRule } from '../src/types/index.js';
 
 const facts = (files: Record<string, string | null>, visibility = 'public') => ({
   visibility,

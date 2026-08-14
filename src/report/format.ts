@@ -1,5 +1,5 @@
-import { UNREADABLE } from '../config/types.js';
-import type { Change } from '../config/types.js';
+import { UNREADABLE } from '../config/sentinels.js';
+import type { Change } from '../types/index.js';
 
 /**
  * One planned change, as a single line: `key: from -> to`.

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { isManaged, resolvePolicy } from '../src/config/resolve.js';
-import type { OwnerScope, RepoState } from '../src/config/types.js';
+import type { OwnerScope, RepoState } from '../src/types/index.js';
 
 const repo = (over: Partial<RepoState> = {}): RepoState => ({
   name: 'thing',

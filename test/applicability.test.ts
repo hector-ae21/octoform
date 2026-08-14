@@ -5,7 +5,7 @@ import {
   describeNotApplicable,
   notApplicable,
 } from '../src/config/applicability.js';
-import type { OwnerScope } from '../src/config/types.js';
+import type { OwnerScope } from '../src/types/index.js';
 
 const scope = (over: Partial<OwnerScope> = {}): OwnerScope => ({ owner: 'account', ...over });
 

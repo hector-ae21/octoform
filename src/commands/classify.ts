@@ -8,18 +8,9 @@ import {
   readRepoFile,
   setPropertyValues,
 } from '../github/client.js';
-import type { OwnerScope } from '../config/types.js';
+import type { ClassifyOptions, OwnerScope, Proposal } from '../types/index.js';
 
-/** Mutation control for {@link classify}. */
-export interface ClassifyOptions {
-  /** Write the proposals to the custom property. Organisations only. */
-  apply?: boolean;
-}
-
-export interface Proposal {
-  repo: string;
-  type: string;
-}
+export type { ClassifyOptions, Proposal } from '../types/index.js';
 
 /**
  * Propose a type for every repository that has none recorded.

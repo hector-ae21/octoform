@@ -1,17 +1,6 @@
-import type { ClassifyRule } from '../config/types.js';
+import type { ClassifyRule, RepoFacts } from '../types/index.js';
 
-/**
- * What a rule is allowed to look at. Deliberately small: a rule can ask about
- * a repository's visibility and about files it names, and nothing else. Every
- * question a rule can ask has to be answerable by fetching a known list of
- * paths up front, which is what keeps classification to one predictable set of
- * requests per repository rather than an open-ended crawl.
- */
-export interface RepoFacts {
-  visibility: string;
-  /** File content by path, or `null` when the repository does not have it. */
-  files: Record<string, string | null>;
-}
+export type { RepoFacts } from '../types/index.js';
 
 /** Every path any rule needs, so they can be fetched once, before matching. */
 export function pathsUsedBy(rules: ClassifyRule[]): string[] {

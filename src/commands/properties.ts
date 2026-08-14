@@ -5,7 +5,7 @@ import {
   readPropertyValues,
   setPropertyValues,
 } from '../github/client.js';
-import type { OwnerScope } from '../config/types.js';
+import type { OwnerScope } from '../types/index.js';
 
 /**
  * Bring the custom property that stores each repository's type into line with

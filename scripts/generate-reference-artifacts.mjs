@@ -80,7 +80,7 @@ function parseArgs(args) {
 
 function generateConfigurationSchema() {
   const generated = createGenerator({
-    path: resolve(root, 'src/config/types.ts'),
+    path: resolve(root, 'src/types/config.ts'),
     tsconfig: resolve(root, 'tsconfig.json'),
     type: 'Config',
     expose: 'export',

@@ -8,17 +8,8 @@
  * strict validation, and get the same list as failures instead.
  */
 
-import type { OwnerKind, OwnerScope } from './types.js';
-
-/** One configuration path that applies to only one kind of owner. */
-export interface Applicability {
-  /** Dotted path of the declaration, relative to the owner. */
-  path: string;
-  /** The owner kinds the declaration means something for. */
-  appliesTo: readonly OwnerKind[];
-  /** Why it does not apply elsewhere, and what happens instead. */
-  reason: string;
-}
+import type { Applicability, NotApplicable } from '../types/applicability.js';
+import type { OwnerKind, OwnerScope } from '../types/index.js';
 
 /**
  * The declarations whose applicability depends on owner kind.
@@ -36,13 +27,6 @@ export const APPLICABILITY: readonly Applicability[] = [
       'the "repos" entries in the configuration file instead',
   },
 ];
-
-/** One declaration that does not apply to the owner that declared it. */
-export interface NotApplicable {
-  owner: string;
-  path: string;
-  reason: string;
-}
 
 /**
  * Report every declaration in this scope that its owner cannot use.

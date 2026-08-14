@@ -7,6 +7,7 @@
  */
 
 export {
+  CONFIG_VERSION,
   loadConfig,
   resolvePolicy,
   repoType,
@@ -14,10 +15,9 @@ export {
   isManaged,
   ConfigError,
 } from './config/resolve.js';
+export { UNREADABLE } from './config/sentinels.js';
 export { APPLICABILITY, notApplicable, describeNotApplicable } from './config/applicability.js';
-export type { Applicability, NotApplicable } from './config/applicability.js';
 export { PRECEDENCE, collectionSemantics, configModel } from './config/shape.js';
-export type { MergeSemantics, SemanticsEntry } from './config/shape.js';
 export {
   createClient,
   requireScopes,
@@ -32,52 +32,55 @@ export {
   AuthError,
 } from './github/client.js';
 export { planRepo } from './core/plan.js';
-export type { PlanOptions } from './core/plan.js';
 export { classifyRepo, pathsUsedBy } from './core/classify.js';
-export type { RepoFacts } from './core/classify.js';
 export { applyRepoChanges } from './github/apply.js';
-export type { AppliedChange } from './github/apply.js';
 export { formatChange, groupByRepo } from './report/format.js';
 export { audit } from './commands/audit.js';
 export { plan } from './commands/plan.js';
-export type { PlanResult } from './commands/plan.js';
 export { apply } from './commands/apply.js';
-export type { ApplyOptions } from './commands/apply.js';
 export { classify } from './commands/classify.js';
-export type { ClassifyOptions } from './commands/classify.js';
 export { propertiesSync } from './commands/properties.js';
 
-export { CONFIG_VERSION, UNREADABLE } from './config/types.js';
 export type {
+  Applicability,
+  AppliedChange,
+  ApplyOptions,
+  AuditConfig,
+  Change,
+  ClassifyConfig,
+  ClassifyOptions,
+  ClassifyRule,
   Config,
   ConfigVersion,
-  OwnerBlock,
-  OwnerScope,
-  ResolvedConfig,
-  RepoEntry,
-  ExcludeConfig,
-  PolicySet,
-  RepoState,
-  RepoDetail,
-  Change,
-  SettingValue,
-  Toggle,
-  Managed,
-  OwnerKind,
-  AuditConfig,
-  ClassifyConfig,
-  ClassifyRule,
-  FeaturePolicy,
-  MergePolicy,
-  SecurityPolicy,
-  RepoPolicy,
-  RulesetPolicy,
+  DefaultBranchPolicy,
   EnvironmentPolicy,
+  ExcludeConfig,
+  ExistingEnvironment,
+  ExistingRuleset,
+  FeaturePolicy,
   FileMode,
   FilePolicy,
-  ExistingRuleset,
-  ExistingEnvironment,
+  Managed,
+  MergePolicy,
+  MergeSemantics,
+  NotApplicable,
+  OwnerBlock,
+  OwnerKind,
+  OwnerScope,
+  PlanLimits,
+  PlanOptions,
+  PlanResult,
+  PolicySet,
+  RepoDetail,
+  RepoEntry,
+  RepoFacts,
+  RepoPolicy,
+  RepoState,
   RepoStructure,
-  DefaultBranchPolicy,
-} from './config/types.js';
-export type { PlanLimits } from './github/client.js';
+  ResolvedConfig,
+  RulesetPolicy,
+  SecurityPolicy,
+  SemanticsEntry,
+  SettingValue,
+  Toggle,
+} from './types/index.js';

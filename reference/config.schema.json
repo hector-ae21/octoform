@@ -67,7 +67,7 @@
     "ConfigVersion": {
       "type": "number",
       "const": 1,
-      "description": "The configuration contract this file is written against.\n\nIt is not the version of octoform. It changes only when the meaning of an existing key changes, which is what lets a future release read an old file correctly instead of guessing."
+      "description": "The configuration contract a file is written against.\n\nIt is not the version of octoform. It changes only when the meaning of an existing key changes, which is what lets a future release read an old file correctly instead of guessing."
     },
     "OwnerBlock": {
       "type": "object",

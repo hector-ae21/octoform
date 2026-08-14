@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
-import { CONFIG, type ObjectShape, type ValueShape } from '../src/config/shape.js';
+import { CONFIG } from '../src/config/shape.js';
+import type { ObjectShape, ValueShape } from '../src/types/index.js';
 
 interface SchemaNode {
   $ref?: string;

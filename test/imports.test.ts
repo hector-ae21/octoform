@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { after, test } from 'node:test';
 import { ConfigError, loadConfig, resolvePolicy } from '../src/config/resolve.js';
-import type { OwnerScope, ResolvedConfig } from '../src/config/types.js';
+import type { OwnerScope, ResolvedConfig } from '../src/types/index.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'octoform-imports-'));
 after(() => rmSync(dir, { recursive: true, force: true }));

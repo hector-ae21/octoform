@@ -7,7 +7,7 @@ import { apply } from './commands/apply.js';
 import { classify } from './commands/classify.js';
 import { propertiesSync } from './commands/properties.js';
 import { renderUsage } from './cli-contract.js';
-import type { OwnerScope, ResolvedConfig } from './config/types.js';
+import type { OwnerScope, ResolvedConfig } from './types/index.js';
 import type { Octokit } from '@octokit/rest';
 
 const USAGE = renderUsage();

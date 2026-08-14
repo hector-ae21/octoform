@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 import { test } from 'node:test';
 import { CLI_CONTRACT, renderUsage } from '../src/cli-contract.js';
 import { PRECEDENCE, collectionSemantics } from '../src/config/shape.js';
-import { CONFIG_VERSION } from '../src/config/types.js';
+import { CONFIG_VERSION } from '../src/config/resolve.js';
 
 type JsonSchema = {
   $id: string;

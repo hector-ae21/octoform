@@ -1,12 +1,9 @@
 import type { Octokit } from '@octokit/rest';
 import { isExcluded, repoType } from '../config/resolve.js';
 import { detectLimits, detectOwnerKind, listRepos, readPropertyValues } from '../github/client.js';
-import type { AuditConfig, OwnerScope, OwnerKind, RepoState } from '../config/types.js';
+import type { AuditConfig, Finding, OwnerKind, OwnerScope, RepoState } from '../types/index.js';
 
-export interface Finding {
-  repo: string;
-  issue: string;
-}
+export type { Finding } from '../types/index.js';
 
 /**
  * Read-only. Reports what deviates from the declared expectations and never

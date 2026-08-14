@@ -48,6 +48,12 @@ a zero major means. Security fixes are always a patch bump. See
 - Root-level `repos` is rejected only when combined with `owners`, where a bare
   repository name no longer identifies one repository.
 
+### Internal
+
+- Every type and interface now lives under `src/types/`, grouped by domain
+  instead of scattered across the module that happened to use it first. Public
+  exports are unaffected; this is a source-organization change only.
+
 ## [0.3.2] - 2026-08-14
 
 ### Compatibility

@@ -1,13 +1,16 @@
 import { isManaged } from '../config/resolve.js';
-import { UNREADABLE } from '../config/types.js';
+import { UNREADABLE } from '../config/sentinels.js';
 import type {
   Change,
   EnvironmentPolicy,
   ExistingRuleset,
+  PlanOptions,
   PolicySet,
   RepoDetail,
   RulesetPolicy,
-} from '../config/types.js';
+} from '../types/index.js';
+
+export type { PlanOptions } from '../types/index.js';
 
 /** Policy groups whose keys map one-to-one onto a repository setting. */
 const SCALAR_GROUPS = ['features', 'merge', 'security', 'repo'] as const;
@@ -20,12 +23,6 @@ const SCALAR_GROUPS = ['features', 'merge', 'security', 'repo'] as const;
 const NOT_IMPLEMENTED: Record<string, string> = {
   'features.discussions': 'not applicable over the REST API',
 };
-
-/** Capability evidence required to plan one repository safely. */
-export interface PlanOptions {
-  /** False when the plan does not enforce rulesets on private repositories. */
-  rulesetsEnforcedOnPrivate: boolean;
-}
 
 /**
  * Compare one repository against its resolved policy.

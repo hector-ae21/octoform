@@ -3,15 +3,9 @@ import type { Octokit } from '@octokit/rest';
 import { applyRepoChanges } from '../github/apply.js';
 import { plan } from './plan.js';
 import { formatChange, groupByRepo } from '../report/format.js';
-import type { OwnerScope } from '../config/types.js';
+import type { ApplyOptions, OwnerScope } from '../types/index.js';
 
-/** Repository selection and confirmation controls for {@link apply}. */
-export interface ApplyOptions {
-  repo?: string;
-  type?: string;
-  /** Skip the confirmation prompt. */
-  yes?: boolean;
-}
+export type { ApplyOptions } from '../types/index.js';
 
 /**
  * Compute the same diff `plan` would, show it, ask before doing anything, and

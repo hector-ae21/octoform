@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { plan } from '../src/commands/plan.js';
-import type { OwnerScope } from '../src/config/types.js';
+import type { OwnerScope } from '../src/types/index.js';
 
 function apiError(status: number, message: string): Error {
   return Object.assign(new Error(message), {

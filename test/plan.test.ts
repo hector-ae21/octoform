@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { planRepo } from '../src/core/plan.js';
-import { UNREADABLE } from '../src/config/types.js';
-import type { PolicySet, RepoDetail } from '../src/config/types.js';
+import { UNREADABLE } from '../src/config/sentinels.js';
+import type { PolicySet, RepoDetail } from '../src/types/index.js';
 
 const OPTIONS = { rulesetsEnforcedOnPrivate: true };
 

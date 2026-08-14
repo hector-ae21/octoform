@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { applyRepoChanges } from '../src/github/apply.js';
-import type { Change } from '../src/config/types.js';
+import type { Change } from '../src/types/index.js';
 
 /**
  * A minimal stand-in for Octokit: just enough of `.request` to record every

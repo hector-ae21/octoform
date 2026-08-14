@@ -1,21 +1,27 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { parse } from 'yaml';
-import { CONFIG, type Field, type ObjectShape, type ValueShape } from './shape.js';
-import {
-  CONFIG_VERSION,
-  type AuditConfig,
-  type ClassifyConfig,
-  type Config,
-  type ExcludeConfig,
-  type OwnerBlock,
-  type OwnerScope,
-  type PolicySet,
-  type RepoState,
-  type ResolvedConfig,
-} from './types.js';
+import { CONFIG } from './shape.js';
+import type {
+  AuditConfig,
+  ClassifyConfig,
+  Config,
+  ConfigVersion,
+  ExcludeConfig,
+  Field,
+  ObjectShape,
+  OwnerBlock,
+  OwnerScope,
+  PolicySet,
+  RepoState,
+  ResolvedConfig,
+  ValueShape,
+} from '../types/index.js';
 
 export class ConfigError extends Error {}
+
+/** The only configuration contract version this release accepts. */
+export const CONFIG_VERSION: ConfigVersion = 1;
 
 /** The subset of a file that layers onto another file's copy of the same. */
 type OwnerFields = Pick<Config, 'classify' | 'audit' | 'defaults' | 'types' | 'repos' | 'exclude'>;

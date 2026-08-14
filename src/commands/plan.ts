@@ -9,13 +9,9 @@ import {
 } from '../github/client.js';
 import { planRepo } from '../core/plan.js';
 import { formatChange, groupByRepo } from '../report/format.js';
-import type { Change, OwnerScope } from '../config/types.js';
+import type { Change, OwnerScope, PlanResult } from '../types/index.js';
 
-/** Mutable and blocked operations produced by a read-only plan. */
-export interface PlanResult {
-  changes: Change[];
-  blocked: Change[];
-}
+export type { PlanResult } from '../types/index.js';
 
 /**
  * Read-only. Says what `apply` would do, and just as importantly what it would

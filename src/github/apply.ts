@@ -1,13 +1,15 @@
 import { readFileSync } from 'node:fs';
 import type { Octokit } from '@octokit/rest';
 import { toRefName } from './client.js';
-import type { Change, EnvironmentPolicy, FilePolicy, RulesetPolicy } from '../config/types.js';
+import type {
+  AppliedChange,
+  Change,
+  EnvironmentPolicy,
+  FilePolicy,
+  RulesetPolicy,
+} from '../types/index.js';
 
-export interface AppliedChange extends Change {
-  outcome: 'applied' | 'failed';
-  /** Present only when outcome is 'failed'. */
-  error?: string;
-}
+export type { AppliedChange } from '../types/index.js';
 
 /** Maps dotted plan keys to fields in the repository update body. */
 const PATCH_FIELDS: Record<string, string> = {

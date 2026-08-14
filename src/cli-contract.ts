@@ -1,40 +1,6 @@
-/** A command-line option exposed by Octoform. */
-export interface CliOptionContract {
-  id: string;
-  syntax: string;
-  description: string;
-  default?: string;
-}
+import type { CliContract } from './types/cli.js';
 
-/** A supported command or command path. */
-export interface CliCommandContract {
-  path: string[];
-  usage: string;
-  summary: string;
-  mode: 'read-only' | 'confirmed-write' | 'conditional-write' | 'write';
-  options: string[];
-  classicScopes: string[];
-  mutationClassicScopes?: string[];
-}
-
-/** Stable customer-facing command-line contract. */
-export interface CliContract {
-  schemaVersion: number;
-  executable: string;
-  summary: string;
-  commands: CliCommandContract[];
-  options: CliOptionContract[];
-  credentials: Array<{
-    names: string[];
-    sensitive: true;
-    description: string;
-  }>;
-  exitCodes: Array<{
-    code: number;
-    meaning: string;
-  }>;
-  notes: string[];
-}
+export type { CliCommandContract, CliContract, CliOptionContract } from './types/cli.js';
 
 /** Canonical metadata used by help output and generated CLI reference data. */
 export const CLI_CONTRACT: CliContract = {
