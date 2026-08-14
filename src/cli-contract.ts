@@ -10,44 +10,64 @@ export const CLI_CONTRACT: CliContract = {
   commands: [
     {
       path: ['audit'],
-      usage: 'octoform audit      [--config <path>]',
+      usage: 'octoform audit      [--config <path>] [--owner <login>]... [--repo <name>]',
       summary: 'Inspect repositories and report configured audit findings.',
       mode: 'read-only',
-      options: ['config', 'strict', 'help'],
+      options: ['config', 'owner', 'repo', 'strict', 'help'],
       classicScopes: ['repo'],
     },
     {
       path: ['plan'],
-      usage: 'octoform plan       [--config <path>] [--repo <name>] [--type <type>]',
+      usage:
+        'octoform plan       [--config <path>] [--owner <login>]... [--repo <name>] [--type <type>]',
       summary: 'Compare desired and observed state without changing GitHub.',
       mode: 'read-only',
-      options: ['config', 'repo', 'type', 'strict', 'help'],
+      options: ['config', 'owner', 'repo', 'type', 'strict', 'help'],
       classicScopes: ['repo'],
     },
     {
       path: ['apply'],
-      usage: 'octoform apply      [--config <path>] [--repo <name>] [--type <type>] [--yes]',
+      usage:
+        'octoform apply      [--config <path>] [--owner <login>]... [--repo <name>] [--type <type>] [--yes]',
       summary: 'Plan again, request confirmation, and apply unblocked changes.',
       mode: 'confirmed-write',
-      options: ['config', 'repo', 'type', 'yes', 'strict', 'help'],
+      options: ['config', 'owner', 'repo', 'type', 'yes', 'strict', 'help'],
       classicScopes: ['repo'],
     },
     {
       path: ['classify'],
-      usage: 'octoform classify   [--config <path>] [--apply]',
+      usage: 'octoform classify   [--config <path>] [--owner <login>]... [--apply]',
       summary: 'Propose repository types and optionally write organization property values.',
       mode: 'conditional-write',
-      options: ['config', 'apply', 'strict', 'help'],
+      options: ['config', 'owner', 'apply', 'strict', 'help'],
       classicScopes: ['repo'],
       mutationClassicScopes: ['repo', 'admin:org'],
     },
     {
       path: ['properties', 'sync'],
-      usage: 'octoform properties sync [--config <path>]',
+      usage: 'octoform properties sync [--config <path>] [--owner <login>]...',
       summary: 'Synchronize the organization property schema and declared repository values.',
       mode: 'write',
-      options: ['config', 'strict', 'help'],
+      options: ['config', 'owner', 'strict', 'help'],
       classicScopes: ['repo', 'admin:org'],
+    },
+    {
+      path: ['config', 'validate'],
+      usage: 'octoform config validate [--config <path>]',
+      summary: 'Load and resolve a configuration, reporting its owners. Never contacts GitHub.',
+      mode: 'read-only',
+      options: ['config', 'help'],
+      classicScopes: [],
+    },
+    {
+      path: ['config', 'migrate'],
+      usage: 'octoform config migrate  [--config <path>] [--write]',
+      summary:
+        'Convert a legacy single-owner file to the multi-owner shape. Never contacts GitHub.',
+      mode: 'conditional-write',
+      options: ['config', 'write', 'help'],
+      classicScopes: [],
+      mutationClassicScopes: [],
     },
   ],
   options: [
@@ -57,7 +77,16 @@ export const CLI_CONTRACT: CliContract = {
       description: 'Configuration file',
       default: 'octoform.yml',
     },
-    { id: 'repo', syntax: '--repo <name>', description: 'Limit to one repository' },
+    {
+      id: 'owner',
+      syntax: '--owner <login>',
+      description: 'Limit to one declared owner (repeatable)',
+    },
+    {
+      id: 'repo',
+      syntax: '--repo <name>',
+      description: 'Limit to one repository; accepts "owner/name" to disambiguate',
+    },
     { id: 'type', syntax: '--type <type>', description: 'Limit to repositories of one type' },
     { id: 'yes', syntax: '--yes, -y', description: 'Apply without asking for confirmation' },
     {
@@ -69,6 +98,11 @@ export const CLI_CONTRACT: CliContract = {
       id: 'strict',
       syntax: '--strict',
       description: 'Fail when a declaration does not apply to the owner that declared it',
+    },
+    {
+      id: 'write',
+      syntax: '--write',
+      description: 'config migrate: update the file in place instead of only printing it',
     },
     { id: 'help', syntax: '--help, -h', description: 'Show this message' },
   ],
@@ -92,6 +126,7 @@ export const CLI_CONTRACT: CliContract = {
     'apply displays the current plan and requests confirmation unless --yes is present.',
     'Fine-grained tokens are authorized by GitHub per endpoint because they do not expose classic scope headers.',
     'A configuration that names several owners runs each of them in turn, in the order it names them.',
+    'config validate and config migrate never contact GitHub.',
   ],
 };
 

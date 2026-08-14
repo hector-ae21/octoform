@@ -1,13 +1,21 @@
 import { ConfigError, loadConfig } from './config/resolve.js';
 import { describeNotApplicable, notApplicable } from './config/applicability.js';
-import { AuthError, createClient, detectOwnerKind, requireScopes } from './github/client.js';
+import { narrowToQualifiedRepo, parseRepoSelector, selectOwners } from './config/selectors.js';
+import { validateConfig, migrateConfig } from './commands/config.js';
+import {
+  AuthError,
+  createClient,
+  detectOwnerKind,
+  listRepos,
+  requireScopes,
+} from './github/client.js';
 import { audit } from './commands/audit.js';
 import { plan } from './commands/plan.js';
 import { apply } from './commands/apply.js';
 import { classify } from './commands/classify.js';
 import { propertiesSync } from './commands/properties.js';
 import { renderUsage } from './cli-contract.js';
-import type { OwnerScope, ResolvedConfig } from './types/index.js';
+import type { OwnerScope, RepoSelector, ResolvedConfig } from './types/index.js';
 import type { Octokit } from '@octokit/rest';
 
 const USAGE = renderUsage();
@@ -17,20 +25,24 @@ interface Args {
   subcommand?: string;
   config: string;
   help: boolean;
+  owners: string[];
   repo?: string;
   type?: string;
   yes: boolean;
   apply: boolean;
   strict: boolean;
+  write: boolean;
 }
 
 export function parseArgs(argv: string[]): Args {
   const args: Args = {
     config: 'octoform.yml',
     help: false,
+    owners: [],
     yes: false,
     apply: false,
     strict: false,
+    write: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -45,6 +57,12 @@ export function parseArgs(argv: string[]): Args {
       args.apply = true;
     } else if (arg === '--strict') {
       args.strict = true;
+    } else if (arg === '--write') {
+      args.write = true;
+    } else if (arg === '--owner') {
+      const value = argv[++i];
+      if (!value) throw new ConfigError(`${arg} needs a value`);
+      args.owners.push(value);
     } else if (arg === '--config' || arg === '--repo' || arg === '--type') {
       const value = argv[++i];
       if (!value) throw new ConfigError(`${arg} needs a value`);
@@ -80,11 +98,17 @@ export async function main(argv: string[]): Promise<number> {
     return args.help ? 0 : 2;
   }
 
+  if (args.command === 'config') {
+    return runConfigCommand(args);
+  }
+
   try {
     const config = loadConfig(args.config);
     const octokit = createClient();
+    const selection = await resolveSelection(octokit, config, args);
+    printScopeSummary(config, selection, args);
     const each = async (run: (scope: OwnerScope) => Promise<number>): Promise<number> =>
-      await forEachOwner(octokit, config, args.strict, run);
+      await forEachOwner(octokit, selection, args.strict, run);
 
     switch (args.command) {
       case 'audit': {
@@ -97,14 +121,14 @@ export async function main(argv: string[]): Promise<number> {
       case 'plan': {
         await requireScopes(octokit, ['repo']);
         return await each(async (scope) => {
-          await plan(octokit, scope, { repo: args.repo, type: args.type });
+          await plan(octokit, scope, { repo: selection.repoName, type: args.type });
           return 0;
         });
       }
       case 'apply': {
         await requireScopes(octokit, ['repo']);
         return await each((scope) =>
-          apply(octokit, scope, { repo: args.repo, type: args.type, yes: args.yes }),
+          apply(octokit, scope, { repo: selection.repoName, type: args.type, yes: args.yes }),
         );
       }
       case 'classify': {
@@ -143,25 +167,147 @@ export async function main(argv: string[]): Promise<number> {
   }
 }
 
+function runConfigCommand(args: Args): number {
+  try {
+    if (args.subcommand === 'validate') return validateConfig(args.config);
+    if (args.subcommand === 'migrate') return migrateConfig(args.config, { write: args.write });
+
+    console.error(
+      args.subcommand
+        ? `Unknown subcommand: config ${args.subcommand}\n`
+        : 'config needs a subcommand: config validate | config migrate\n',
+    );
+    console.error(USAGE);
+    return 2;
+  } catch (error) {
+    if (error instanceof ConfigError) {
+      console.error(error.message);
+      return 1;
+    }
+    throw error;
+  }
+}
+
+/** The owners and, when narrowed, the single repository name a run should touch. */
+interface Selection {
+  owners: OwnerScope[];
+  repoName?: string;
+}
+
 /**
- * Run one command against every owner the configuration names, in the order it
- * named them.
+ * Resolve `--owner`/`--repo` against the loaded configuration.
+ *
+ * A bare `--repo` name is checked for ambiguity across the selected owners
+ * only when there is more than one of them — the common single-owner run
+ * never pays for a listing it does not need.
+ */
+async function resolveSelection(
+  octokit: Octokit,
+  config: ResolvedConfig,
+  args: Args,
+): Promise<Selection> {
+  let owners = selectOwners(config, args.owners);
+  let repoName: string | undefined;
+
+  if (args.repo) {
+    const selector = parseRepoSelector(args.repo);
+    if (selector.owner) {
+      owners = narrowToQualifiedRepo(
+        config,
+        owners,
+        selector as RepoSelector & { owner: string },
+        args.owners.length > 0,
+      );
+    } else if (owners.length > 1) {
+      owners = await disambiguateRepo(octokit, owners, selector.name);
+    }
+    repoName = selector.name;
+  }
+
+  return { owners, repoName };
+}
+
+/**
+ * Narrow to the owners that actually have a repository by this name.
+ *
+ * More than one match is an error, not a guess: applying a change to two
+ * different repositories because they happen to share a name is exactly the
+ * kind of scope expansion a selector exists to prevent.
+ */
+async function disambiguateRepo(
+  octokit: Octokit,
+  owners: OwnerScope[],
+  name: string,
+): Promise<OwnerScope[]> {
+  const matches: OwnerScope[] = [];
+  for (const scope of owners) {
+    const kind = await detectOwnerKind(octokit, scope.owner);
+    const repos = await listRepos(octokit, scope.owner, kind);
+    if (repos.some((repo) => repo.name === name)) matches.push(scope);
+  }
+
+  if (matches.length > 1) {
+    throw new ConfigError(
+      `--repo "${name}" matches more than one selected owner: ${matches
+        .map((scope) => `${scope.owner}/${name}`)
+        .join(', ')}. Use one of those qualified forms instead.`,
+    );
+  }
+  return matches;
+}
+
+/**
+ * Print which owners a run actually touches, when that is not obvious from
+ * running the command with no selector at all.
+ *
+ * Silent for the common case — one declared owner, no selector — because a
+ * line that never says anything but "everything, as declared" is noise, not
+ * information.
+ */
+function printScopeSummary(config: ResolvedConfig, selection: Selection, args: Args): void {
+  const narrowed = args.owners.length > 0 || args.repo !== undefined || args.type !== undefined;
+  if (config.owners.length <= 1 && !narrowed) return;
+
+  const selected = selection.owners.map((scope) => scope.owner);
+  const excluded = config.owners
+    .map((scope) => scope.owner)
+    .filter((owner) => !selected.includes(owner));
+
+  const repo = selection.repoName ? `, repo "${selection.repoName}"` : '';
+  const type = args.type ? `, type "${args.type}"` : '';
+  console.log(
+    `Scope: ${selected.length} of ${config.owners.length} declared owner(s): ` +
+      `${selected.join(', ') || '(none)'}${repo}${type}` +
+      (excluded.length > 0 ? ` — excluded: ${excluded.join(', ')}` : ''),
+  );
+  console.log('');
+}
+
+/**
+ * Run one command against every selected owner, in the order the
+ * configuration named them.
  *
  * Owners are headed only when there is more than one, so a single-owner file
  * still produces the output it always has. The worst exit status wins: a run
- * that succeeded for two accounts and failed for a third did not succeed.
+ * that succeeded for two accounts and failed for a third did not succeed. An
+ * empty selection is reported as such rather than silently doing nothing.
  */
 async function forEachOwner(
   octokit: Octokit,
-  config: ResolvedConfig,
+  selection: Selection,
   strict: boolean,
   run: (scope: OwnerScope) => Promise<number>,
 ): Promise<number> {
-  const notes = await preflight(octokit, config, strict);
-  const heading = config.owners.length > 1;
+  if (selection.owners.length === 0) {
+    console.error('No owner matches the current selection. Nothing was done.');
+    return 1;
+  }
+
+  const notes = await preflight(octokit, selection.owners, strict);
+  const heading = selection.owners.length > 1;
   let status = 0;
 
-  for (const [index, scope] of config.owners.entries()) {
+  for (const [index, scope] of selection.owners.entries()) {
     if (heading) {
       if (index > 0) console.log('');
       console.log(`=== ${scope.owner} ===\n`);
@@ -175,22 +321,24 @@ async function forEachOwner(
 }
 
 /**
- * Resolve every owner's kind and applicability before running anything.
+ * Resolve every selected owner's kind and applicability before running
+ * anything.
  *
  * Checked up front rather than owner by owner so that a configuration strict
  * validation would reject is rejected before the first account is touched. A
  * run that changed two accounts and then refused the third would be the worst
- * of both answers.
+ * of both answers. Only the owners actually selected are checked: an
+ * unselected owner's declarations are none of this run's business.
  */
 async function preflight(
   octokit: Octokit,
-  config: ResolvedConfig,
+  owners: OwnerScope[],
   strict: boolean,
 ): Promise<Map<string, string[]>> {
   const notes = new Map<string, string[]>();
   const rejected: string[] = [];
 
-  for (const scope of config.owners) {
+  for (const scope of owners) {
     const kind = await detectOwnerKind(octokit, scope.owner);
     const lines = notApplicable(scope, kind).map((finding) => describeNotApplicable(finding, kind));
     if (lines.length === 0) continue;

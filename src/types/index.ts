@@ -16,3 +16,5 @@ export * from './plan.js';
 export * from './apply.js';
 export * from './classify.js';
 export * from './audit.js';
+export * from './selectors.js';
+export * from './config-command.js';

@@ -26,6 +26,19 @@ a zero major means. Security fixes are always a patch bump. See
   continuing.
 - A generated `config-model.json` reference artifact publishes the precedence
   chain and the combining rule of every collection in the configuration model.
+- `--owner <login>` narrows `audit`, `plan`, `apply`, `classify`, and
+  `properties sync` to the named account(s), repeatable, and rejects a login
+  the configuration does not declare.
+- `--repo` accepts a qualified `owner/name` to resolve a repository name
+  declared under more than one selected owner; an unqualified name that
+  matches more than one selected owner is rejected with the qualified forms.
+- A run touching more than one declared owner, or narrowed by a selector,
+  prints a scope summary of which owners are selected and which were excluded.
+- `octoform config validate` loads and reports a configuration without
+  contacting GitHub.
+- `octoform config migrate` converts a single-owner file to the multi-owner
+  shape, previewing by default; `--write` updates the file in place and
+  refuses to run against a file with uncommitted git changes.
 
 ### Changed
 

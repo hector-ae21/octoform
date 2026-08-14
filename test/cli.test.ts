@@ -62,3 +62,24 @@ test('--strict is accepted and defaults to off', () => {
   assert.equal(parseArgs(['plan']).strict, false);
   assert.equal(parseArgs(['plan', '--strict']).strict, true);
 });
+
+test('--owner is repeatable and defaults to an empty selection', () => {
+  assert.deepEqual(parseArgs(['plan']).owners, []);
+  assert.deepEqual(parseArgs(['plan', '--owner', 'a', '--owner', 'b']).owners, ['a', 'b']);
+});
+
+test('--write is accepted and defaults to off', () => {
+  assert.equal(parseArgs(['config', 'migrate']).write, false);
+  assert.equal(parseArgs(['config', 'migrate', '--write']).write, true);
+});
+
+test('config validate needs a subcommand', async () => {
+  const error = console.error;
+  console.error = () => {};
+  try {
+    assert.equal(await exitCode(['config']), 2);
+    assert.equal(await exitCode(['config', 'nonsense']), 2);
+  } finally {
+    console.error = error;
+  }
+});

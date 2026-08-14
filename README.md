@@ -139,9 +139,13 @@ examples, use the versioned
 | `octoform apply` | Confirmed mutation based on a freshly produced plan |
 | `octoform classify` | Read-only type proposals, or explicit organization-property writes with `--apply` |
 | `octoform properties sync` | Organization custom-property schema and declared value synchronization |
+| `octoform config validate` | Offline load and resolution report. Never contacts GitHub |
+| `octoform config migrate` | Offline conversion from a single-owner file to the multi-owner shape |
 
-All commands accept `--config <path>`. Planning and apply can be narrowed with
-`--repo <name>` or `--type <type>`. The
+All commands accept `--config <path>`. A run against several owners can be
+narrowed with repeatable `--owner <login>`, and `--repo <name>` accepts a
+qualified `owner/name` to resolve a name declared under more than one selected
+owner. Planning and apply can also be narrowed with `--type <type>`. The
 [command reference](https://hector-ae21.github.io/octoform-docs/0.3/commands/)
 documents flags, output, authentication, and exit codes.
 
