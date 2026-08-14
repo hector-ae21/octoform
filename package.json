@@ -64,6 +64,7 @@
     "reference-artifacts:check": "node scripts/generate-reference-artifacts.mjs --check",
     "api-surface": "node scripts/generate-api-surface.mjs",
     "api-surface:check": "node scripts/generate-api-surface.mjs --check",
+    "audit:github-api": "node scripts/check-github-api-drift.mjs",
     "octoform": "node bin/octoform.js",
     "prepublishOnly": "npm run build"
   },

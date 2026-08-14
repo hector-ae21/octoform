@@ -33,6 +33,7 @@ npm test           # alias for the complete verification contract
 npm run typecheck  # type-checks without emitting
 npm run api-docs   # refreshes the machine-readable public API reference
 npm run reference-artifacts  # refreshes schema, CLI, capability and permission data
+npm run audit:github-api  # compares reviewed REST and GraphQL contracts with GitHub
 ```
 
 Node 20 or newer.
@@ -59,6 +60,12 @@ JavaScript, TypeScript, and GitHub Actions pull requests with the extended
 security query suite and refreshes the default-branch baseline on its weekly
 schedule. GitHub secret scanning and push protection remain enabled at
 repository level.
+
+`npm run audit:github-api` is the only network-dependent quality command and
+requires `GITHUB_TOKEN` for read-only GraphQL introspection. The scheduled
+workflow compares GitHub's current REST contract and GraphQL mutations with the
+reviewed immutable baseline. It writes a report and fails on drift, but never
+updates the baseline, opens an issue, or calls a mutation endpoint.
 
 ## Running the CLI locally
 
