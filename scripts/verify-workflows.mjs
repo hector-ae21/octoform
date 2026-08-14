@@ -67,6 +67,10 @@ for (const workflowName of workflowNames) {
       }
     }
   }
+
+  if (workflowName === 'api-contract-drift.yml') {
+    verifyContractDriftWorkflow(workflow, label, source, violations);
+  }
 }
 
 if (violations.length > 0) {
@@ -79,4 +83,29 @@ console.log(`${workflowNames.length} workflows satisfy the security and reproduc
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function verifyContractDriftWorkflow(workflow, label, source, violations) {
+  const audit = workflow.jobs?.audit;
+  if (!isObject(audit)) return;
+  if (audit.permissions?.contents !== 'read' || audit.permissions?.issues !== 'write') {
+    violations.push(`${label}:audit must limit permissions to contents:read and issues:write`);
+  }
+
+  const compare = audit.steps?.find((step) => step?.id === 'compare');
+  if (!isObject(compare) || compare['continue-on-error'] !== true) {
+    violations.push(`${label}:audit must preserve the comparison outcome for issue reporting`);
+  }
+
+  for (const required of [
+    'gh issue create',
+    'gh issue edit',
+    'gh issue close',
+    "steps.compare.outcome == 'failure'",
+    'run: exit 1',
+  ]) {
+    if (!source.includes(required)) {
+      violations.push(`${label}:audit is missing actionable drift behavior: ${required}`);
+    }
+  }
 }

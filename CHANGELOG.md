@@ -31,6 +31,8 @@ a zero major means. Security fixes are always a patch bump. See
   secret scanning with push protection.
 - Added scheduled read-only detection of structural REST contract changes and
   GraphQL mutation drift without automatically accepting a new API baseline.
+  A failed audit opens or refreshes one maintainer-review issue, preserves the
+  failed workflow signal, and closes the notice after the contract is clean.
 - Enforced valid TSDoc as the only authored comment format in production and
   tooling source, with automated rejection of narrative comments, directives,
   disabled code, and references to private planning material.
