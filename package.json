@@ -12,7 +12,7 @@
     "compliance",
     "infrastructure-as-code"
   ],
-  "homepage": "https://github.com/hector-ae21/octoform#readme",
+  "homepage": "https://hector-ae21.github.io/octoform-docs/0.3/",
   "bugs": {
     "url": "https://github.com/hector-ae21/octoform/issues"
   },
@@ -37,8 +37,6 @@
   "files": [
     "bin",
     "dist",
-    "docs",
-    "examples",
     "CHANGELOG.md"
   ],
   "engines": {
@@ -47,7 +45,8 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "test": "tsc -p tsconfig.test.json && node scripts/run-tests.mjs",
+    "test": "tsc -p tsconfig.test.json && node scripts/run-tests.mjs && npm run test:readme",
+    "test:readme": "node scripts/validate-readme.mjs",
     "api-surface": "node scripts/generate-api-surface.mjs",
     "api-surface:check": "node scripts/generate-api-surface.mjs --check",
     "octoform": "node bin/octoform.js",

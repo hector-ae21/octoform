@@ -37,7 +37,7 @@ jobs:
           # only, which is all this audit is about — a personal access token
           # would also list private repository names into a public run log.
           GITHUB_TOKEN: ${{ github.token }}
-        run: node bin/octoform.js audit --config examples/self-audit/octoform.yml | tee /tmp/audit.txt
+        run: node bin/octoform.js audit --config .github/octoform-audit.yml | tee /tmp/audit.txt
 
       - name: Publish the report to the run summary
         if: always()

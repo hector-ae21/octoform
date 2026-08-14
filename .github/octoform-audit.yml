@@ -1,0 +1,8 @@
+owner: hector-ae21
+
+audit:
+  require_description:
+    visibility: public
+  require_topics:
+    visibility: public
+  max_topics: 8
