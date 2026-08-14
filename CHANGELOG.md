@@ -17,6 +17,9 @@ a zero major means. Security fixes are always a patch bump. See
 
 ### Documentation
 
+- Added deterministic configuration-schema, CLI, capability, and permission
+  manifests with complete implemented-route coverage and SHA-256 checksums for
+  immutable release assets.
 - Added a deterministic, machine-readable TypeDoc reference for every
   supported programmatic export, with validation that rejects undocumented
   declarations and stale generated output.

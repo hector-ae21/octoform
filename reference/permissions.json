@@ -1,0 +1,607 @@
+{
+  "schemaVersion": 1,
+  "productVersion": "0.3.1",
+  "sources": {
+    "githubRestApiVersion": "2026-03-10",
+    "apiSurface": "github-api-surface.json",
+    "fineGrainedPatPermissions": "https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens?apiVersion=2026-03-10",
+    "githubAppPermissions": "https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps?apiVersion=2026-03-10",
+    "classicScopes": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+  },
+  "tokenModel": "Profiles for classic and fine-grained credentials are alternatives, not cumulative grants.",
+  "profiles": [
+    {
+      "id": "classic-admin-org",
+      "tokenType": "classic-pat",
+      "scope": "organization",
+      "name": "admin:org",
+      "access": "write",
+      "description": "Additional classic scope required before organization custom-property writes.",
+      "capabilityIds": [
+        "organization-custom-properties"
+      ]
+    },
+    {
+      "id": "classic-repo",
+      "tokenType": "classic-pat",
+      "scope": "account",
+      "name": "repo",
+      "access": "read-write",
+      "description": "Coarse classic scope required by the current CLI preflight for every command.",
+      "capabilityIds": [
+        "audit-expectations",
+        "authenticated-identity",
+        "automated-security-fixes",
+        "code-scanning-default-setup",
+        "create-if-missing-files",
+        "default-branch-rename",
+        "deployment-environments",
+        "ensured-branches",
+        "merge-settings",
+        "organization-custom-properties",
+        "owner-kind",
+        "private-vulnerability-reporting",
+        "repository-classification",
+        "repository-discussions",
+        "repository-features",
+        "repository-inventory",
+        "repository-metadata",
+        "repository-rulesets",
+        "repository-topics",
+        "secret-scanning-settings",
+        "vulnerability-alerts"
+      ]
+    },
+    {
+      "id": "organization-administration-write",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Administration",
+      "access": "write",
+      "description": "Organization ruleset capability discovery for an organization administrator.",
+      "capabilityIds": []
+    },
+    {
+      "id": "organization-custom-properties-admin",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Custom properties",
+      "access": "admin",
+      "description": "Organization custom-property definitions.",
+      "capabilityIds": [
+        "organization-custom-properties"
+      ]
+    },
+    {
+      "id": "organization-custom-properties-read",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Custom properties",
+      "access": "read",
+      "description": "Organization repository property definitions and values.",
+      "capabilityIds": [
+        "organization-custom-properties"
+      ]
+    },
+    {
+      "id": "organization-custom-properties-write",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Custom properties",
+      "access": "write",
+      "description": "Organization repository property values.",
+      "capabilityIds": [
+        "organization-custom-properties"
+      ]
+    },
+    {
+      "id": "repository-administration-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Administration",
+      "access": "read",
+      "description": "Administrative settings, rulesets, environments, and security configuration state.",
+      "capabilityIds": [
+        "automated-security-fixes",
+        "code-scanning-default-setup",
+        "deployment-environments",
+        "private-vulnerability-reporting",
+        "repository-rulesets",
+        "secret-scanning-settings",
+        "vulnerability-alerts"
+      ]
+    },
+    {
+      "id": "repository-administration-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Administration",
+      "access": "write",
+      "description": "Repository settings, branch rename, rulesets, environments, and supported security configuration changes.",
+      "capabilityIds": [
+        "automated-security-fixes",
+        "code-scanning-default-setup",
+        "default-branch-rename",
+        "deployment-environments",
+        "merge-settings",
+        "private-vulnerability-reporting",
+        "repository-features",
+        "repository-metadata",
+        "repository-rulesets",
+        "repository-topics",
+        "secret-scanning-settings",
+        "vulnerability-alerts"
+      ]
+    },
+    {
+      "id": "repository-contents-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Contents",
+      "access": "read",
+      "description": "Repository files, workflows, branches, and Git references used as observed state.",
+      "capabilityIds": [
+        "create-if-missing-files",
+        "default-branch-rename",
+        "ensured-branches",
+        "repository-classification"
+      ]
+    },
+    {
+      "id": "repository-contents-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Contents",
+      "access": "write",
+      "description": "Branch creation and create-if-missing file writes.",
+      "capabilityIds": [
+        "create-if-missing-files",
+        "ensured-branches"
+      ]
+    },
+    {
+      "id": "repository-metadata-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Metadata",
+      "access": "read",
+      "description": "Repository discovery and public repository metadata.",
+      "capabilityIds": [
+        "audit-expectations",
+        "default-branch-rename",
+        "merge-settings",
+        "repository-discussions",
+        "repository-features",
+        "repository-inventory",
+        "repository-metadata",
+        "repository-topics"
+      ]
+    }
+  ],
+  "operations": [
+    {
+      "route": "DELETE /repos/{owner}/{repo}/automated-security-fixes",
+      "access": "write",
+      "capabilityIds": [
+        "automated-security-fixes"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/private-vulnerability-reporting",
+      "access": "write",
+      "capabilityIds": [
+        "private-vulnerability-reporting"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/vulnerability-alerts",
+      "access": "write",
+      "capabilityIds": [
+        "vulnerability-alerts"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}",
+      "access": "read",
+      "capabilityIds": [
+        "owner-kind"
+      ],
+      "permissionProfiles": [
+        "classic-repo"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/properties/values",
+      "access": "read",
+      "capabilityIds": [
+        "organization-custom-properties"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "organization-custom-properties-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/repos",
+      "access": "read",
+      "capabilityIds": [
+        "repository-inventory"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-metadata-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/rulesets",
+      "access": "read",
+      "capabilityIds": [
+        "repository-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-administration-write"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}",
+      "access": "read",
+      "capabilityIds": [
+        "audit-expectations",
+        "default-branch-rename",
+        "merge-settings",
+        "repository-discussions",
+        "repository-features",
+        "repository-inventory",
+        "repository-metadata",
+        "repository-topics",
+        "secret-scanning-settings"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read",
+        "repository-contents-read",
+        "repository-metadata-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/automated-security-fixes",
+      "access": "read",
+      "capabilityIds": [
+        "automated-security-fixes"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/branches/{branch}",
+      "access": "read",
+      "capabilityIds": [
+        "ensured-branches"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-contents-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/branches/{branch}/protection",
+      "access": "read",
+      "capabilityIds": [
+        "repository-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/code-scanning/default-setup",
+      "access": "read",
+      "capabilityIds": [
+        "code-scanning-default-setup"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/contents/{path}",
+      "access": "read",
+      "capabilityIds": [
+        "create-if-missing-files",
+        "default-branch-rename",
+        "repository-classification"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-contents-read",
+        "repository-metadata-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/environments",
+      "access": "read",
+      "capabilityIds": [
+        "deployment-environments"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/git/ref/{ref}",
+      "access": "read",
+      "capabilityIds": [
+        "ensured-branches"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-contents-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/private-vulnerability-reporting",
+      "access": "read",
+      "capabilityIds": [
+        "private-vulnerability-reporting"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/rulesets",
+      "access": "read",
+      "capabilityIds": [
+        "repository-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}",
+      "access": "read",
+      "capabilityIds": [
+        "repository-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/vulnerability-alerts",
+      "access": "read",
+      "capabilityIds": [
+        "vulnerability-alerts"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /user",
+      "access": "read",
+      "capabilityIds": [
+        "authenticated-identity"
+      ],
+      "permissionProfiles": [
+        "classic-repo"
+      ]
+    },
+    {
+      "route": "GET /user/repos",
+      "access": "read",
+      "capabilityIds": [
+        "repository-inventory"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-metadata-read"
+      ]
+    },
+    {
+      "route": "GET /users/{username}",
+      "access": "read",
+      "capabilityIds": [
+        "deployment-environments"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /users/{username}/repos",
+      "access": "read",
+      "capabilityIds": [
+        "repository-inventory"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-metadata-read"
+      ]
+    },
+    {
+      "route": "PATCH /orgs/{org}/properties/values",
+      "access": "write",
+      "capabilityIds": [
+        "organization-custom-properties"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-custom-properties-write"
+      ]
+    },
+    {
+      "route": "PATCH /repos/{owner}/{repo}",
+      "access": "write",
+      "capabilityIds": [
+        "merge-settings",
+        "repository-features",
+        "repository-metadata",
+        "secret-scanning-settings"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PATCH /repos/{owner}/{repo}/code-scanning/default-setup",
+      "access": "write",
+      "capabilityIds": [
+        "code-scanning-default-setup"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "POST /repos/{owner}/{repo}/branches/{branch}/rename",
+      "access": "write",
+      "capabilityIds": [
+        "default-branch-rename"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "POST /repos/{owner}/{repo}/git/refs",
+      "access": "write",
+      "capabilityIds": [
+        "ensured-branches"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-contents-write"
+      ]
+    },
+    {
+      "route": "POST /repos/{owner}/{repo}/rulesets",
+      "access": "write",
+      "capabilityIds": [
+        "repository-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /orgs/{org}/properties/schema/{custom_property_name}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-custom-properties"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-custom-properties-admin"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/automated-security-fixes",
+      "access": "write",
+      "capabilityIds": [
+        "automated-security-fixes"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/contents/{path}",
+      "access": "write",
+      "capabilityIds": [
+        "create-if-missing-files"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-contents-write"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/environments/{environment_name}",
+      "access": "write",
+      "capabilityIds": [
+        "deployment-environments"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/private-vulnerability-reporting",
+      "access": "write",
+      "capabilityIds": [
+        "private-vulnerability-reporting"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/topics",
+      "access": "write",
+      "capabilityIds": [
+        "repository-topics"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/vulnerability-alerts",
+      "access": "write",
+      "capabilityIds": [
+        "vulnerability-alerts"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    }
+  ]
+}

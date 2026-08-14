@@ -29,6 +29,7 @@ npm run build      # compiles src/ to dist/
 npm test           # compiles src/ + test/ separately, then runs them
 npm run typecheck  # type-checks without emitting
 npm run api-docs   # refreshes the machine-readable public API reference
+npm run reference-artifacts  # refreshes schema, CLI, capability and permission data
 ```
 
 Node 20 or newer.
@@ -82,6 +83,13 @@ The supported programmatic surface is exported from `src/index.ts`. TypeDoc
 validates that every exported declaration is documented and generates
 `reference/api.json`; do not edit that artifact by hand. `npm test` regenerates
 it in a temporary directory and fails when the committed copy is stale.
+
+The configuration schema is derived from `Config`, while terminal help and
+`reference/cli.json` share `src/cli-contract.ts`. The capability source
+classifies every implemented GitHub route and generates both capability and
+permission registers. `npm run reference-artifacts` refreshes these files and
+their `SHA256SUMS`; `npm test` rejects stale output, incomplete route coverage,
+absolute filesystem paths, and recognizable credential material.
 
 ## Making a change
 

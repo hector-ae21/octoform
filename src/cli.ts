@@ -5,32 +5,9 @@ import { plan } from './commands/plan.js';
 import { apply } from './commands/apply.js';
 import { classify } from './commands/classify.js';
 import { propertiesSync } from './commands/properties.js';
+import { renderUsage } from './cli-contract.js';
 
-const USAGE = `octoform - declarative governance for GitHub repositories
-
-Usage:
-  octoform audit      [--config <path>]
-  octoform plan       [--config <path>] [--repo <name>] [--type <type>]
-  octoform apply      [--config <path>] [--repo <name>] [--type <type>] [--yes]
-  octoform classify   [--config <path>] [--apply]
-  octoform properties sync [--config <path>]
-
-Options:
-  --config <path>   Configuration file (default: octoform.yml)
-  --repo <name>     Limit to one repository
-  --type <type>     Limit to repositories of one type
-  --yes             Apply without asking for confirmation
-  --apply           classify: record the proposals instead of only printing them
-  --help            Show this message
-
-Environment:
-  GITHUB_TOKEN / GH_TOKEN   Token used for every call. Needs "repo", plus
-                            "admin:org" for custom properties and rulesets.
-
-audit, plan and classify (without --apply) are read-only and never change
-anything. apply shows the same diff plan would, then asks before changing
-anything, unless --yes is given.
-`;
+const USAGE = renderUsage();
 
 interface Args {
   command?: string;
