@@ -67,7 +67,7 @@ a zero major means. Security fixes are always a patch bump. See
   A run against more than one owner prints a total across every owner reached.
 - A repository whose plan cannot even be computed is now reported as a
   distinct failure rather than silently treated as "no changes."
-- `octoform plan --out <path>` saves a versioned, redacted plan artifact:
+- `octoform plan --out <path>` saves a versioned plan artifact:
   actor, target owners' numeric identity, a digest of the resolved
   configuration and of every source file that contributed to it, an
   observation time, and an expiry (`--expires-in <minutes>`, default 60).
@@ -80,7 +80,9 @@ a zero major means. Security fixes are always a patch bump. See
   before `GITHUB_TOKEN` and `GH_TOKEN`.
 - A configuration value shaped like a GitHub token (`ghp_…`, `github_pat_…`,
   and other issued-token prefixes) is now rejected at load time, naming the
-  YAML path without echoing the value.
+  YAML path without echoing the value. Mapping keys are checked too: a token
+  pasted where a login or a repository name belongs is reported against its
+  parent, so the error never repeats it.
 - Exit codes are now a documented, frozen set of classes for the `v0` line:
   `0` success, `1` drift found or apply declined, `2` usage/configuration
   error, `3` authentication or permission failure, `4` an operation was
@@ -93,6 +95,8 @@ a zero major means. Security fixes are always a patch bump. See
 - `--format json` wraps output in a versioned envelope
   (`{ schemaVersion, command, data }`). Supported by `plan`, `inspect config`,
   and `inspect capabilities` in this release; other commands remain text-only.
+- `printable` renders a value that came from GitHub or from a configuration
+  file safely for a terminal, and every report now goes through it.
 
 ### Changed
 
@@ -119,6 +123,16 @@ a zero major means. Security fixes are always a patch bump. See
   were internal execution and error-classification helpers, never part of the
   documented programmatic API.
 
+### Security
+
+- Repository names, descriptions, topics, custom-property values and API error
+  text are writable by anyone with access to the account being audited, which
+  is not always the person running octoform. Control characters in any of them
+  are now escaped before they are printed, so a crafted value can no longer
+  emit terminal escape sequences that overwrite lines already on screen, hide
+  a blocked change from the report, or imitate the confirmation prompt
+  `apply` shows before it changes anything.
+
 ### Compatibility
 
 - Existing single-owner configurations keep their exact meaning and produce the
@@ -132,6 +146,12 @@ a zero major means. Security fixes are always a patch bump. See
 - Every type and interface now lives under `src/types/`, grouped by domain
   instead of scattered across the module that happened to use it first. Public
   exports are unaffected; this is a source-organization change only.
+- Determinism, layering, selector narrowing, no-op stability and owner
+  isolation are now checked as properties over generated configurations and
+  generated observed state, alongside an adversarial suite covering confusable
+  logins, hostile repository names, import and policy cycles, and unreadable
+  state. Generated cases are seeded, so a failure reports the seed that
+  reproduces it.
 
 ## [0.3.2] - 2026-08-14
 

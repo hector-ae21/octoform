@@ -39,9 +39,14 @@ function riskFor(key: string): Risk {
  * `create` when nothing existed to compare against, `update` otherwise. Every
  * change this planner produces today is one or the other; `attach`, `detach`
  * and `delete` have no producer yet.
+ *
+ * "Nothing existed" covers both a value that is explicitly unset and one the
+ * observation never returned at all. The two are kept apart everywhere it
+ * matters — an unobserved setting blocks rather than being planned over — but
+ * neither is a thing to update.
  */
 function operationFor(draft: ChangeDraft): OperationKind {
-  return draft.from === null ? 'create' : 'update';
+  return draft.from === null || draft.from === undefined ? 'create' : 'update';
 }
 
 /** Policy groups whose keys map one-to-one onto a repository setting. */

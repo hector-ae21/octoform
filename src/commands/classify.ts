@@ -8,6 +8,7 @@ import {
   readRepoFile,
   setPropertyValues,
 } from '../github/client.js';
+import { printable } from '../report/format.js';
 import type { ClassifyOptions, OwnerScope, Proposal } from '../types/index.js';
 
 export type { ClassifyOptions, Proposal } from '../types/index.js';
@@ -112,10 +113,10 @@ async function write(
   for (const [type, repos] of byType) {
     try {
       await setPropertyValues(octokit, owner, property, type, repos);
-      console.log(`  ${type}: recorded on ${repos.length} repositories`);
+      console.log(`  ${printable(type)}: recorded on ${repos.length} repositories`);
     } catch (error) {
       failures++;
-      console.log(`  ${type}: FAILED — ${(error as Error).message}`);
+      console.log(`  ${printable(type)}: FAILED — ${printable((error as Error).message)}`);
     }
   }
 
@@ -130,16 +131,17 @@ async function write(
 
 function report(proposals: Proposal[], undecided: string[]): void {
   if (proposals.length > 0) {
-    const width = Math.max(...proposals.map((p) => p.repo.length), 4);
+    const width = Math.max(...proposals.map((p) => printable(p.repo).length), 4);
     console.log(`${proposals.length} proposal(s):\n`);
     for (const proposal of proposals) {
-      console.log(`  ${proposal.repo.padEnd(width)}  ${proposal.type}`);
+      console.log(`  ${printable(proposal.repo).padEnd(width)}  ${printable(proposal.type)}`);
     }
   }
 
   if (undecided.length > 0) {
     console.log(
-      `\n${undecided.length} matched no rule and are left alone: ${undecided.join(', ')}`,
+      `\n${undecided.length} matched no rule and are left alone: ` +
+        undecided.map((name) => printable(name)).join(', '),
     );
   }
 }

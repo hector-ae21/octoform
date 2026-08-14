@@ -23,7 +23,25 @@ function fakeOctokit(handler: (route: string, params: Record<string, unknown>) =
   };
 }
 
-const change = (key: string, to: unknown): Change => ({ repo: 'thing', key, from: null, to });
+/**
+ * The identity fields the planner adds are irrelevant to applying a change,
+ * but the type carries them, so every case here fills them in once.
+ */
+function planned(over: Partial<Change> & Pick<Change, 'key'>): Change {
+  return {
+    id: `owner/thing#${over.key}`,
+    owner: 'owner',
+    repo: 'thing',
+    operation: 'update',
+    risk: 'normal',
+    prerequisites: [],
+    from: null,
+    to: null,
+    ...over,
+  };
+}
+
+const change = (key: string, to: unknown): Change => planned({ key, to });
 
 test('every patch-body change is bundled into a single request', async () => {
   const { octokit, calls } = fakeOctokit(() => {});
@@ -143,13 +161,12 @@ test('the PUT/DELETE security toggles pick their verb from the value', async () 
 
 test('renaming the default branch uses the name it is renaming from, not the target', async () => {
   const { octokit, calls } = fakeOctokit(() => {});
-  const rename: Change = {
-    repo: 'thing',
+  const rename = planned({
     key: 'default_branch.name',
     from: 'master',
     to: 'main',
     payload: { from: 'master', to: 'main' },
-  };
+  });
 
   const results = await applyRepoChanges(octokit, 'owner', 'thing', [rename]);
 
@@ -164,8 +181,8 @@ test('a ruleset with no id is created, and one with an id is updated in place', 
   const ruleset = { name: 'protect', target_branches: ['v*.x'], block_deletion: true };
 
   await applyRepoChanges(octokit, 'owner', 'thing', [
-    { repo: 'thing', key: 'rulesets.protect', from: null, to: 'x', payload: { ruleset } },
-    { repo: 'thing', key: 'rulesets.other', from: 'a', to: 'b', payload: { ruleset, id: 9 } },
+    planned({ key: 'rulesets.protect', from: null, to: 'x', payload: { ruleset } }),
+    planned({ key: 'rulesets.other', from: 'a', to: 'b', payload: { ruleset, id: 9 } }),
   ]);
 
   assert.equal(calls[0]?.route, 'POST /repos/{owner}/{repo}/rulesets');
@@ -178,7 +195,7 @@ test('branch names become refs, and the special ~ targets are left alone', async
   const ruleset = { name: 'protect', target_branches: ['v*.x', '~DEFAULT_BRANCH'] };
 
   await applyRepoChanges(octokit, 'owner', 'thing', [
-    { repo: 'thing', key: 'rulesets.protect', from: null, to: 'x', payload: { ruleset } },
+    planned({ key: 'rulesets.protect', from: null, to: 'x', payload: { ruleset } }),
   ]);
 
   const conditions = calls[0]?.params.conditions as { ref_name: { include: string[] } };
@@ -195,7 +212,7 @@ test('a declared rule becomes GitHub own shape, and an undeclared one is absent'
   };
 
   await applyRepoChanges(octokit, 'owner', 'thing', [
-    { repo: 'thing', key: 'rulesets.protect', from: null, to: 'x', payload: { ruleset } },
+    planned({ key: 'rulesets.protect', from: null, to: 'x', payload: { ruleset } }),
   ]);
 
   const rules = calls[0]?.params.rules as Array<{
@@ -219,13 +236,12 @@ test('seeding a file that cannot be read locally fails that change and no other'
   const { octokit } = fakeOctokit(() => {});
   const results = await applyRepoChanges(octokit, 'owner', 'thing', [
     change('features.issues', true),
-    {
-      repo: 'thing',
+    planned({
       key: 'files.LICENSE',
       from: null,
       to: 'x',
       payload: { file: { path: 'LICENSE', from: '/no/such/file', mode: 'create-if-missing' } },
-    },
+    }),
   ]);
 
   assert.equal(results.find((r) => r.key === 'features.issues')?.outcome, 'applied');

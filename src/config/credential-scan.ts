@@ -31,9 +31,14 @@ function looksLikeCredential(value: string): boolean {
  * Walk a parsed configuration value and return the YAML path of the first
  * credential-shaped string found, or `undefined` when there is none.
  *
- * Only the path is returned, never the value: the error this feeds must be
- * able to say where the problem is without repeating the secret into logs,
- * a terminal, or a bug report.
+ * Mapping keys are checked as well as values. A token pasted where a login or
+ * a repository name belongs is in the file either way, and the path reported
+ * for one names its parent rather than the key itself — repeating it would be
+ * the leak this check exists to prevent.
+ *
+ * Only the path is ever returned, never the value: the error this feeds must
+ * be able to say where the problem is without copying the secret into a
+ * terminal, a log or a bug report.
  */
 export function findCredentialShapedValue(value: unknown, path = ''): string | undefined {
   if (typeof value === 'string') {
@@ -48,6 +53,9 @@ export function findCredentialShapedValue(value: unknown, path = ''): string | u
   }
   if (value !== null && typeof value === 'object') {
     for (const [key, item] of Object.entries(value)) {
+      if (looksLikeCredential(key)) {
+        return path ? `${path} (one of its keys)` : '(a key at the root of the file)';
+      }
       const found = findCredentialShapedValue(item, path ? `${path}.${key}` : key);
       if (found) return found;
     }

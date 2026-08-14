@@ -1,6 +1,7 @@
 import type { Octokit } from '@octokit/rest';
 import { isExcluded, repoType } from '../config/resolve.js';
 import { detectLimits, detectOwnerKind, listRepos, readPropertyValues } from '../github/client.js';
+import { printable } from '../report/format.js';
 import type { AuditConfig, Finding, OwnerKind, OwnerScope, RepoState } from '../types/index.js';
 
 export type { Finding } from '../types/index.js';
@@ -88,7 +89,7 @@ function report(
   plan: string | undefined,
   orgRulesets: boolean,
 ): void {
-  const width = Math.max(...considered.map((r) => r.name.length), 4);
+  const width = Math.max(...considered.map((r) => printable(r.name).length), 4);
 
   const label = kind === 'org' ? 'Organisation' : 'Personal account';
   console.log(`${label}: ${scope.owner}${plan ? ` (${plan} plan)` : ''}`);
@@ -104,11 +105,13 @@ function report(
   for (const repo of [...considered].sort(sortByTypeThenName(scope))) {
     const type = repoType(scope, repo) ?? '-';
     const archived = repo.archived ? ' (archived)' : '';
-    console.log(`${repo.name.padEnd(width)}  ${type.padEnd(14)}  ${repo.visibility}${archived}`);
+    const name = printable(repo.name).padEnd(width);
+    console.log(`${name}  ${printable(type).padEnd(14)}  ${repo.visibility}${archived}`);
   }
 
   if (excluded.length > 0) {
-    console.log(`\nExcluded (${excluded.length}): ${excluded.map((r) => r.name).join(', ')}`);
+    const names = excluded.map((r) => printable(r.name)).join(', ');
+    console.log(`\nExcluded (${excluded.length}): ${names}`);
   }
 
   console.log('');
@@ -119,7 +122,7 @@ function report(
 
   console.log(`${findings.length} finding(s):`);
   for (const finding of findings) {
-    console.log(`  ${finding.repo.padEnd(width)}  ${finding.issue}`);
+    console.log(`  ${printable(finding.repo).padEnd(width)}  ${printable(finding.issue)}`);
   }
 }
 

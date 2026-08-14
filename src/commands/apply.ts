@@ -9,7 +9,7 @@ import {
 import { applyRepoChanges } from '../github/apply.js';
 import { plan } from './plan.js';
 import { DEFAULT_CONCURRENCY, mapWithConcurrency } from '../core/concurrency.js';
-import { formatChange, groupByRepo } from '../report/format.js';
+import { formatChange, groupByRepo, printable } from '../report/format.js';
 import type {
   AppliedChange,
   ApplyOptions,
@@ -53,7 +53,7 @@ export async function apply(
 
   console.log(`${changes.length} change(s) to apply:\n`);
   for (const [repoName, group] of groupByRepo(changes)) {
-    console.log(`  ${repoName}`);
+    console.log(`  ${printable(repoName)}`);
     for (const change of group) console.log(`    ${formatChange(change)}`);
     console.log('');
   }
@@ -96,8 +96,9 @@ export async function apply(
     const repoName = grouped[index]?.[0] ?? '';
     for (const result of results) {
       if (result.outcome === 'failed') failures++;
-      const outcome = result.outcome === 'applied' ? 'done' : `FAILED — ${result.error}`;
-      console.log(`  ${repoName}  ${result.key}: ${outcome}`);
+      const outcome =
+        result.outcome === 'applied' ? 'done' : `FAILED — ${printable(result.error ?? '')}`;
+      console.log(`  ${printable(repoName)}  ${result.key}: ${outcome}`);
     }
   }
 

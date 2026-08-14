@@ -10,7 +10,7 @@ import {
 import { capability } from '../github/capabilities.js';
 import { DEFAULT_CONCURRENCY, mapWithConcurrency } from '../core/concurrency.js';
 import { planRepo } from '../core/plan.js';
-import { formatChange, groupByRepo } from '../report/format.js';
+import { formatChange, groupByRepo, printable } from '../report/format.js';
 import type { Change, OwnerScope, PlanResult, PlanSelector, PlanSummary } from '../types/index.js';
 
 export type { PlanResult } from '../types/index.js';
@@ -124,7 +124,7 @@ function report(
   if (changes.length > 0) {
     console.log(`${changes.length} change(s) across ${countRepos(changes)} repositories:\n`);
     for (const [repo, group] of groupByRepo(changes)) {
-      console.log(`  ${repo}`);
+      console.log(`  ${printable(repo)}`);
       for (const change of group) console.log(`    ${formatChange(change)}`);
       console.log('');
     }
@@ -133,7 +133,7 @@ function report(
   if (blocked.length > 0) {
     console.log(`${blocked.length} not applied:\n`);
     for (const [repo, group] of groupByRepo(blocked)) {
-      console.log(`  ${repo}`);
+      console.log(`  ${printable(repo)}`);
       for (const change of group) console.log(`    ${formatChange(change)}`);
       console.log('');
     }
@@ -142,7 +142,7 @@ function report(
   if (errors.length > 0) {
     console.log(`${errors.length} repositories could not be examined:\n`);
     for (const error of [...errors].sort((a, b) => a.repo.localeCompare(b.repo))) {
-      console.log(`  ${error.repo}: ${error.message}`);
+      console.log(`  ${printable(error.repo)}: ${printable(error.message)}`);
     }
     console.log('');
   }
