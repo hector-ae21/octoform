@@ -44,6 +44,14 @@ temporary directory. The suite packs the real npm tarball, rejects development
 or private files, installs it without lifecycle scripts, imports its public
 entry point, loads a policy, produces a local plan, and executes CLI help.
 
+Pull requests run this contract on Node 20, 22, and 24. Dependency restoration
+uses `npm ci --ignore-scripts`, and the npm cache is keyed by the committed
+lockfile. Every external GitHub Action is pinned to a complete commit SHA;
+updates must review and replace both the SHA and its adjacent release label.
+The protected version branch only creates the immutable version tag and starts
+publication after the required pull-request check has passed, so the complete
+suite is not repeated after merge or during publishing.
+
 ## Running the CLI locally
 
 Create a local `octoform.yml` for an owner you control. Do not commit tokens,
