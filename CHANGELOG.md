@@ -81,6 +81,18 @@ a zero major means. Security fixes are always a patch bump. See
 - A configuration value shaped like a GitHub token (`ghp_…`, `github_pat_…`,
   and other issued-token prefixes) is now rejected at load time, naming the
   YAML path without echoing the value.
+- Exit codes are now a documented, frozen set of classes for the `v0` line:
+  `0` success, `1` drift found or apply declined, `2` usage/configuration
+  error, `3` authentication or permission failure, `4` an operation was
+  blocked, `5` an operation or the run itself failed.
+- `octoform inspect config` prints the fully resolved configuration for the
+  selected owners. Offline, like `config validate`.
+- `octoform inspect capabilities` prints, per selected owner, its kind,
+  numeric identity, organisation-ruleset availability, and any declaration
+  that does not apply to that owner.
+- `--format json` wraps output in a versioned envelope
+  (`{ schemaVersion, command, data }`). Supported by `plan`, `inspect config`,
+  and `inspect capabilities` in this release; other commands remain text-only.
 
 ### Changed
 
@@ -99,6 +111,13 @@ a zero major means. Security fixes are always a patch bump. See
 - `PlanOptions.rulesetsEnforcedOnPrivate: boolean` is now
   `PlanOptions.rulesetCapability: CapabilityResult`. Only programmatic callers
   of `planRepo` are affected.
+- `audit`'s and `apply`'s previous ad hoc `0`/`1` exit codes now follow the
+  frozen classes above. A script that only checked "zero or not" is
+  unaffected; one that branched on the exact previous number should not have.
+- `mapWithConcurrency`, `DEFAULT_CONCURRENCY`, `errorMessage`, and
+  `errorStatus` are no longer exported from the package entry point. They
+  were internal execution and error-classification helpers, never part of the
+  documented programmatic API.
 
 ### Compatibility
 

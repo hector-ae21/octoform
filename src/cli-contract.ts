@@ -19,7 +19,7 @@ export const CLI_CONTRACT: CliContract = {
     {
       path: ['plan'],
       usage:
-        'octoform plan       [--config <path>] [--owner <login>]... [--repo <name>] [--type <type>] [--concurrency <n>] [--fail-fast] [--out <path>] [--expires-in <minutes>]',
+        'octoform plan       [--config <path>] [--owner <login>]... [--repo <name>] [--type <type>] [--concurrency <n>] [--fail-fast] [--out <path>] [--expires-in <minutes>] [--format <text|json>]',
       summary: 'Compare desired and observed state without changing GitHub.',
       mode: 'read-only',
       options: [
@@ -32,6 +32,7 @@ export const CLI_CONTRACT: CliContract = {
         'fail-fast',
         'out',
         'expires-in',
+        'format',
         'help',
       ],
       classicScopes: ['repo'],
@@ -91,6 +92,24 @@ export const CLI_CONTRACT: CliContract = {
       options: ['config', 'write', 'help'],
       classicScopes: [],
       mutationClassicScopes: [],
+    },
+    {
+      path: ['inspect', 'config'],
+      usage: 'octoform inspect config       [--config <path>] [--owner <login>]... [--format <text|json>]',
+      summary:
+        'Print the fully resolved configuration for the selection, with secrets redacted. Never contacts GitHub.',
+      mode: 'read-only',
+      options: ['config', 'owner', 'format', 'help'],
+      classicScopes: [],
+    },
+    {
+      path: ['inspect', 'capabilities'],
+      usage:
+        'octoform inspect capabilities [--config <path>] [--owner <login>]... [--format <text|json>]',
+      summary: 'Print what octoform determined each selected owner supports, and the evidence why.',
+      mode: 'read-only',
+      options: ['config', 'owner', 'format', 'help'],
+      classicScopes: ['repo'],
     },
   ],
   options: [
@@ -154,6 +173,12 @@ export const CLI_CONTRACT: CliContract = {
       description: 'plan --out: how long the saved plan remains valid',
       default: '60',
     },
+    {
+      id: 'format',
+      syntax: '--format <text|json>',
+      description: 'Output format for commands that support it',
+      default: 'text',
+    },
     { id: 'help', syntax: '--help, -h', description: 'Show this message' },
   ],
   credentials: [
@@ -164,12 +189,31 @@ export const CLI_CONTRACT: CliContract = {
     },
   ],
   exitCodes: [
-    { code: 0, meaning: 'The command or help request completed successfully.' },
+    {
+      code: 0,
+      meaning: 'Success. No drift was found and nothing was blocked or failed.',
+    },
     {
       code: 1,
-      meaning: 'Configuration, authentication, capability, or GitHub API execution failed.',
+      meaning:
+        'audit or plan found drift, or apply was declined; nothing was applied.',
     },
-    { code: 2, meaning: 'The command line is missing or invalid.' },
+    {
+      code: 2,
+      meaning: 'The command line, or the resolved configuration, could not be understood.',
+    },
+    {
+      code: 3,
+      meaning: 'The token is missing, lacks a required scope, or was rejected by GitHub.',
+    },
+    {
+      code: 4,
+      meaning: 'At least one operation could not be planned or applied.',
+    },
+    {
+      code: 5,
+      meaning: 'At least one operation, or the run itself, failed outright.',
+    },
   ],
   notes: [
     'audit, plan, and classify without --apply are read-only.',
@@ -180,6 +224,8 @@ export const CLI_CONTRACT: CliContract = {
     'By default a failed owner is reported and the rest of the selection continues; --fail-fast stops at the first one.',
     'A run against more than one owner prints a total across every owner it reached.',
     'apply --plan verifies actor, owner identity, source and configuration digests, and expiry before applying anything; a stale or altered plan is refused, never repaired.',
+    'Exit codes are frozen for the v0 line: their meaning never changes once published here.',
+    '--format json wraps output in a versioned envelope. Currently supported by plan, inspect config, and inspect capabilities; other commands remain text-only.',
   ],
 };
 

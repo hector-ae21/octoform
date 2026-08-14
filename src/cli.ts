@@ -1,10 +1,16 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve as resolvePath } from 'node:path';
 import { confirm } from './cli-prompt.js';
-import { ConfigError, loadConfigWithSources } from './config/resolve.js';
+import { ConfigError, loadConfig, loadConfigWithSources } from './config/resolve.js';
 import { describeNotApplicable, notApplicable } from './config/applicability.js';
 import { narrowToQualifiedRepo, parseRepoSelector, selectOwners } from './config/selectors.js';
 import { validateConfig, migrateConfig } from './commands/config.js';
+import {
+  inspectCapabilities,
+  inspectConfig,
+  reportInspectedCapabilities,
+  reportInspectedConfig,
+} from './commands/inspect.js';
 import {
   buildPlanArtifact,
   readPlanArtifact,
@@ -27,6 +33,14 @@ import { classify } from './commands/classify.js';
 import { propertiesSync } from './commands/properties.js';
 import { formatChange, groupByRepo } from './report/format.js';
 import { renderUsage } from './cli-contract.js';
+import {
+  EXIT_AUTH_ERROR,
+  EXIT_BLOCKED,
+  EXIT_CHANGES_PENDING,
+  EXIT_FAILED,
+  EXIT_SUCCESS,
+  EXIT_USAGE_ERROR,
+} from './cli-exit-codes.js';
 import type {
   AppliedChange,
   OwnerScope,
@@ -66,6 +80,7 @@ interface Args {
   out?: string;
   planFile?: string;
   expiresIn?: number;
+  format: 'text' | 'json';
 }
 
 export function parseArgs(argv: string[]): Args {
@@ -78,6 +93,7 @@ export function parseArgs(argv: string[]): Args {
     strict: false,
     write: false,
     failFast: false,
+    format: 'text',
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -116,6 +132,12 @@ export function parseArgs(argv: string[]): Args {
         throw new ConfigError(`--expires-in must be a positive integer number of minutes, got "${value}"`);
       }
       args.expiresIn = parsed;
+    } else if (arg === '--format') {
+      const value = argv[++i];
+      if (value !== 'text' && value !== 'json') {
+        throw new ConfigError(`--format must be "text" or "json", got ${JSON.stringify(value)}`);
+      }
+      args.format = value;
     } else if (
       arg === '--config' ||
       arg === '--repo' ||
@@ -151,16 +173,20 @@ export async function main(argv: string[]): Promise<number> {
   } catch (error) {
     console.error(`${(error as Error).message}\n`);
     console.error(USAGE);
-    return 2;
+    return EXIT_USAGE_ERROR;
   }
 
   if (args.help || !args.command) {
     console.log(USAGE);
-    return args.help ? 0 : 2;
+    return args.help ? EXIT_SUCCESS : EXIT_USAGE_ERROR;
   }
 
   if (args.command === 'config') {
     return runConfigCommand(args);
+  }
+
+  if (args.command === 'inspect' && args.subcommand === 'config') {
+    return runInspectConfigCommand(args);
   }
 
   if (args.command === 'apply' && args.planFile) {
@@ -183,8 +209,8 @@ export async function main(argv: string[]): Promise<number> {
       case 'audit': {
         await enter(['repo']);
         return await each(async (scope) => {
-          await audit(octokit, scope);
-          return { status: 0 };
+          const findings = await audit(octokit, scope);
+          return { status: findings > 0 ? EXIT_CHANGES_PENDING : EXIT_SUCCESS };
         });
       }
       case 'plan': {
@@ -192,16 +218,20 @@ export async function main(argv: string[]): Promise<number> {
         const planResults = new Map<string, PlanResult>();
         const ownerIds = new Map<string, number>();
         const status = await each(async (scope) => {
-          const result = await plan(octokit, scope, {
-            repo: selection.repoName,
-            type: args.type,
-            concurrency: args.concurrency,
-          });
+          const result = await plan(
+            octokit,
+            scope,
+            { repo: selection.repoName, type: args.type, concurrency: args.concurrency },
+            { quiet: args.format === 'json' },
+          );
+          if (args.format === 'json') {
+            console.log(JSON.stringify(envelope('plan', { owner: scope.owner, ...result }), null, 2));
+          }
           if (args.out) {
             planResults.set(scope.owner, result);
             ownerIds.set(scope.owner, (await discoverOwner(octokit, scope.owner)).id);
           }
-          return { status: 0, summary: toRecord(summarizePlan(result)) };
+          return { status: planExitStatus(result), summary: toRecord(summarizePlan(result)) };
         });
         if (args.out) {
           const artifact = await buildPlanArtifact(
@@ -237,7 +267,9 @@ export async function main(argv: string[]): Promise<number> {
       case 'classify': {
         await enter(args.apply ? ['repo', 'admin:org'] : ['repo']);
         return await each(async (scope) => ({
-          status: await classify(octokit, scope, { apply: args.apply }),
+          status: (await classify(octokit, scope, { apply: args.apply })) === 0
+            ? EXIT_SUCCESS
+            : EXIT_FAILED,
         }));
       }
       case 'properties': {
@@ -248,28 +280,69 @@ export async function main(argv: string[]): Promise<number> {
               : 'properties needs a subcommand: properties sync\n',
           );
           console.error(USAGE);
-          return 2;
+          return EXIT_USAGE_ERROR;
         }
         await enter(['repo', 'admin:org']);
-        return await each(async (scope) => ({ status: await propertiesSync(octokit, scope) }));
+        return await each(async (scope) => ({
+          status: (await propertiesSync(octokit, scope)) === 0 ? EXIT_SUCCESS : EXIT_FAILED,
+        }));
+      }
+      case 'inspect': {
+        if (args.subcommand !== 'capabilities') {
+          console.error(
+            args.subcommand
+              ? `Unknown subcommand: inspect ${args.subcommand}\n`
+              : 'inspect needs a subcommand: inspect config | inspect capabilities\n',
+          );
+          console.error(USAGE);
+          return EXIT_USAGE_ERROR;
+        }
+        return await each(async (scope) => {
+          const report = await inspectCapabilities(octokit, scope);
+          if (args.format === 'json') {
+            console.log(JSON.stringify(envelope('inspect capabilities', report), null, 2));
+          } else {
+            reportInspectedCapabilities(scope.owner, report);
+          }
+          return { status: EXIT_SUCCESS };
+        });
       }
       default:
         console.error(`Unknown command: ${args.command}\n`);
         console.error(USAGE);
-        return 2;
+        return EXIT_USAGE_ERROR;
     }
   } catch (error) {
-    if (error instanceof ConfigError || error instanceof AuthError) {
+    if (error instanceof AuthError) {
       console.error(`${error.message}`);
-      return 1;
+      return EXIT_AUTH_ERROR;
+    }
+    if (error instanceof ConfigError) {
+      console.error(`${error.message}`);
+      return EXIT_USAGE_ERROR;
     }
     const status = (error as { status?: number }).status;
+    if (status === 401 || status === 403) {
+      console.error(`GitHub API error ${status}: ${(error as Error).message}`);
+      return EXIT_AUTH_ERROR;
+    }
     if (status) {
       console.error(`GitHub API error ${status}: ${(error as Error).message}`);
-      return 1;
+      return EXIT_FAILED;
     }
     throw error;
   }
+}
+
+/**
+ * `5` (failed) beats `4` (blocked) beats `1` (changes pending): the worst
+ * thing that happened to this owner's plan is what its exit class reports.
+ */
+function planExitStatus(result: PlanResult): number {
+  if (result.errors.length > 0) return EXIT_FAILED;
+  if (result.blocked.length > 0) return EXIT_BLOCKED;
+  if (result.changes.length > 0) return EXIT_CHANGES_PENDING;
+  return EXIT_SUCCESS;
 }
 
 /**
@@ -285,13 +358,14 @@ async function runApplyPlanCommand(planFile: string, skipConfirm: boolean): Prom
     const verification = await verifyPlanArtifact(octokit, artifact);
     if (!verification.valid) {
       console.error(`Refusing to apply ${planFile}: ${verification.detail} (${verification.reason}).`);
-      return 1;
+      return EXIT_USAGE_ERROR;
     }
 
     const changeCount = artifact.owners.reduce((sum, owner) => sum + owner.changes.length, 0);
+    const blockedCount = artifact.owners.reduce((sum, owner) => sum + owner.blocked.length, 0);
     if (changeCount === 0) {
       console.log('Nothing to apply. The saved plan has no unblocked changes.');
-      return 0;
+      return blockedCount > 0 ? EXIT_BLOCKED : EXIT_SUCCESS;
     }
 
     console.log(`${changeCount} change(s) to apply from ${planFile}:\n`);
@@ -307,7 +381,7 @@ async function runApplyPlanCommand(planFile: string, skipConfirm: boolean): Prom
 
     if (!skipConfirm && !(await confirm(`Apply ${changeCount} change(s)?`))) {
       console.log('Aborted. Nothing was changed.');
-      return 1;
+      return EXIT_CHANGES_PENDING;
     }
 
     console.log('');
@@ -330,11 +404,16 @@ async function runApplyPlanCommand(planFile: string, skipConfirm: boolean): Prom
       failures === 0 ? 'All changes applied.' : `${failures} change(s) failed — see above.`,
     );
     console.log(`Total — applied: ${applied}, failed: ${failures}`);
-    return failures === 0 ? 0 : 1;
+    if (failures > 0) return EXIT_FAILED;
+    return blockedCount > 0 ? EXIT_BLOCKED : EXIT_SUCCESS;
   } catch (error) {
-    if (error instanceof ConfigError || error instanceof AuthError) {
+    if (error instanceof AuthError) {
       console.error(error.message);
-      return 1;
+      return EXIT_AUTH_ERROR;
+    }
+    if (error instanceof ConfigError) {
+      console.error(error.message);
+      return EXIT_USAGE_ERROR;
     }
     throw error;
   }
@@ -351,11 +430,40 @@ function runConfigCommand(args: Args): number {
         : 'config needs a subcommand: config validate | config migrate\n',
     );
     console.error(USAGE);
-    return 2;
+    return EXIT_USAGE_ERROR;
   } catch (error) {
     if (error instanceof ConfigError) {
       console.error(error.message);
-      return 1;
+      return EXIT_USAGE_ERROR;
+    }
+    throw error;
+  }
+}
+
+/**
+ * `inspect config`: the fully resolved configuration for the selected
+ * owners, offline — the same guarantee `config validate` makes, since this is
+ * the same load, just reported in full instead of as counts.
+ */
+function runInspectConfigCommand(args: Args): number {
+  try {
+    const config = loadConfig(args.config);
+    const scopes = selectOwners(config, args.owners);
+    if (scopes.length === 0) {
+      console.error('No owner matches the current selection. Nothing was done.');
+      return EXIT_USAGE_ERROR;
+    }
+    const entries = inspectConfig(scopes);
+    if (args.format === 'json') {
+      console.log(JSON.stringify(envelope('inspect config', entries), null, 2));
+    } else {
+      reportInspectedConfig(entries);
+    }
+    return EXIT_SUCCESS;
+  } catch (error) {
+    if (error instanceof ConfigError) {
+      console.error(error.message);
+      return EXIT_USAGE_ERROR;
     }
     throw error;
   }
@@ -376,6 +484,15 @@ interface CommandOutcome {
 
 function toRecord(value: object): Record<string, number> {
   return Object.fromEntries(Object.entries(value)) as Record<string, number>;
+}
+
+/**
+ * Wrap `--format json` output in the versioned envelope every machine-
+ * readable output shares, so a consumer can tell the shape of `data` from
+ * `command` without guessing at the CLI invocation that produced it.
+ */
+function envelope<T>(command: string, data: T): { schemaVersion: 1; command: string; data: T } {
+  return { schemaVersion: 1, command, data };
 }
 
 /**
@@ -489,12 +606,12 @@ async function forEachOwner(
 ): Promise<number> {
   if (selection.owners.length === 0) {
     console.error('No owner matches the current selection. Nothing was done.');
-    return 1;
+    return EXIT_USAGE_ERROR;
   }
 
   const notes = await preflight(octokit, selection.owners, strict);
   const heading = selection.owners.length > 1;
-  let status = 0;
+  let status = EXIT_SUCCESS;
   const totals: Record<string, number> = {};
   let ownerFailures = 0;
 
@@ -512,7 +629,7 @@ async function forEachOwner(
       if (outcome.summary) mergeInto(totals, outcome.summary);
     } catch (error) {
       ownerFailures++;
-      status = Math.max(status, 1);
+      status = Math.max(status, EXIT_FAILED);
       const message = error instanceof Error ? error.message : String(error);
       console.error(`  ${scope.owner}: FAILED — ${message}`);
       if (failFast) break;

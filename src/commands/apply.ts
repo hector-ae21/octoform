@@ -1,5 +1,11 @@
 import type { Octokit } from '@octokit/rest';
 import { confirm } from '../cli-prompt.js';
+import {
+  EXIT_BLOCKED,
+  EXIT_CHANGES_PENDING,
+  EXIT_FAILED,
+  EXIT_SUCCESS,
+} from '../cli-exit-codes.js';
 import { applyRepoChanges } from '../github/apply.js';
 import { plan } from './plan.js';
 import { DEFAULT_CONCURRENCY, mapWithConcurrency } from '../core/concurrency.js';
@@ -39,7 +45,10 @@ export async function apply(
         ? `Nothing to apply. ${blocked.length} change(s) are blocked — run 'octoform plan' to see why.`
         : 'Nothing to apply. Every matching repository already matches the configuration.',
     );
-    return { status: 0, summary: { applied: 0, failed: 0, blocked: blocked.length } };
+    return {
+      status: blocked.length > 0 ? EXIT_BLOCKED : EXIT_SUCCESS,
+      summary: { applied: 0, failed: 0, blocked: blocked.length },
+    };
   }
 
   console.log(`${changes.length} change(s) to apply:\n`);
@@ -56,7 +65,10 @@ export async function apply(
 
   if (!options.yes && !(await confirm(`Apply ${changes.length} change(s)?`))) {
     console.log('Aborted. Nothing was changed.');
-    return { status: 1, summary: { applied: 0, failed: 0, blocked: blocked.length } };
+    return {
+      status: EXIT_CHANGES_PENDING,
+      summary: { applied: 0, failed: 0, blocked: blocked.length },
+    };
   }
 
   console.log('');
@@ -94,10 +106,9 @@ export async function apply(
     failures === 0 ? 'All changes applied.' : `${failures} change(s) failed — see above.`,
   );
   const allResults = perRepo.flat();
-  return {
-    status: failures === 0 ? 0 : 1,
-    summary: summarizeApply(allResults, blocked.length),
-  };
+  const status =
+    failures > 0 ? EXIT_FAILED : blocked.length > 0 ? EXIT_BLOCKED : EXIT_SUCCESS;
+  return { status, summary: summarizeApply(allResults, blocked.length) };
 }
 
 /** Reduce an apply run's results to the counts that matter. */

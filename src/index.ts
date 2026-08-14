@@ -45,8 +45,7 @@ export {
   REST_API_VERSION,
   AuthError,
 } from './github/client.js';
-export { capability, errorMessage, errorStatus } from './github/capabilities.js';
-export { DEFAULT_CONCURRENCY, mapWithConcurrency } from './core/concurrency.js';
+export { capability } from './github/capabilities.js';
 export { planRepo } from './core/plan.js';
 export { classifyRepo, pathsUsedBy } from './core/classify.js';
 export { applyRepoChanges } from './github/apply.js';
@@ -59,6 +58,20 @@ export { propertiesSync } from './commands/properties.js';
 export { validateConfig, migrateConfig } from './commands/config.js';
 export { selectOwners, parseRepoSelector, narrowToQualifiedRepo } from './config/selectors.js';
 export { migrateToMultiOwner } from './config/migrate.js';
+export {
+  inspectConfig,
+  inspectCapabilities,
+  reportInspectedConfig,
+  reportInspectedCapabilities,
+} from './commands/inspect.js';
+export {
+  EXIT_AUTH_ERROR,
+  EXIT_BLOCKED,
+  EXIT_CHANGES_PENDING,
+  EXIT_FAILED,
+  EXIT_SUCCESS,
+  EXIT_USAGE_ERROR,
+} from './cli-exit-codes.js';
 
 export type {
   Actor,
@@ -85,6 +98,8 @@ export type {
   FeaturePolicy,
   FileMode,
   FilePolicy,
+  InspectedCapabilities,
+  InspectedOwner,
   Managed,
   MergePolicy,
   MergeSemantics,
@@ -92,6 +107,7 @@ export type {
   MigrateOptions,
   NotApplicable,
   OperationKind,
+  OutputEnvelope,
   OwnerBlock,
   OwnerDiscovery,
   OwnerKind,
