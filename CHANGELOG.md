@@ -17,6 +17,9 @@ a zero major means. Security fixes are always a patch bump. See
 
 ### Documentation
 
+- Added a deterministic, machine-readable TypeDoc reference for every
+  supported programmatic export, with validation that rejects undocumented
+  declarations and stale generated output.
 - Replaced the application README with a complete product overview and safe
   packed-package quick start linked to the versioned documentation site.
 - Moved the maintained configuration, command, architecture, security, and

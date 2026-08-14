@@ -1,0 +1,29 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "Octoform API",
+  "entryPoints": ["src/index.ts"],
+  "entryPointStrategy": "resolve",
+  "tsconfig": "tsconfig.json",
+  "readme": "none",
+  "plugin": [],
+  "disableSources": true,
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "requiredToBeDocumented": [
+    "Class",
+    "Function",
+    "Interface",
+    "TypeAlias",
+    "Variable"
+  ],
+  "validation": {
+    "invalidLink": true,
+    "notDocumented": true,
+    "notExported": true
+  },
+  "treatValidationWarningsAsErrors": true,
+  "sort": ["source-order"],
+  "pretty": true,
+  "json": "reference/api.json"
+}

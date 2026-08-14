@@ -30,6 +30,7 @@ export function display(value: unknown): string {
   return String(value);
 }
 
+/** Group changes by repository in stable repository-name order. */
 export function groupByRepo(changes: Change[]): Array<[string, Change[]]> {
   const map = new Map<string, Change[]>();
   for (const change of changes) {

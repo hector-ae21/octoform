@@ -11,6 +11,7 @@ import { planRepo } from '../core/plan.js';
 import { formatChange, groupByRepo } from '../report/format.js';
 import type { Change, Config } from '../config/types.js';
 
+/** Mutable and blocked operations produced by a read-only plan. */
 export interface PlanResult {
   changes: Change[];
   blocked: Change[];

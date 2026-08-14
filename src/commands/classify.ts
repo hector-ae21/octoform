@@ -10,6 +10,7 @@ import {
 } from '../github/client.js';
 import type { Config } from '../config/types.js';
 
+/** Mutation control for {@link classify}. */
 export interface ClassifyOptions {
   /** Write the proposals to the custom property. Organisations only. */
   apply?: boolean;

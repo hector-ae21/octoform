@@ -28,6 +28,7 @@ npm install
 npm run build      # compiles src/ to dist/
 npm test           # compiles src/ + test/ separately, then runs them
 npm run typecheck  # type-checks without emitting
+npm run api-docs   # refreshes the machine-readable public API reference
 ```
 
 Node 20 or newer.
@@ -76,6 +77,11 @@ and references to private planning material are rejected automatically. The
 allowlist for compiler, linter, and instrumentation comment directives is
 currently empty. A shebang is executable syntax rather than a comment and is
 the only non-TSDoc marker present in shipped code.
+
+The supported programmatic surface is exported from `src/index.ts`. TypeDoc
+validates that every exported declaration is documented and generates
+`reference/api.json`; do not edit that artifact by hand. `npm test` regenerates
+it in a temporary directory and fails when the committed copy is stale.
 
 ## Making a change
 

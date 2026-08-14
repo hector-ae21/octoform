@@ -5,6 +5,7 @@ import { plan } from './plan.js';
 import { formatChange, groupByRepo } from '../report/format.js';
 import type { Config } from '../config/types.js';
 
+/** Repository selection and confirmation controls for {@link apply}. */
 export interface ApplyOptions {
   repo?: string;
   type?: string;

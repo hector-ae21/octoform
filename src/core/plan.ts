@@ -21,6 +21,7 @@ const NOT_IMPLEMENTED: Record<string, string> = {
   'features.discussions': 'not applicable over the REST API',
 };
 
+/** Capability evidence required to plan one repository safely. */
 export interface PlanOptions {
   /** False when the plan does not enforce rulesets on private repositories. */
   rulesetsEnforcedOnPrivate: boolean;

@@ -10,8 +10,10 @@ import type {
   RepoStructure,
 } from '../config/types.js';
 
+/** Authentication or token-scope error that can be corrected by the operator. */
 export class AuthError extends Error {}
 
+/** Observable owner limits used to explain audit and planning behavior. */
 export interface PlanLimits {
   ownerKind: OwnerKind;
   /** Account plan name as GitHub reports it, when visible. Organisations only. */
@@ -24,6 +26,7 @@ export interface PlanLimits {
   orgRulesets: boolean;
 }
 
+/** Create an authenticated GitHub client from `GITHUB_TOKEN` or `GH_TOKEN`. */
 export function createClient(): Octokit {
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
   if (!token) {
@@ -93,6 +96,7 @@ async function authenticatedLogin(octokit: Octokit): Promise<string | undefined>
   }
 }
 
+/** List repositories owned by an organization or personal account. */
 export async function listRepos(
   octokit: Octokit,
   owner: string,
