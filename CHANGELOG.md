@@ -11,6 +11,11 @@ a zero major means. Security fixes are always a patch bump. See
 
 ### Documentation
 
+- Replaced the application README with a complete product overview and safe
+  packed-package quick start linked to the versioned documentation site.
+- Moved the maintained configuration, command, architecture, security, and
+  example documentation to the dedicated `octoform-docs` repository so public
+  guidance is published and versioned through one canonical source.
 - Added an audited `v0.3.1` behavior baseline covering the published artifact,
   CLI and exit behavior, configuration surface, desired-state coverage, REST
   operations, authentication boundaries, and confirmed documentation gaps.
@@ -45,9 +50,9 @@ a zero major means. Security fixes are always a patch bump. See
   to a *user* id, so it has no way to compare against — or safely write over
   — a team's protection. Reading that case as "no reviewers" would have made
   a normal-looking change quietly replace the team the moment `apply` ran.
-- [`docs/domain-model.md`](docs/domain-model.md): a diagram of the actual
-  types behind `plan()` — what's declared, what's observed, and the `Change`
-  produced by comparing them.
+- A [domain-model diagram](https://hector-ae21.github.io/octoform-docs/0.3.1/architecture/software/domain-model/)
+  of the actual types behind `plan()` — what's declared, what's observed, and
+  the `Change` produced by comparing them.
 
 ### Changed
 
@@ -87,16 +92,15 @@ version carrying any of the changes here.
   stores the type and records the declared values. Its allowed values are the
   keys of `types`, so there is no second list to fall out of step. It writes
   only what differs, which is what makes a second run a no-op.
-- A scheduled, audit-only workflow, with `examples/self-audit/` as the
+- A scheduled, audit-only workflow, with `.github/octoform-audit.yml` as the
   configuration it runs. It never calls `apply`: a scheduled job that mutates
   repositories turns one bad commit into a fleet-wide change nobody watched.
 - The version branch scheme (`vMAJOR.x`) this project prescribes now applies
   to this project. `v0.x` is the default branch, and `SECURITY.md` states the
   whole policy explicitly rather than deferring it to 1.0.
-- `docs/`: a full reference for every configuration key and every command,
-  alongside the concepts the rest depends on. In the repository rather than in
-  a wiki on purpose — a wiki is a separate git repository that no pull request
-  touches, so it starts lying the moment somebody adds an option.
+- A full reference for every configuration key and command, alongside the
+  concepts the rest depends on. This historical documentation is preserved in
+  the immutable [Octoform 0.3.1 documentation](https://hector-ae21.github.io/octoform-docs/0.3.1/).
 
 ### Fixed
 

@@ -46,7 +46,7 @@ type SurfaceConfig = {
 };
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const register = readJson<Register>('docs/reference/github-api-surface.json');
+const register = readJson<Register>('reference/github-api-surface.json');
 const config = readJson<SurfaceConfig>('reference/github-api-surface.config.json');
 const dispositions = new Set([
   'observational',

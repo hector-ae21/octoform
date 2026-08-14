@@ -34,9 +34,12 @@ Node 20 or newer.
 
 ## Running the CLI locally
 
+Create a local `octoform.yml` for an owner you control. Do not commit tokens,
+private repository names, or account-specific policy data.
+
 ```bash
 export GITHUB_TOKEN=...
-npm run octoform -- audit --config example.yml
+npm run octoform -- audit --config octoform.yml
 ```
 
 (`npm run octoform --` forwards arguments to `node bin/octoform.js`, which
@@ -54,7 +57,7 @@ src/
   cli.ts      argument parsing and dispatch
   index.ts    the programmatic entry point
 test/         mirrors src/, one level up — see below
-examples/     valid configurations for specific scenarios, owner names redacted
+reference/    generated and reviewed machine-readable project artifacts
 ```
 
 Tests live in `test/`, not next to the source files. `src/` is what gets
@@ -70,13 +73,11 @@ published; test files have no business shipping inside it.
 3. Add or update tests. `core/` and `config/` are pure functions with no
    network calls — most new behaviour belongs there and should be tested
    there, not by hitting the real API.
-4. If your example claims a configuration works, run it — against your own
-   account or organisation while you write it — before committing it; a
-   plausible-looking YAML snippet that was never actually executed does not
-   belong under `examples/`. Once it works, replace `owner` and any
-   repository names with a placeholder (`org-name`, `your-username`,
-   `library-a`, ...) before committing: this project does not publish
-   worked examples against real, specific third-party GitHub accounts.
+4. Changes to customer-facing documentation and validated examples belong in
+   [octoform-docs](https://github.com/hector-ae21/octoform-docs). Run every
+   example against an account you control, then replace owners and repository
+   names with placeholders before proposing it. Changes to behavior must update
+   the application and documentation in coordinated pull requests.
 5. Update [CHANGELOG.md](CHANGELOG.md) under `[Unreleased]` if the change is
    visible to a user of the CLI or the library.
 6. Open a pull request against the highest `vMAJOR.x` branch — `v0.x` today,
