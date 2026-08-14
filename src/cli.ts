@@ -1,25 +1,53 @@
-import { ConfigError, loadConfig } from './config/resolve.js';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { resolve as resolvePath } from 'node:path';
+import { confirm } from './cli-prompt.js';
+import { ConfigError, loadConfigWithSources } from './config/resolve.js';
 import { describeNotApplicable, notApplicable } from './config/applicability.js';
 import { narrowToQualifiedRepo, parseRepoSelector, selectOwners } from './config/selectors.js';
 import { validateConfig, migrateConfig } from './commands/config.js';
 import {
+  buildPlanArtifact,
+  readPlanArtifact,
+  verifyPlanArtifact,
+} from './config/plan-artifact.js';
+import {
   AuthError,
   createClient,
   detectOwnerKind,
+  discoverOwner,
   listRepos,
   rateLimitWarning,
   requireScopes,
 } from './github/client.js';
+import { applyRepoChanges } from './github/apply.js';
 import { audit } from './commands/audit.js';
-import { plan } from './commands/plan.js';
+import { plan, summarizePlan } from './commands/plan.js';
 import { apply } from './commands/apply.js';
 import { classify } from './commands/classify.js';
 import { propertiesSync } from './commands/properties.js';
+import { formatChange, groupByRepo } from './report/format.js';
 import { renderUsage } from './cli-contract.js';
-import type { OwnerScope, RepoSelector, ResolvedConfig } from './types/index.js';
+import type {
+  AppliedChange,
+  OwnerScope,
+  PlanResult,
+  RepoSelector,
+  ResolvedConfig,
+} from './types/index.js';
 import type { Octokit } from '@octokit/rest';
 
 const USAGE = renderUsage();
+
+/**
+ * The running package's own version, read from `package.json` relative to
+ * this compiled file rather than imported, so it resolves correctly whether
+ * this is a local build or an installed npm package — both keep `package.json`
+ * one directory above `dist/`.
+ */
+function packageVersion(): string {
+  const raw = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
+  return (JSON.parse(raw) as { version: string }).version;
+}
 
 interface Args {
   command?: string;
@@ -33,6 +61,11 @@ interface Args {
   apply: boolean;
   strict: boolean;
   write: boolean;
+  failFast: boolean;
+  concurrency?: number;
+  out?: string;
+  planFile?: string;
+  expiresIn?: number;
 }
 
 export function parseArgs(argv: string[]): Args {
@@ -44,6 +77,7 @@ export function parseArgs(argv: string[]): Args {
     apply: false,
     strict: false,
     write: false,
+    failFast: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -60,15 +94,41 @@ export function parseArgs(argv: string[]): Args {
       args.strict = true;
     } else if (arg === '--write') {
       args.write = true;
+    } else if (arg === '--fail-fast') {
+      args.failFast = true;
     } else if (arg === '--owner') {
       const value = argv[++i];
       if (!value) throw new ConfigError(`${arg} needs a value`);
       args.owners.push(value);
-    } else if (arg === '--config' || arg === '--repo' || arg === '--type') {
+    } else if (arg === '--concurrency') {
+      const value = argv[++i];
+      if (!value) throw new ConfigError(`${arg} needs a value`);
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed < 1) {
+        throw new ConfigError(`--concurrency must be a positive integer, got "${value}"`);
+      }
+      args.concurrency = parsed;
+    } else if (arg === '--expires-in') {
+      const value = argv[++i];
+      if (!value) throw new ConfigError(`${arg} needs a value`);
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed < 1) {
+        throw new ConfigError(`--expires-in must be a positive integer number of minutes, got "${value}"`);
+      }
+      args.expiresIn = parsed;
+    } else if (
+      arg === '--config' ||
+      arg === '--repo' ||
+      arg === '--type' ||
+      arg === '--out' ||
+      arg === '--plan'
+    ) {
       const value = argv[++i];
       if (!value) throw new ConfigError(`${arg} needs a value`);
       if (arg === '--config') args.config = value;
       else if (arg === '--repo') args.repo = value;
+      else if (arg === '--out') args.out = value;
+      else if (arg === '--plan') args.planFile = value;
       else args.type = value;
     } else if (arg.startsWith('-')) {
       throw new ConfigError(`Unknown option: ${arg}`);
@@ -103,13 +163,17 @@ export async function main(argv: string[]): Promise<number> {
     return runConfigCommand(args);
   }
 
+  if (args.command === 'apply' && args.planFile) {
+    return await runApplyPlanCommand(args.planFile, args.yes);
+  }
+
   try {
-    const config = loadConfig(args.config);
+    const { config, sourceDigests } = loadConfigWithSources(args.config);
     const octokit = createClient();
     const selection = await resolveSelection(octokit, config, args);
     printScopeSummary(config, selection, args);
-    const each = async (run: (scope: OwnerScope) => Promise<number>): Promise<number> =>
-      await forEachOwner(octokit, selection, args.strict, run);
+    const each = async (run: (scope: OwnerScope) => Promise<CommandOutcome>): Promise<number> =>
+      await forEachOwner(octokit, selection, args.strict, args.failFast, run);
     const enter = async (scopes: string[]): Promise<void> => {
       const note = rateLimitWarning(await requireScopes(octokit, scopes));
       if (note) console.error(`Note: ${note}.`);
@@ -120,25 +184,61 @@ export async function main(argv: string[]): Promise<number> {
         await enter(['repo']);
         return await each(async (scope) => {
           await audit(octokit, scope);
-          return 0;
+          return { status: 0 };
         });
       }
       case 'plan': {
         await enter(['repo']);
-        return await each(async (scope) => {
-          await plan(octokit, scope, { repo: selection.repoName, type: args.type });
-          return 0;
+        const planResults = new Map<string, PlanResult>();
+        const ownerIds = new Map<string, number>();
+        const status = await each(async (scope) => {
+          const result = await plan(octokit, scope, {
+            repo: selection.repoName,
+            type: args.type,
+            concurrency: args.concurrency,
+          });
+          if (args.out) {
+            planResults.set(scope.owner, result);
+            ownerIds.set(scope.owner, (await discoverOwner(octokit, scope.owner)).id);
+          }
+          return { status: 0, summary: toRecord(summarizePlan(result)) };
         });
+        if (args.out) {
+          const artifact = await buildPlanArtifact(
+            octokit,
+            args.config,
+            sourceDigests,
+            selection.owners,
+            planResults,
+            ownerIds,
+            packageVersion(),
+            args.expiresIn,
+          );
+          writeFileSync(resolvePath(args.out), `${JSON.stringify(artifact, null, 2)}\n`, {
+            encoding: 'utf8',
+            mode: 0o600,
+          });
+          console.log(`\nSaved plan to ${args.out} (expires ${artifact.expiresAt}).`);
+        }
+        return status;
       }
       case 'apply': {
         await enter(['repo']);
-        return await each((scope) =>
-          apply(octokit, scope, { repo: selection.repoName, type: args.type, yes: args.yes }),
-        );
+        return await each(async (scope) => {
+          const result = await apply(octokit, scope, {
+            repo: selection.repoName,
+            type: args.type,
+            yes: args.yes,
+            concurrency: args.concurrency,
+          });
+          return { status: result.status, summary: toRecord(result.summary) };
+        });
       }
       case 'classify': {
         await enter(args.apply ? ['repo', 'admin:org'] : ['repo']);
-        return await each((scope) => classify(octokit, scope, { apply: args.apply }));
+        return await each(async (scope) => ({
+          status: await classify(octokit, scope, { apply: args.apply }),
+        }));
       }
       case 'properties': {
         if (args.subcommand !== 'sync') {
@@ -151,7 +251,7 @@ export async function main(argv: string[]): Promise<number> {
           return 2;
         }
         await enter(['repo', 'admin:org']);
-        return await each((scope) => propertiesSync(octokit, scope));
+        return await each(async (scope) => ({ status: await propertiesSync(octokit, scope) }));
       }
       default:
         console.error(`Unknown command: ${args.command}\n`);
@@ -166,6 +266,74 @@ export async function main(argv: string[]): Promise<number> {
     const status = (error as { status?: number }).status;
     if (status) {
       console.error(`GitHub API error ${status}: ${(error as Error).message}`);
+      return 1;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Apply exactly a saved plan: no re-planning, no owner selection beyond what
+ * the file itself recorded. Every check in {@link verifyPlanArtifact} must
+ * pass before anything is touched, and a failed check names which one.
+ */
+async function runApplyPlanCommand(planFile: string, skipConfirm: boolean): Promise<number> {
+  try {
+    const artifact = readPlanArtifact(planFile);
+    const octokit = createClient();
+
+    const verification = await verifyPlanArtifact(octokit, artifact);
+    if (!verification.valid) {
+      console.error(`Refusing to apply ${planFile}: ${verification.detail} (${verification.reason}).`);
+      return 1;
+    }
+
+    const changeCount = artifact.owners.reduce((sum, owner) => sum + owner.changes.length, 0);
+    if (changeCount === 0) {
+      console.log('Nothing to apply. The saved plan has no unblocked changes.');
+      return 0;
+    }
+
+    console.log(`${changeCount} change(s) to apply from ${planFile}:\n`);
+    for (const owner of artifact.owners) {
+      if (owner.changes.length === 0) continue;
+      console.log(`=== ${owner.login} ===`);
+      for (const [repoName, group] of groupByRepo(owner.changes)) {
+        console.log(`  ${repoName}`);
+        for (const change of group) console.log(`    ${formatChange(change)}`);
+      }
+      console.log('');
+    }
+
+    if (!skipConfirm && !(await confirm(`Apply ${changeCount} change(s)?`))) {
+      console.log('Aborted. Nothing was changed.');
+      return 1;
+    }
+
+    console.log('');
+    let failures = 0;
+    let applied = 0;
+    for (const owner of artifact.owners) {
+      for (const [repoName, group] of groupByRepo(owner.changes)) {
+        const results: AppliedChange[] = await applyRepoChanges(octokit, owner.login, repoName, group);
+        for (const result of results) {
+          if (result.outcome === 'applied') applied++;
+          else failures++;
+          const outcome = result.outcome === 'applied' ? 'done' : `FAILED — ${result.error}`;
+          console.log(`  ${owner.login}/${repoName}  ${result.key}: ${outcome}`);
+        }
+      }
+    }
+
+    console.log('');
+    console.log(
+      failures === 0 ? 'All changes applied.' : `${failures} change(s) failed — see above.`,
+    );
+    console.log(`Total — applied: ${applied}, failed: ${failures}`);
+    return failures === 0 ? 0 : 1;
+  } catch (error) {
+    if (error instanceof ConfigError || error instanceof AuthError) {
+      console.error(error.message);
       return 1;
     }
     throw error;
@@ -197,6 +365,17 @@ function runConfigCommand(args: Args): number {
 interface Selection {
   owners: OwnerScope[];
   repoName?: string;
+}
+
+/** What one owner's run of a command reported, for isolation and the cross-owner summary. */
+interface CommandOutcome {
+  status: number;
+  /** Present for plan and apply, whose results reduce to stable named counts. */
+  summary?: Record<string, number>;
+}
+
+function toRecord(value: object): Record<string, number> {
+  return Object.fromEntries(Object.entries(value)) as Record<string, number>;
 }
 
 /**
@@ -293,15 +472,20 @@ function printScopeSummary(config: ResolvedConfig, selection: Selection, args: A
  * configuration named them.
  *
  * Owners are headed only when there is more than one, so a single-owner file
- * still produces the output it always has. The worst exit status wins: a run
- * that succeeded for two accounts and failed for a third did not succeed. An
- * empty selection is reported as such rather than silently doing nothing.
+ * still produces the output it always has. An empty selection is reported as
+ * such rather than silently doing nothing.
+ *
+ * A failure inside one owner never stops another: by default this continues
+ * to the rest of the selection and reports every owner's outcome, isolated
+ * from the others, at the end. `--fail-fast` stops at the first one instead.
+ * Either way, the worst status among the owners actually run wins.
  */
 async function forEachOwner(
   octokit: Octokit,
   selection: Selection,
   strict: boolean,
-  run: (scope: OwnerScope) => Promise<number>,
+  failFast: boolean,
+  run: (scope: OwnerScope) => Promise<CommandOutcome>,
 ): Promise<number> {
   if (selection.owners.length === 0) {
     console.error('No owner matches the current selection. Nothing was done.');
@@ -311,6 +495,8 @@ async function forEachOwner(
   const notes = await preflight(octokit, selection.owners, strict);
   const heading = selection.owners.length > 1;
   let status = 0;
+  const totals: Record<string, number> = {};
+  let ownerFailures = 0;
 
   for (const [index, scope] of selection.owners.entries()) {
     if (heading) {
@@ -319,10 +505,35 @@ async function forEachOwner(
     }
     for (const note of notes.get(scope.owner) ?? []) console.log(`Note: ${note}`);
     if (notes.get(scope.owner)?.length) console.log('');
-    status = Math.max(status, await run(scope));
+
+    try {
+      const outcome = await run(scope);
+      status = Math.max(status, outcome.status);
+      if (outcome.summary) mergeInto(totals, outcome.summary);
+    } catch (error) {
+      ownerFailures++;
+      status = Math.max(status, 1);
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`  ${scope.owner}: FAILED — ${message}`);
+      if (failFast) break;
+    }
   }
 
+  if (heading) printTotals(totals, ownerFailures);
   return status;
+}
+
+function mergeInto(totals: Record<string, number>, summary: Record<string, number>): void {
+  for (const [key, value] of Object.entries(summary)) {
+    totals[key] = (totals[key] ?? 0) + value;
+  }
+}
+
+function printTotals(totals: Record<string, number>, ownerFailures: number): void {
+  const parts = Object.entries(totals).map(([key, value]) => `${key}: ${value}`);
+  if (ownerFailures > 0) parts.push(`owners unreachable: ${ownerFailures}`);
+  if (parts.length === 0) return;
+  console.log(`\nTotal — ${parts.join(', ')}`);
 }
 
 /**
@@ -334,6 +545,11 @@ async function forEachOwner(
  * run that changed two accounts and then refused the third would be the worst
  * of both answers. Only the owners actually selected are checked: an
  * unselected owner's declarations are none of this run's business.
+ *
+ * An owner whose kind cannot even be discovered here is left out of `notes`
+ * rather than aborting the whole preflight: the main loop calls the same
+ * discovery again for that owner and reports the failure there, isolated from
+ * the rest of the selection exactly like any other per-owner failure.
  */
 async function preflight(
   octokit: Octokit,
@@ -344,8 +560,15 @@ async function preflight(
   const rejected: string[] = [];
 
   for (const scope of owners) {
-    const kind = await detectOwnerKind(octokit, scope.owner);
-    const lines = notApplicable(scope, kind).map((finding) => describeNotApplicable(finding, kind));
+    let kind;
+    try {
+      kind = await detectOwnerKind(octokit, scope.owner);
+    } catch {
+      continue;
+    }
+    const lines = notApplicable(scope, kind).map((finding) =>
+      describeNotApplicable(finding, kind),
+    );
     if (lines.length === 0) continue;
     if (strict) rejected.push(...lines);
     notes.set(scope.owner, lines);

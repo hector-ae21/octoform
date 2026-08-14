@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve as resolvePath } from 'node:path';
 import { parse } from 'yaml';
 import { CONFIG } from './shape.js';
+import { sourceDigest } from './digest.js';
+import { findCredentialShapedValue } from './credential-scan.js';
 import type {
   AuditConfig,
   ClassifyConfig,
@@ -34,12 +36,30 @@ type OwnerFields = Pick<Config, 'classify' | 'audit' | 'defaults' | 'types' | 'r
  * from earlier releases.
  */
 export function loadConfig(path: string): ResolvedConfig {
-  const draft = resolveFile(resolvePath(path), []);
+  const draft = resolveFile(resolvePath(path), [], new Map());
   return normalize(draft, path);
 }
 
+/**
+ * Load a configuration the same way {@link loadConfig} does, and also return
+ * a digest of every file that contributed to it — the root file and every
+ * import, recursively, keyed by absolute path.
+ *
+ * Exists for the saved-plan artifact, which has to prove later that none of
+ * those files changed since the plan was made. An ordinary load has no use
+ * for this and stays on the cheaper, simpler {@link loadConfig}.
+ */
+export function loadConfigWithSources(path: string): {
+  config: ResolvedConfig;
+  sourceDigests: Record<string, string>;
+} {
+  const sources = new Map<string, string>();
+  const draft = resolveFile(resolvePath(path), [], sources);
+  return { config: normalize(draft, path), sourceDigests: Object.fromEntries(sources) };
+}
+
 /** Read, parse, validate and fold in this file's own imports, most general first. */
-function resolveFile(absolutePath: string, stack: string[]): Config {
+function resolveFile(absolutePath: string, stack: string[], sources: Map<string, string>): Config {
   if (stack.includes(absolutePath)) {
     throw new ConfigError(
       `Circular import:\n  ${[...stack, absolutePath].join('\n  imports -> ')}`,
@@ -53,10 +73,20 @@ function resolveFile(absolutePath: string, stack: string[]): Config {
   } catch {
     throw new ConfigError(`Cannot read configuration file: ${absolutePath}`);
   }
+  sources.set(absolutePath, sourceDigest(raw));
 
   const parsed: unknown = parse(raw);
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new ConfigError(`${absolutePath} is empty or is not a YAML mapping`);
+  }
+
+  const credentialPath = findCredentialShapedValue(parsed);
+  if (credentialPath) {
+    throw new ConfigError(
+      `${absolutePath}: "${credentialPath}" looks like a GitHub token and was rejected. ` +
+        `Configuration files must never contain credential values — pass a token to octoform ` +
+        `directly, or through GITHUB_TOKEN/GH_TOKEN, instead.`,
+    );
   }
 
   validateObject(parsed, CONFIG, absolutePath, '');
@@ -69,7 +99,7 @@ function resolveFile(absolutePath: string, stack: string[]): Config {
   let merged: Config | undefined;
   for (const importPath of imports) {
     const importedAbsolute = resolvePath(dirname(absolutePath), importPath);
-    const imported = resolveFile(importedAbsolute, nextStack);
+    const imported = resolveFile(importedAbsolute, nextStack, sources);
     merged = merged ? mergeConfig(merged, imported) : imported;
   }
 

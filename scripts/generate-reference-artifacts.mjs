@@ -34,6 +34,7 @@ try {
     'configModel',
   );
   const schema = generateConfigurationSchema();
+  const planArtifactSchema = generatePlanArtifactSchema();
   const capabilities = generateCapabilities(capabilityConfig, packageMetadata.version);
   const permissions = generatePermissions(
     capabilityConfig,
@@ -44,6 +45,7 @@ try {
   const configModel = { ...buildConfigModel(), productVersion: packageMetadata.version };
   const generated = new Map([
     ['config.schema.json', json(schema)],
+    ['plan-artifact.schema.json', json(planArtifactSchema)],
     ['config-model.json', json(configModel)],
     ['cli.json', json(cli)],
     ['capabilities.json', json(capabilities)],
@@ -91,6 +93,23 @@ function generateConfigurationSchema() {
   }).createSchema('Config');
   return {
     $id: 'https://hector-ae21.github.io/octoform-docs/0.3/assets/config.schema.json',
+    ...generated,
+  };
+}
+
+function generatePlanArtifactSchema() {
+  const generated = createGenerator({
+    path: resolve(root, 'src/types/plan-artifact.ts'),
+    tsconfig: resolve(root, 'tsconfig.json'),
+    type: 'PlanArtifact',
+    expose: 'export',
+    jsDoc: 'extended',
+    skipTypeCheck: false,
+    additionalProperties: false,
+    sortProps: true,
+  }).createSchema('PlanArtifact');
+  return {
+    $id: 'https://hector-ae21.github.io/octoform-docs/0.4/assets/plan-artifact.schema.json',
     ...generated,
   };
 }
@@ -237,6 +256,7 @@ async function generateChecksums(generated) {
     'config.schema.json',
     'github-api-surface.json',
     'permissions.json',
+    'plan-artifact.schema.json',
   ];
   const lines = [];
   for (const name of releaseAssets.sort()) {

@@ -13,6 +13,7 @@ import type {
   RepoDetail,
   RepoState,
   RepoStructure,
+  TokenProvider,
 } from '../types/index.js';
 
 export type {
@@ -29,16 +30,24 @@ export const REST_API_VERSION = '2022-11-28';
 export class AuthError extends Error {}
 
 /** Create an authenticated GitHub client from `GITHUB_TOKEN` or `GH_TOKEN`. */
-export function createClient(): Octokit {
-  const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
-  if (!token) {
+/**
+ * Resolves in order: a token or {@link TokenProvider} passed explicitly,
+ * `GITHUB_TOKEN`, then `GH_TOKEN`. Nothing else is searched — not shell
+ * history, not a git credential store, not an unrelated environment
+ * variable — so where the token came from is always one of these three
+ * places, never a guess.
+ */
+export function createClient(token?: string | TokenProvider): Octokit {
+  const supplied = typeof token === 'function' ? token() : token;
+  const resolved = supplied ?? process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
+  if (!resolved) {
     throw new AuthError(
-      'No token found. Set GITHUB_TOKEN or GH_TOKEN to a token with "repo" and, ' +
-        'for organisation custom properties and rulesets, "admin:org".',
+      'No token found. Pass one explicitly, or set GITHUB_TOKEN or GH_TOKEN, to a token with ' +
+        '"repo" and, for organisation custom properties and rulesets, "admin:org".',
     );
   }
   return new Octokit({
-    auth: token,
+    auth: resolved,
     userAgent: 'octoform',
     log: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} },
     request: { headers: { 'x-github-api-version': REST_API_VERSION } },
@@ -164,7 +173,7 @@ async function requestOwnerDiscovery(octokit: Octokit, owner: string): Promise<O
  * private repositories, via /user/repos) apart from "look at someone else's
  * public profile" (which never can, no matter whose token is used).
  */
-async function authenticatedLogin(octokit: Octokit): Promise<string | undefined> {
+export async function authenticatedLogin(octokit: Octokit): Promise<string | undefined> {
   try {
     const { data } = await octokit.users.getAuthenticated();
     return data.login;

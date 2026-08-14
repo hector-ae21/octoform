@@ -93,11 +93,48 @@ export interface RepoDetail extends RepoState {
   structure?: RepoStructure;
 }
 
+/**
+ * What kind of operation a change represents against GitHub's own model.
+ * `attach`/`detach`/`delete` have no producer yet — nothing octoform manages
+ * today removes or unlinks a resource — but the type states them so a future
+ * resource family does not have to widen a type every consumer already reads.
+ */
+export type OperationKind = 'create' | 'update' | 'attach' | 'detach' | 'delete';
+
+/**
+ * How much scrutiny a change deserves before it is applied, matching the
+ * confirmation levels in the security model: normal metadata, a setting that
+ * affects access or merge safety, an irreversible removal, or one with a
+ * billing consequence. Nothing octoform manages today is `destructive` or
+ * `cost` — those arrive with resource families that can actually produce them.
+ */
+export type Risk = 'normal' | 'sensitive' | 'destructive' | 'cost';
+
 /** One difference between what is declared and what the repository has. */
 export interface Change {
+  /**
+   * Stable across two runs that plan the same change, so a result can be
+   * correlated with the operation that produced it across output formats and
+   * across the gap between `plan` and a later `apply`. Never used as API
+   * identity — it addresses a change in octoform's own model, not a GitHub
+   * object.
+   */
+  id: string;
+  /** The GitHub login this change belongs to. */
+  owner: string;
   repo: string;
   /** Dotted path of the setting, e.g. "merge.delete_branch_on_merge". */
   key: string;
+  operation: OperationKind;
+  risk: Risk;
+  /**
+   * Other operations' {@link Change.id} values this one cannot be applied
+   * before. Empty today: within one repository's settings nothing octoform
+   * plans depends on anything else it plans. Real prerequisites arrive with
+   * the cross-resource dependency graph, once a second resource family gives
+   * them something to point at.
+   */
+  prerequisites: string[];
   from: unknown;
   to: unknown;
   /** Set when the change cannot be applied; explains why, in plain words. */

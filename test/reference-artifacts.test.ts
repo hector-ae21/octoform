@@ -54,6 +54,7 @@ const releaseReferenceNames = [
   'config.schema.json',
   'github-api-surface.json',
   'permissions.json',
+  'plan-artifact.schema.json',
 ] as const;
 
 test('the CLI manifest is the exact runtime help contract', () => {

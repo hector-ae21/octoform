@@ -54,6 +54,33 @@ a zero major means. Security fixes are always a patch bump. See
   enough to threaten the rest of the run.
 - `detectLimits` is now cached per owner for the life of the client, the same
   way owner discovery already was.
+- Every planned change now carries a stable `id`, `owner`, `operation`
+  (`create`/`update`/`attach`/`detach`/`delete`), and `risk`
+  (`normal`/`sensitive`/`destructive`/`cost`), so a result can be correlated
+  with the operation that produced it across a run and across output formats.
+- `--concurrency <n>` bounds how many repositories `plan` and `apply` work on
+  at once per owner (default 4). Two runs against unchanged state now produce
+  operations in the same order regardless of API response timing.
+- A failure in one owner no longer aborts the rest of the selection: by
+  default the run continues to every other owner and reports each outcome
+  isolated from the others; `--fail-fast` stops at the first failure instead.
+  A run against more than one owner prints a total across every owner reached.
+- A repository whose plan cannot even be computed is now reported as a
+  distinct failure rather than silently treated as "no changes."
+- `octoform plan --out <path>` saves a versioned, redacted plan artifact:
+  actor, target owners' numeric identity, a digest of the resolved
+  configuration and of every source file that contributed to it, an
+  observation time, and an expiry (`--expires-in <minutes>`, default 60).
+- `octoform apply --plan <path>` applies exactly that saved plan instead of
+  planning again. It refuses a plan whose schema version, actor, owner
+  identity, configuration digest, source digests, or expiry no longer match,
+  each with its own distinct reason — a stale or altered plan is never
+  silently repaired or re-planned.
+- `createClient` accepts an explicit token or token-provider function, checked
+  before `GITHUB_TOKEN` and `GH_TOKEN`.
+- A configuration value shaped like a GitHub token (`ghp_…`, `github_pat_…`,
+  and other issued-token prefixes) is now rejected at load time, naming the
+  YAML path without echoing the value.
 
 ### Changed
 

@@ -4,13 +4,45 @@ import type {
   Change,
   EnvironmentPolicy,
   ExistingRuleset,
+  OperationKind,
   PlanOptions,
   PolicySet,
   RepoDetail,
+  Risk,
   RulesetPolicy,
 } from '../types/index.js';
 
 export type { PlanOptions } from '../types/index.js';
+
+/**
+ * A change before it carries the identity and classification only `planRepo`
+ * can compute, because those need the owner and the complete picture of what
+ * every other planned change for this repository looks like.
+ */
+type ChangeDraft = Omit<Change, 'id' | 'owner' | 'operation' | 'risk' | 'prerequisites'>;
+
+/**
+ * Risk by key prefix, matching the confirmation levels in the security model.
+ * A prefix not listed here is `normal` — the common case for plain metadata.
+ */
+const RISK_BY_PREFIX: ReadonlyArray<readonly [string, Risk]> = [
+  ['default_branch.', 'sensitive'],
+  ['rulesets.', 'sensitive'],
+  ['environments.', 'sensitive'],
+];
+
+function riskFor(key: string): Risk {
+  return RISK_BY_PREFIX.find(([prefix]) => key.startsWith(prefix))?.[1] ?? 'normal';
+}
+
+/**
+ * `create` when nothing existed to compare against, `update` otherwise. Every
+ * change this planner produces today is one or the other; `attach`, `detach`
+ * and `delete` have no producer yet.
+ */
+function operationFor(draft: ChangeDraft): OperationKind {
+  return draft.from === null ? 'create' : 'update';
+}
 
 /** Policy groups whose keys map one-to-one onto a repository setting. */
 const SCALAR_GROUPS = ['features', 'merge', 'security', 'repo'] as const;
@@ -30,26 +62,38 @@ const NOT_IMPLEMENTED: Record<string, string> = {
  * Only settings the policy actually manages are considered: an absent or
  * cancelled value is not a difference, it is an instruction to look away.
  */
-export function planRepo(repo: RepoDetail, policy: PolicySet, options: PlanOptions): Change[] {
-  const changes: Change[] = [];
+export function planRepo(
+  owner: string,
+  repo: RepoDetail,
+  policy: PolicySet,
+  options: PlanOptions,
+): Change[] {
+  const drafts: ChangeDraft[] = [];
 
-  if (policy.manage === false) return changes;
+  if (policy.manage === false) return [];
 
   if (repo.archived) {
-    return changes;
+    return [];
   }
 
-  planScalars(repo, policy, changes);
-  planDefaultBranch(repo, policy, changes);
-  planEnsureBranches(repo, policy, changes);
-  planRulesets(repo, policy, options, changes);
-  planEnvironments(repo, policy, changes);
-  planFiles(repo, policy, changes);
+  planScalars(repo, policy, drafts);
+  planDefaultBranch(repo, policy, drafts);
+  planEnsureBranches(repo, policy, drafts);
+  planRulesets(repo, policy, options, drafts);
+  planEnvironments(repo, policy, drafts);
+  planFiles(repo, policy, drafts);
 
-  return changes;
+  return drafts.map((draft) => ({
+    ...draft,
+    id: `${owner}/${draft.repo}#${draft.key}`,
+    owner,
+    operation: operationFor(draft),
+    risk: riskFor(draft.key),
+    prerequisites: [],
+  }));
 }
 
-function planScalars(repo: RepoDetail, policy: PolicySet, changes: Change[]): void {
+function planScalars(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]): void {
   for (const group of SCALAR_GROUPS) {
     const declared = policy[group] as Record<string, unknown> | undefined;
     if (!declared) continue;
@@ -108,7 +152,7 @@ function planScalars(repo: RepoDetail, policy: PolicySet, changes: Change[]): vo
  * any workflow naming the old branch is attached to the change as a warning,
  * because after the rename those workflows quietly stop triggering.
  */
-function planDefaultBranch(repo: RepoDetail, policy: PolicySet, changes: Change[]): void {
+function planDefaultBranch(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]): void {
   const wanted = policy.default_branch?.name;
   if (!isManaged(wanted)) return;
 
@@ -160,7 +204,7 @@ function planDefaultBranch(repo: RepoDetail, policy: PolicySet, changes: Change[
  * never touches a branch's contents. A branch that already exists is left
  * exactly as it is, whatever it points at.
  */
-function planEnsureBranches(repo: RepoDetail, policy: PolicySet, changes: Change[]): void {
+function planEnsureBranches(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]): void {
   const wanted = policy.ensure_branches;
   if (!wanted?.length) return;
 
@@ -193,7 +237,7 @@ function planRulesets(
   repo: RepoDetail,
   policy: PolicySet,
   options: PlanOptions,
-  changes: Change[],
+  changes: ChangeDraft[],
 ): void {
   if (!policy.rulesets?.length) return;
 
@@ -259,7 +303,7 @@ function planRulesets(
  * reported as blocked instead of being read as "no reviewers" — which would
  * make a normal-looking change quietly replace the team's protection.
  */
-function planEnvironments(repo: RepoDetail, policy: PolicySet, changes: Change[]): void {
+function planEnvironments(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]): void {
   if (!policy.environments?.length) return;
 
   const existing = repo.structure?.environments;
@@ -318,7 +362,7 @@ function planEnvironments(repo: RepoDetail, policy: PolicySet, changes: Change[]
  * absent is safe, while overwriting whatever a repository already has at that
  * path is the fastest way to destroy work nobody asked this tool to touch.
  */
-function planFiles(repo: RepoDetail, policy: PolicySet, changes: Change[]): void {
+function planFiles(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]): void {
   if (!policy.files?.length) return;
 
   const existing = repo.structure?.files;

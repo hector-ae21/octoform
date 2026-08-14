@@ -1,11 +1,18 @@
-import { createInterface } from 'node:readline/promises';
 import type { Octokit } from '@octokit/rest';
+import { confirm } from '../cli-prompt.js';
 import { applyRepoChanges } from '../github/apply.js';
 import { plan } from './plan.js';
+import { DEFAULT_CONCURRENCY, mapWithConcurrency } from '../core/concurrency.js';
 import { formatChange, groupByRepo } from '../report/format.js';
-import type { ApplyOptions, OwnerScope } from '../types/index.js';
+import type {
+  AppliedChange,
+  ApplyOptions,
+  ApplyRunResult,
+  ApplySummary,
+  OwnerScope,
+} from '../types/index.js';
 
-export type { ApplyOptions } from '../types/index.js';
+export type { ApplyOptions, ApplyRunResult } from '../types/index.js';
 
 /**
  * Compute the same diff `plan` would, show it, ask before doing anything, and
@@ -18,7 +25,7 @@ export async function apply(
   octokit: Octokit,
   scope: OwnerScope,
   options: ApplyOptions = {},
-): Promise<number> {
+): Promise<ApplyRunResult> {
   const { changes, blocked } = await plan(
     octokit,
     scope,
@@ -32,7 +39,7 @@ export async function apply(
         ? `Nothing to apply. ${blocked.length} change(s) are blocked — run 'octoform plan' to see why.`
         : 'Nothing to apply. Every matching repository already matches the configuration.',
     );
-    return 0;
+    return { status: 0, summary: { applied: 0, failed: 0, blocked: blocked.length } };
   }
 
   console.log(`${changes.length} change(s) to apply:\n`);
@@ -49,13 +56,32 @@ export async function apply(
 
   if (!options.yes && !(await confirm(`Apply ${changes.length} change(s)?`))) {
     console.log('Aborted. Nothing was changed.');
-    return 1;
+    return { status: 1, summary: { applied: 0, failed: 0, blocked: blocked.length } };
   }
 
   console.log('');
+  const grouped = groupByRepo(changes);
+  const perRepo = await mapWithConcurrency(
+    grouped,
+    options.concurrency ?? DEFAULT_CONCURRENCY,
+    async ([repoName, group]) => {
+      try {
+        return await applyRepoChanges(octokit, scope.owner, repoName, group);
+      } catch (error) {
+        return group.map(
+          (change): AppliedChange => ({
+            ...change,
+            outcome: 'failed',
+            error: (error as Error).message ?? String(error),
+          }),
+        );
+      }
+    },
+  );
+
   let failures = 0;
-  for (const [repoName, group] of groupByRepo(changes)) {
-    const results = await applyRepoChanges(octokit, scope.owner, repoName, group);
+  for (const [index, results] of perRepo.entries()) {
+    const repoName = grouped[index]?.[0] ?? '';
     for (const result of results) {
       if (result.outcome === 'failed') failures++;
       const outcome = result.outcome === 'applied' ? 'done' : `FAILED — ${result.error}`;
@@ -67,15 +93,16 @@ export async function apply(
   console.log(
     failures === 0 ? 'All changes applied.' : `${failures} change(s) failed — see above.`,
   );
-  return failures === 0 ? 0 : 1;
+  const allResults = perRepo.flat();
+  return {
+    status: failures === 0 ? 0 : 1,
+    summary: summarizeApply(allResults, blocked.length),
+  };
 }
 
-async function confirm(question: string): Promise<boolean> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  try {
-    const answer = await rl.question(`${question} [y/N] `);
-    return answer.trim().toLowerCase() === 'y';
-  } finally {
-    rl.close();
-  }
+/** Reduce an apply run's results to the counts that matter. */
+export function summarizeApply(results: AppliedChange[], blockedCount: number): ApplySummary {
+  const applied = results.filter((r) => r.outcome === 'applied').length;
+  const failed = results.filter((r) => r.outcome === 'failed').length;
+  return { applied, failed, blocked: blockedCount };
 }
