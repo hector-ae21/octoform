@@ -9,11 +9,14 @@ type JsonSchema = {
   $id: string;
   $schema: string;
   $ref: string;
-  definitions: Record<string, {
-    additionalProperties?: boolean;
-    properties?: Record<string, unknown>;
-    required?: string[];
-  }>;
+  definitions: Record<
+    string,
+    {
+      additionalProperties?: boolean;
+      properties?: Record<string, unknown>;
+      required?: string[];
+    }
+  >;
 };
 
 type CapabilityRegister = {
@@ -57,14 +60,18 @@ test('the CLI manifest is the exact runtime help contract', () => {
   assert.deepEqual(contract, CLI_CONTRACT);
 
   const usage = renderUsage();
-  for (const command of CLI_CONTRACT.commands) assert.match(usage, new RegExp(escape(command.usage)));
+  for (const command of CLI_CONTRACT.commands)
+    assert.match(usage, new RegExp(escape(command.usage)));
   for (const option of CLI_CONTRACT.options) assert.match(usage, new RegExp(escape(option.syntax)));
 });
 
 test('the configuration schema exposes the strict Config contract', () => {
   const schema = readJson<JsonSchema>('reference/config.schema.json');
   const config = schema.definitions.Config;
-  assert.equal(schema.$id, 'https://hector-ae21.github.io/octoform-docs/0.3/assets/config.schema.json');
+  assert.equal(
+    schema.$id,
+    'https://hector-ae21.github.io/octoform-docs/0.3/assets/config.schema.json',
+  );
   assert.equal(schema.$schema, 'http://json-schema.org/draft-07/schema#');
   assert.equal(schema.$ref, '#/definitions/Config');
   assert.equal(config?.additionalProperties, false);

@@ -41,7 +41,9 @@ type SurfaceConfig = {
     reviewedOperations: string[];
   };
   graphql: {
-    mutations: Array<Policy & { name: string; deprecated: boolean; deprecationReason: string | null }>;
+    mutations: Array<
+      Policy & { name: string; deprecated: boolean; deprecationReason: string | null }
+    >;
   };
 };
 
@@ -119,7 +121,9 @@ test('the GraphQL mutation snapshot and generated register agree', () => {
 test('all v0.3.1 REST routes remain represented as implemented', () => {
   const implemented = new Set(
     register.operations
-      .filter((operation) => operation.transport === 'rest' && operation.status === 'implemented-v0.3.1')
+      .filter(
+        (operation) => operation.transport === 'rest' && operation.status === 'implemented-v0.3.1',
+      )
       .map((operation) => `${operation.method} ${operation.path}`),
   );
   assert.deepEqual(implemented, new Set(config.rest.currentRoutes));

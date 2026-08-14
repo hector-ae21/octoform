@@ -33,7 +33,10 @@ test('an unmanaged setting is never a change, however different', () => {
   // wiki is true on the repository and simply absent from the policy.
   const policy: PolicySet = { features: { issues: true } };
   const changes = planRepo(repo(), policy, OPTIONS);
-  assert.equal(changes.find((c) => c.key === 'features.wiki'), undefined);
+  assert.equal(
+    changes.find((c) => c.key === 'features.wiki'),
+    undefined,
+  );
 });
 
 test('a cancelled setting is not a change either', () => {
@@ -215,7 +218,9 @@ test('an environment that exists with the same reviewers is not touched', () => 
 
 test('reviewer order does not count as drift, same as topics', () => {
   const policy: PolicySet = { environments: [{ name: 'npm', reviewers: ['alice', 'bob'] }] };
-  const state = repo({ structure: { environments: [{ name: 'npm', reviewers: ['bob', 'alice'] }] } });
+  const state = repo({
+    structure: { environments: [{ name: 'npm', reviewers: ['bob', 'alice'] }] },
+  });
   assert.deepEqual(planRepo(state, policy, OPTIONS), []);
 });
 
@@ -250,7 +255,13 @@ test('an environment guarded by a team is blocked, never read as having no revie
 
 test('a file that is already there is never re-seeded', () => {
   const policy: PolicySet = {
-    files: [{ path: '.github/dependabot.yml', from: '/presets/dependabot.yml', mode: 'create-if-missing' }],
+    files: [
+      {
+        path: '.github/dependabot.yml',
+        from: '/presets/dependabot.yml',
+        mode: 'create-if-missing',
+      },
+    ],
   };
   const state = repo({ structure: { files: { '.github/dependabot.yml': true } } });
   assert.deepEqual(planRepo(state, policy, OPTIONS), []);

@@ -33,11 +33,7 @@ export interface PlanOptions {
  * Only settings the policy actually manages are considered: an absent or
  * cancelled value is not a difference, it is an instruction to look away.
  */
-export function planRepo(
-  repo: RepoDetail,
-  policy: PolicySet,
-  options: PlanOptions,
-): Change[] {
+export function planRepo(repo: RepoDetail, policy: PolicySet, options: PlanOptions): Change[] {
   const changes: Change[] = [];
 
   if (policy.manage === false) return changes;
@@ -69,7 +65,13 @@ function planScalars(repo: RepoDetail, policy: PolicySet, changes: Change[]): vo
 
       const unimplemented = NOT_IMPLEMENTED[key];
       if (unimplemented) {
-        changes.push({ repo: repo.name, key, from: current ?? null, to: wanted, blocked: unimplemented });
+        changes.push({
+          repo: repo.name,
+          key,
+          from: current ?? null,
+          to: wanted,
+          blocked: unimplemented,
+        });
         continue;
       }
 
@@ -205,7 +207,8 @@ function planRulesets(
         key: `rulesets.${ruleset.name}`,
         from: null,
         to: describeRuleset(ruleset),
-        blocked: 'rulesets cannot be managed on this private repository with the current owner plan and token',
+        blocked:
+          'rulesets cannot be managed on this private repository with the current owner plan and token',
       });
     }
     return;
@@ -296,7 +299,8 @@ function planEnvironments(repo: RepoDetail, policy: PolicySet, changes: Change[]
         key,
         from: UNREADABLE,
         to: describeEnvironment(declared),
-        blocked: 'has a team as a required reviewer — octoform only resolves users, and comparing would risk replacing the team',
+        blocked:
+          'has a team as a required reviewer — octoform only resolves users, and comparing would risk replacing the team',
       });
       continue;
     }
@@ -349,7 +353,8 @@ function planFiles(repo: RepoDetail, policy: PolicySet, changes: Change[]): void
 
 function describeRuleset(ruleset: RulesetPolicy | ExistingRuleset): string {
   const parts = [ruleset.target_branches.join(', ')];
-  if (ruleset.required_approvals !== undefined) parts.push(`${ruleset.required_approvals} approval(s)`);
+  if (ruleset.required_approvals !== undefined)
+    parts.push(`${ruleset.required_approvals} approval(s)`);
   if (ruleset.required_checks?.length) parts.push(`checks: ${ruleset.required_checks.join(', ')}`);
   if (ruleset.block_force_push) parts.push('no force-push');
   if (ruleset.block_deletion) parts.push('no deletion');

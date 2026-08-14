@@ -43,7 +43,9 @@ test('an explicitly unprotected branch still proves the capability is available'
 });
 
 test('a forbidden protection endpoint means this owner and token cannot manage private rulesets', async () => {
-  const { octokit } = fakeOctokit(apiError(403, 'Upgrade to GitHub Pro or make this repository public'));
+  const { octokit } = fakeOctokit(
+    apiError(403, 'Upgrade to GitHub Pro or make this repository public'),
+  );
 
   assert.equal(await detectPrivateRulesetCapability(octokit, 'owner', 'repo', 'main'), false);
 });
@@ -65,8 +67,5 @@ test('unexpected API failures are surfaced instead of being guessed at', async (
   const failure = apiError(500, 'Internal Server Error');
   const { octokit } = fakeOctokit(failure);
 
-  await assert.rejects(
-    detectPrivateRulesetCapability(octokit, 'owner', 'repo', 'main'),
-    failure,
-  );
+  await assert.rejects(detectPrivateRulesetCapability(octokit, 'owner', 'repo', 'main'), failure);
 });

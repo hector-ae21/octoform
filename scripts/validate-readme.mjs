@@ -19,31 +19,48 @@ try {
   runNpm(['run', 'build'], root);
   const pack = JSON.parse(runNpm(['pack', '--json', '--pack-destination', workspace], root));
   const packed = pack[0];
-  if (!packed?.filename || !Array.isArray(packed.files)) throw new Error('npm pack returned no artifact');
+  if (!packed?.filename || !Array.isArray(packed.files))
+    throw new Error('npm pack returned no artifact');
 
   const packagedPaths = packed.files.map(({ path }) => path);
-  for (const required of ['README.md', 'LICENSE', 'bin/octoform.js', 'dist/index.js', 'dist/index.d.ts']) {
+  for (const required of [
+    'README.md',
+    'LICENSE',
+    'bin/octoform.js',
+    'dist/index.js',
+    'dist/index.d.ts',
+  ]) {
     if (!packagedPaths.includes(required)) throw new Error(`Packed package is missing ${required}`);
   }
-  const duplicateDocumentation = packagedPaths.filter((path) => (
-    path === 'example.yml' || path.startsWith('docs/') || path.startsWith('examples/')
-  ));
+  const duplicateDocumentation = packagedPaths.filter(
+    (path) => path === 'example.yml' || path.startsWith('docs/') || path.startsWith('examples/'),
+  );
   if (duplicateDocumentation.length > 0) {
-    throw new Error(`Packed package contains migrated documentation: ${duplicateDocumentation.join(', ')}`);
+    throw new Error(
+      `Packed package contains migrated documentation: ${duplicateDocumentation.join(', ')}`,
+    );
   }
 
   const installRoot = resolve(workspace, 'install');
   const tarball = resolve(workspace, packed.filename);
-  runNpm(['install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', installRoot, tarball], root);
+  runNpm(
+    ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', installRoot, tarball],
+    root,
+  );
 
   const packageRoot = resolve(installRoot, 'node_modules/@hector21/octoform');
   const policyPath = resolve(workspace, 'octoform.yml');
   await writeFile(policyPath, configurations[0], 'utf8');
   const { loadConfig } = await import(pathToFileURL(resolve(packageRoot, 'dist/index.js')).href);
   const config = loadConfig(policyPath);
-  if (config.owner !== 'your-account') throw new Error('Packed package did not load the README policy');
+  if (config.owner !== 'your-account')
+    throw new Error('Packed package did not load the README policy');
 
-  const help = run(process.execPath, [resolve(packageRoot, 'bin/octoform.js'), '--help'], packageRoot);
+  const help = run(
+    process.execPath,
+    [resolve(packageRoot, 'bin/octoform.js'), '--help'],
+    packageRoot,
+  );
   for (const command of shellBlocks.flatMap(commands)) {
     const [name, ...args] = command.split(/\s+/u);
     if (name !== 'octoform') throw new Error(`Unexpected executable in quick start: ${name}`);
@@ -52,7 +69,8 @@ try {
       throw new Error(`Packed CLI help does not expose README command: ${command}`);
     }
     for (const flag of args.filter((value) => value.startsWith('--'))) {
-      if (!help.includes(flag)) throw new Error(`Packed CLI help does not expose README flag: ${flag}`);
+      if (!help.includes(flag))
+        throw new Error(`Packed CLI help does not expose README flag: ${flag}`);
     }
   }
 
@@ -70,8 +88,11 @@ function section(document, start, end) {
 
 function fences(document, language) {
   const marker = String.fromCharCode(96).repeat(3);
-  return [...document.matchAll(new RegExp(`${marker}${language}\\r?\\n([\\s\\S]*?)\\r?\\n${marker}`, 'gu'))]
-    .map((match) => match[1]);
+  return [
+    ...document.matchAll(
+      new RegExp(`${marker}${language}\\r?\\n([\\s\\S]*?)\\r?\\n${marker}`, 'gu'),
+    ),
+  ].map((match) => match[1]);
 }
 
 function commands(block) {

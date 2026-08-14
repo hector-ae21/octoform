@@ -36,7 +36,9 @@ test('the API reference covers every supported package export', async () => {
 });
 
 test('the API reference contains no absolute filesystem paths', async () => {
-  const reference = JSON.parse(await readFile(resolve(root, 'reference/api.json'), 'utf8')) as unknown;
+  const reference = JSON.parse(
+    await readFile(resolve(root, 'reference/api.json'), 'utf8'),
+  ) as unknown;
   for (const value of stringValues(reference)) {
     assert.doesNotMatch(value, /^[A-Za-z]:[\\/]/);
     assert.doesNotMatch(value, /^\/(?:home|Users)\//);
@@ -44,7 +46,9 @@ test('the API reference contains no absolute filesystem paths', async () => {
 });
 
 test('the API reference uses platform-independent line endings', async () => {
-  const reference = JSON.parse(await readFile(resolve(root, 'reference/api.json'), 'utf8')) as unknown;
+  const reference = JSON.parse(
+    await readFile(resolve(root, 'reference/api.json'), 'utf8'),
+  ) as unknown;
   for (const value of stringValues(reference)) assert.doesNotMatch(value, /\r/);
 });
 

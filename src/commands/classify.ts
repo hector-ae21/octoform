@@ -56,7 +56,9 @@ export async function classify(
       : new Map<string, string>();
   for (const repo of all) repo.type = recorded.get(repo.name);
 
-  const unclassified = all.filter((r) => !isExcluded(config, r.name) && !repoType(config, r) && !r.archived);
+  const unclassified = all.filter(
+    (r) => !isExcluded(config, r.name) && !repoType(config, r) && !r.archived,
+  );
 
   if (unclassified.length === 0) {
     console.log('Every repository already has a type. Nothing to propose.');
@@ -90,7 +92,9 @@ export async function classify(
   if (kind !== 'org' || !property) {
     console.log(
       `\nCannot record these automatically: ${
-        kind === 'org' ? 'no classify.property is declared' : `"${config.owner}" is a personal account, which has no custom properties`
+        kind === 'org'
+          ? 'no classify.property is declared'
+          : `"${config.owner}" is a personal account, which has no custom properties`
       }. Copy them into the configuration as repos.<name>.type instead.`,
     );
     return 1;

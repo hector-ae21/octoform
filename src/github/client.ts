@@ -55,7 +55,10 @@ export async function requireScopes(octokit: Octokit, needed: string[]): Promise
 
   if (typeof header !== 'string') return;
 
-  const granted = header.split(',').map((s) => s.trim()).filter(Boolean);
+  const granted = header
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   const missing = needed.filter((scope) => !granted.includes(scope));
   if (missing.length > 0) {
     throw new AuthError(
@@ -114,7 +117,11 @@ export async function listRepos(
   }>;
 
   if (kind === 'org') {
-    raw = await octokit.paginate(octokit.repos.listForOrg, { org: owner, per_page: 100, type: 'all' });
+    raw = await octokit.paginate(octokit.repos.listForOrg, {
+      org: owner,
+      per_page: 100,
+      type: 'all',
+    });
   } else {
     const me = await authenticatedLogin(octokit);
     raw =
@@ -123,7 +130,11 @@ export async function listRepos(
             per_page: 100,
             affiliation: 'owner',
           })
-        : await octokit.paginate(octokit.repos.listForUser, { username: owner, per_page: 100, type: 'owner' });
+        : await octokit.paginate(octokit.repos.listForUser, {
+            username: owner,
+            per_page: 100,
+            type: 'owner',
+          });
   }
 
   return raw.map((r) => ({
@@ -152,8 +163,9 @@ export async function getRepoDetail(
   policy?: PolicySet,
 ): Promise<RepoDetail> {
   const { data } = await octokit.repos.get({ owner, repo: base.name });
-  const analysis = (data as { security_and_analysis?: Record<string, { status?: string } | undefined> })
-    .security_and_analysis;
+  const analysis = (
+    data as { security_and_analysis?: Record<string, { status?: string } | undefined> }
+  ).security_and_analysis;
   const enabled = (key: string): boolean | typeof UNREADABLE => {
     const status = analysis?.[key]?.status;
     return status === undefined ? UNREADABLE : status === 'enabled';
@@ -187,7 +199,12 @@ export async function getRepoDetail(
     probe(octokit, 'GET /repos/{owner}/{repo}/vulnerability-alerts', owner, base.name),
     codeScanningState(octokit, owner, base.name),
     enabledFlag(octokit, 'GET /repos/{owner}/{repo}/automated-security-fixes', owner, base.name),
-    enabledFlag(octokit, 'GET /repos/{owner}/{repo}/private-vulnerability-reporting', owner, base.name),
+    enabledFlag(
+      octokit,
+      'GET /repos/{owner}/{repo}/private-vulnerability-reporting',
+      owner,
+      base.name,
+    ),
   ]);
   settings['security.vulnerability_alerts'] = alerts;
   settings['security.code_scanning_default_setup'] = codeScanning;
@@ -271,9 +288,15 @@ async function getRepoStructure(
     asked = true;
     const entries = await Promise.all(
       policy.ensure_branches.map(async (branch) => {
-        const exists = await probe(octokit, 'GET /repos/{owner}/{repo}/branches/{branch}', owner, base.name, {
-          branch,
-        });
+        const exists = await probe(
+          octokit,
+          'GET /repos/{owner}/{repo}/branches/{branch}',
+          owner,
+          base.name,
+          {
+            branch,
+          },
+        );
         return [branch, exists] as const;
       }),
     );
@@ -286,9 +309,15 @@ async function getRepoStructure(
     asked = true;
     const entries = await Promise.all(
       policy.files.map(async (file) => {
-        const exists = await probe(octokit, 'GET /repos/{owner}/{repo}/contents/{path}', owner, base.name, {
-          path: file.path,
-        });
+        const exists = await probe(
+          octokit,
+          'GET /repos/{owner}/{repo}/contents/{path}',
+          owner,
+          base.name,
+          {
+            path: file.path,
+          },
+        );
         return [file.path, exists] as const;
       }),
     );
@@ -325,7 +354,10 @@ async function listEnvironments(
   repo: string,
 ): Promise<ExistingEnvironment[] | undefined> {
   try {
-    const { data } = await octokit.request('GET /repos/{owner}/{repo}/environments', { owner, repo });
+    const { data } = await octokit.request('GET /repos/{owner}/{repo}/environments', {
+      owner,
+      repo,
+    });
     const list = (data as { environments?: RawEnvironment[] }).environments ?? [];
     return list.map((e) => ({ name: e.name, reviewers: reviewerLogins(e) }));
   } catch {
@@ -395,8 +427,7 @@ function toExistingRuleset(raw: RawRuleset): ExistingRuleset {
 
   const approvals = pullRequest?.parameters?.['required_approving_review_count'];
   const checks = statusChecks?.parameters?.['required_status_checks'] as
-    | Array<{ context?: string }>
-    | undefined;
+    Array<{ context?: string }> | undefined;
 
   return {
     id: raw.id,
@@ -658,8 +689,7 @@ export async function detectLimits(
       try {
         const { data } = await octokit.users.getAuthenticated();
         plan = (data as { plan?: { name?: string } }).plan?.name;
-      } catch {
-      }
+      } catch {}
     }
     return { ownerKind: 'user', plan, orgRulesets: false };
   }
@@ -668,8 +698,7 @@ export async function detectLimits(
   try {
     const res = await octokit.orgs.get({ org: owner });
     plan = (res.data as { plan?: { name?: string } }).plan?.name;
-  } catch {
-  }
+  } catch {}
 
   let orgRulesets = true;
   try {

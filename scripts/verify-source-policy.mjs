@@ -25,15 +25,19 @@ for (const directory of codeRoots) {
 
 for (const path of await files(root)) {
   const extension = extname(path);
-  if (!codeExtensions.has(extension) && !['.json', '.md', '.yml', '.yaml'].includes(extension)) continue;
+  if (!codeExtensions.has(extension) && !['.json', '.md', '.yml', '.yaml'].includes(extension))
+    continue;
   const source = (await readFile(path, 'utf8')).replaceAll('\\', '/');
   for (const marker of privateMarkers) {
-    if (source.includes(marker)) violations.push(`${name(path)}: references private planning material`);
+    if (source.includes(marker))
+      violations.push(`${name(path)}: references private planning material`);
   }
 }
 
 if (violations.length > 0) {
-  throw new Error(`Source policy violations:\n${violations.map((violation) => `- ${violation}`).join('\n')}`);
+  throw new Error(
+    `Source policy violations:\n${violations.map((violation) => `- ${violation}`).join('\n')}`,
+  );
 }
 
 console.log('Source comments and public-reference boundaries are valid.');
@@ -43,12 +47,18 @@ async function verifyComments(path) {
   const scanner = ts.createScanner(
     ts.ScriptTarget.Latest,
     false,
-    path.endsWith('.tsx') || path.endsWith('.jsx') ? ts.LanguageVariant.JSX : ts.LanguageVariant.Standard,
+    path.endsWith('.tsx') || path.endsWith('.jsx')
+      ? ts.LanguageVariant.JSX
+      : ts.LanguageVariant.Standard,
     source,
   );
 
   for (let token = scanner.scan(); token !== ts.SyntaxKind.EndOfFileToken; token = scanner.scan()) {
-    if (token !== ts.SyntaxKind.SingleLineCommentTrivia && token !== ts.SyntaxKind.MultiLineCommentTrivia) continue;
+    if (
+      token !== ts.SyntaxKind.SingleLineCommentTrivia &&
+      token !== ts.SyntaxKind.MultiLineCommentTrivia
+    )
+      continue;
     const comment = scanner.getTokenText();
     const location = lineAndColumn(source, scanner.getTokenPos());
     if (allowedDirectives.has(comment.trim())) continue;
@@ -74,7 +84,7 @@ async function files(directory) {
   for (const entry of entries) {
     if (entry.isDirectory() && ignoredDirectories.has(entry.name)) continue;
     const path = resolve(directory, entry.name);
-    if (entry.isDirectory()) paths.push(...await files(path));
+    if (entry.isDirectory()) paths.push(...(await files(path)));
     if (entry.isFile()) paths.push(path);
   }
   return paths;

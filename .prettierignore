@@ -1,0 +1,6 @@
+.test-build/
+dist/
+node_modules/
+reference/
+package-lock.json
+*.md

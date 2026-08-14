@@ -30,7 +30,9 @@ try {
       readFile(committedOutput, 'utf8'),
     ]);
     if (actual !== expected) {
-      throw new Error('The public API reference is stale. Run npm run api-docs and commit reference/api.json.');
+      throw new Error(
+        'The public API reference is stale. Run npm run api-docs and commit reference/api.json.',
+      );
     }
     console.log('Public API reference is current.');
   }
@@ -42,5 +44,7 @@ function normalizeStrings(value) {
   if (typeof value === 'string') return value.replace(/\r\n?/g, '\n');
   if (Array.isArray(value)) return value.map(normalizeStrings);
   if (!value || typeof value !== 'object') return value;
-  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, normalizeStrings(item)]));
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [key, normalizeStrings(item)]),
+  );
 }

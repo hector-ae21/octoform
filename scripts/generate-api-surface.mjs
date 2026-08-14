@@ -102,7 +102,10 @@ function buildRegister(config, openApi) {
       const policy =
         override ??
         (method === 'get'
-          ? { ...config.rest.readDisposition, target: config.rest.mutationDispositionByTag[tag]?.target }
+          ? {
+              ...config.rest.readDisposition,
+              target: config.rest.mutationDispositionByTag[tag]?.target,
+            }
           : config.rest.mutationDispositionByTag[tag]);
       if (!policy) {
         throw new Error(`No disposition for ${method.toUpperCase()} ${path} (${tag})`);
@@ -135,15 +138,20 @@ function buildRegister(config, openApi) {
     throw new Error(`Current REST routes absent from OpenAPI: ${[...currentRoutes].join(', ')}`);
   }
   if (undispositioned.length > 0) {
-    throw new Error(`Relevant REST operations without reviewed disposition:\n${undispositioned.join('\n')}`);
+    throw new Error(
+      `Relevant REST operations without reviewed disposition:\n${undispositioned.join('\n')}`,
+    );
   }
   if (reviewedOperations.size > 0) {
-    throw new Error(`Reviewed REST operations absent from OpenAPI:\n${[...reviewedOperations].join('\n')}`);
+    throw new Error(
+      `Reviewed REST operations absent from OpenAPI:\n${[...reviewedOperations].join('\n')}`,
+    );
   }
 
   const graphqlNames = new Set();
   const graphql = config.graphql.mutations.map((mutation) => {
-    if (graphqlNames.has(mutation.name)) throw new Error(`Duplicate GraphQL mutation: ${mutation.name}`);
+    if (graphqlNames.has(mutation.name))
+      throw new Error(`Duplicate GraphQL mutation: ${mutation.name}`);
     graphqlNames.add(mutation.name);
     validatePolicy(mutation, `GraphQL mutation ${mutation.name}`);
     return {
@@ -242,18 +250,29 @@ function summarize(operations) {
   const byTransport = countBy(operations, (operation) => operation.transport);
   const byDisposition = countBy(operations, (operation) => operation.disposition);
   const byTarget = countBy(operations, (operation) => operation.target ?? 'none');
-  const implemented = operations.filter((operation) => operation.status === 'implemented-v0.3.1').length;
+  const implemented = operations.filter(
+    (operation) => operation.status === 'implemented-v0.3.1',
+  ).length;
   const deprecated = operations.filter((operation) => operation.deprecated).length;
-  return { total: operations.length, implemented, deprecated, byTransport, byDisposition, byTarget };
+  return {
+    total: operations.length,
+    implemented,
+    deprecated,
+    byTransport,
+    byDisposition,
+    byTarget,
+  };
 }
 
 function countBy(items, keyFor) {
   return Object.fromEntries(
-    [...items.reduce((counts, item) => {
-      const key = keyFor(item);
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-      return counts;
-    }, new Map())].sort(([left], [right]) => left.localeCompare(right)),
+    [
+      ...items.reduce((counts, item) => {
+        const key = keyFor(item);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+        return counts;
+      }, new Map()),
+    ].sort(([left], [right]) => left.localeCompare(right)),
   );
 }
 
@@ -269,7 +288,10 @@ async function assertGraphqlSnapshot(currentConfig, snapshotPath) {
   const actual = new Map(
     source.map((field) => [
       field.name,
-      { deprecated: Boolean(field.isDeprecated), deprecationReason: field.deprecationReason ?? null },
+      {
+        deprecated: Boolean(field.isDeprecated),
+        deprecationReason: field.deprecationReason ?? null,
+      },
     ]),
   );
   const reviewed = new Map(
@@ -281,7 +303,8 @@ async function assertGraphqlSnapshot(currentConfig, snapshotPath) {
   const added = [...actual.keys()].filter((name) => !reviewed.has(name));
   const removed = [...reviewed.keys()].filter((name) => !actual.has(name));
   const changed = [...actual.keys()].filter(
-    (name) => reviewed.has(name) && JSON.stringify(actual.get(name)) !== JSON.stringify(reviewed.get(name)),
+    (name) =>
+      reviewed.has(name) && JSON.stringify(actual.get(name)) !== JSON.stringify(reviewed.get(name)),
   );
   if (added.length || removed.length || changed.length) {
     throw new Error(
@@ -294,7 +317,8 @@ async function readGraphqlSnapshot(snapshotPath) {
   const source = parseJson(await readFile(snapshotPath, 'utf8'));
   if (!Array.isArray(source)) throw new Error('GraphQL snapshot must be an array');
   const names = source.map((field) => field.name);
-  if (new Set(names).size !== names.length) throw new Error('GraphQL snapshot contains duplicate mutations');
+  if (new Set(names).size !== names.length)
+    throw new Error('GraphQL snapshot contains duplicate mutations');
   if (names.some((name) => typeof name !== 'string' || !name)) {
     throw new Error('GraphQL snapshot contains a mutation without a name');
   }
@@ -317,7 +341,10 @@ function classifyGraphqlMutation(field) {
     rationale = 'Deletion or ownership transfer is outside normal desired-state reconciliation.';
   } else if (sensitive.test(name)) {
     disposition = 'sensitive-declarative';
-    target = family === 'repository-governance' || family === 'organization-governance' ? '0.5.0' : '0.6.0';
+    target =
+      family === 'repository-governance' || family === 'organization-governance'
+        ? '0.5.0'
+        : '0.6.0';
     rationale = 'Durable access, identity, security, or broad governance state.';
   } else if (declarative.test(name)) {
     disposition = 'declarative';
@@ -336,11 +363,14 @@ function classifyGraphqlMutation(field) {
 }
 
 function graphqlFamily(name) {
-  if (/Enterprise|Organization|Team|IpAllowList|VerifiableDomain/.test(name)) return 'organization-governance';
-  if (/Repository|BranchProtection|Ref|Topics|Environment/.test(name)) return 'repository-governance';
+  if (/Enterprise|Organization|Team|IpAllowList|VerifiableDomain/.test(name))
+    return 'organization-governance';
+  if (/Repository|BranchProtection|Ref|Topics|Environment/.test(name))
+    return 'repository-governance';
   if (/Project/.test(name)) return 'projects';
   if (/PullRequest|Review|Deployment|Check/.test(name)) return 'delivery';
-  if (/Issue|Label|Assignable|Comment|Discussion|Reaction|Upvote|Star/.test(name)) return 'collaboration';
+  if (/Issue|Label|Assignable|Comment|Discussion|Reaction|Upvote|Star/.test(name))
+    return 'collaboration';
   if (/Sponsor/.test(name)) return 'sponsors';
   if (/Migration|Attribution/.test(name)) return 'migrations';
   return 'user-and-platform';

@@ -69,7 +69,10 @@ test('later imports override earlier ones, most general first', () => {
 
 test('imports resolve relative to the importing file, nested arbitrarily deep', () => {
   write('lib/base.yml', `defaults:\n  features: { projects: false }\n`);
-  write('lib/preset.yml', `imports: [base.yml]\ntypes:\n  service: { merge: { allow_rebase: false } }\n`);
+  write(
+    'lib/preset.yml',
+    `imports: [base.yml]\ntypes:\n  service: { merge: { allow_rebase: false } }\n`,
+  );
   const path = write('main.yml', `owner: my-account\nimports: [lib/preset.yml]\n`);
 
   const config = loadConfig(path);

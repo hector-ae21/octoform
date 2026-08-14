@@ -26,6 +26,8 @@ git clone https://github.com/hector-ae21/octoform.git
 cd octoform
 npm install
 npm run build      # compiles src/ to dist/
+npm run format     # formats code, tests, scripts, workflows and configuration
+npm run format:check  # verifies formatting without changing files
 npm test           # compiles src/ + test/ separately, then runs them
 npm run typecheck  # type-checks without emitting
 npm run api-docs   # refreshes the machine-readable public API reference

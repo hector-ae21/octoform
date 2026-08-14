@@ -110,7 +110,10 @@ export const CLI_CONTRACT: CliContract = {
   ],
   exitCodes: [
     { code: 0, meaning: 'The command or help request completed successfully.' },
-    { code: 1, meaning: 'Configuration, authentication, capability, or GitHub API execution failed.' },
+    {
+      code: 1,
+      meaning: 'Configuration, authentication, capability, or GitHub API execution failed.',
+    },
     { code: 2, meaning: 'The command line is missing or invalid.' },
   ],
   notes: [

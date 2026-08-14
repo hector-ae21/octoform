@@ -41,8 +41,7 @@ try {
     );
     process.exit(1);
   }
-} catch {
-}
+} catch {}
 
 const { main } = await import('../dist/cli.js');
 
