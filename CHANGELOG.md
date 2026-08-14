@@ -9,8 +9,20 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+### Changed
+
+- Enforced valid TSDoc as the only authored comment format in production and
+  tooling source, with automated rejection of narrative comments, directives,
+  disabled code, and references to private planning material.
+
 ### Documentation
 
+- Added deterministic configuration-schema, CLI, capability, and permission
+  manifests with complete implemented-route coverage and SHA-256 checksums for
+  immutable release assets.
+- Added a deterministic, machine-readable TypeDoc reference for every
+  supported programmatic export, with validation that rejects undocumented
+  declarations and stale generated output.
 - Replaced the application README with a complete product overview and safe
   packed-package quick start linked to the versioned documentation site.
 - Moved the maintained configuration, command, architecture, security, and

@@ -28,6 +28,8 @@ npm install
 npm run build      # compiles src/ to dist/
 npm test           # compiles src/ + test/ separately, then runs them
 npm run typecheck  # type-checks without emitting
+npm run api-docs   # refreshes the machine-readable public API reference
+npm run reference-artifacts  # refreshes schema, CLI, capability and permission data
 ```
 
 Node 20 or newer.
@@ -62,6 +64,32 @@ reference/    generated and reviewed machine-readable project artifacts
 
 Tests live in `test/`, not next to the source files. `src/` is what gets
 published; test files have no business shipping inside it.
+
+## Source documentation policy
+
+Authored comments in `src/`, `bin/`, and `scripts/` must be valid TSDoc blocks
+written as `/** ... */`. Use them to document a declaration's public contract,
+parameters, results, errors, or constraints. Put behavioral evidence in tests
+and customer guidance or architectural rationale in the versioned
+[documentation repository](https://github.com/hector-ae21/octoform-docs).
+
+Line comments, ordinary block comments, disabled code, narration, TODO prose,
+and references to private planning material are rejected automatically. The
+allowlist for compiler, linter, and instrumentation comment directives is
+currently empty. A shebang is executable syntax rather than a comment and is
+the only non-TSDoc marker present in shipped code.
+
+The supported programmatic surface is exported from `src/index.ts`. TypeDoc
+validates that every exported declaration is documented and generates
+`reference/api.json`; do not edit that artifact by hand. `npm test` regenerates
+it in a temporary directory and fails when the committed copy is stale.
+
+The configuration schema is derived from `Config`, while terminal help and
+`reference/cli.json` share `src/cli-contract.ts`. The capability source
+classifies every implemented GitHub route and generates both capability and
+permission registers. `npm run reference-artifacts` refreshes these files and
+their `SHA256SUMS`; `npm test` rejects stale output, incomplete route coverage,
+absolute filesystem paths, and recognizable credential material.
 
 ## Making a change
 

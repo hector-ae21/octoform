@@ -10,6 +10,7 @@ import {
 } from '../github/client.js';
 import type { Config } from '../config/types.js';
 
+/** Mutation control for {@link classify}. */
 export interface ClassifyOptions {
   /** Write the proposals to the custom property. Organisations only. */
   apply?: boolean;
@@ -87,9 +88,6 @@ export async function classify(
   }
 
   if (kind !== 'org' || !property) {
-    // Not a failure of this run: there is simply nowhere to write it. A
-    // personal account has no custom properties API at all, so the answer has
-    // to go in the configuration file by hand.
     console.log(
       `\nCannot record these automatically: ${
         kind === 'org' ? 'no classify.property is declared' : `"${config.owner}" is a personal account, which has no custom properties`
@@ -107,8 +105,6 @@ async function write(
   property: string,
   proposals: Proposal[],
 ): Promise<number> {
-  // One call per distinct type rather than per repository: the endpoint takes
-  // a list of repositories for a given value.
   const byType = new Map<string, string[]>();
   for (const proposal of proposals) {
     const list = byType.get(proposal.type) ?? [];

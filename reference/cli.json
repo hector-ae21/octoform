@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "executable": "octoform",
+  "summary": "Declarative governance for GitHub repositories",
+  "commands": [
+    {
+      "path": [
+        "audit"
+      ],
+      "usage": "octoform audit      [--config <path>]",
+      "summary": "Inspect repositories and report configured audit findings.",
+      "mode": "read-only",
+      "options": [
+        "config",
+        "help"
+      ],
+      "classicScopes": [
+        "repo"
+      ]
+    },
+    {
+      "path": [
+        "plan"
+      ],
+      "usage": "octoform plan       [--config <path>] [--repo <name>] [--type <type>]",
+      "summary": "Compare desired and observed state without changing GitHub.",
+      "mode": "read-only",
+      "options": [
+        "config",
+        "repo",
+        "type",
+        "help"
+      ],
+      "classicScopes": [
+        "repo"
+      ]
+    },
+    {
+      "path": [
+        "apply"
+      ],
+      "usage": "octoform apply      [--config <path>] [--repo <name>] [--type <type>] [--yes]",
+      "summary": "Plan again, request confirmation, and apply unblocked changes.",
+      "mode": "confirmed-write",
+      "options": [
+        "config",
+        "repo",
+        "type",
+        "yes",
+        "help"
+      ],
+      "classicScopes": [
+        "repo"
+      ]
+    },
+    {
+      "path": [
+        "classify"
+      ],
+      "usage": "octoform classify   [--config <path>] [--apply]",
+      "summary": "Propose repository types and optionally write organization property values.",
+      "mode": "conditional-write",
+      "options": [
+        "config",
+        "apply",
+        "help"
+      ],
+      "classicScopes": [
+        "repo"
+      ],
+      "mutationClassicScopes": [
+        "repo",
+        "admin:org"
+      ]
+    },
+    {
+      "path": [
+        "properties",
+        "sync"
+      ],
+      "usage": "octoform properties sync [--config <path>]",
+      "summary": "Synchronize the organization property schema and declared repository values.",
+      "mode": "write",
+      "options": [
+        "config",
+        "help"
+      ],
+      "classicScopes": [
+        "repo",
+        "admin:org"
+      ]
+    }
+  ],
+  "options": [
+    {
+      "id": "config",
+      "syntax": "--config <path>",
+      "description": "Configuration file",
+      "default": "octoform.yml"
+    },
+    {
+      "id": "repo",
+      "syntax": "--repo <name>",
+      "description": "Limit to one repository"
+    },
+    {
+      "id": "type",
+      "syntax": "--type <type>",
+      "description": "Limit to repositories of one type"
+    },
+    {
+      "id": "yes",
+      "syntax": "--yes, -y",
+      "description": "Apply without asking for confirmation"
+    },
+    {
+      "id": "apply",
+      "syntax": "--apply",
+      "description": "Classify: record proposals instead of only printing them"
+    },
+    {
+      "id": "help",
+      "syntax": "--help, -h",
+      "description": "Show this message"
+    }
+  ],
+  "credentials": [
+    {
+      "names": [
+        "GITHUB_TOKEN",
+        "GH_TOKEN"
+      ],
+      "sensitive": true,
+      "description": "Token used for GitHub API calls. The first defined variable wins."
+    }
+  ],
+  "exitCodes": [
+    {
+      "code": 0,
+      "meaning": "The command or help request completed successfully."
+    },
+    {
+      "code": 1,
+      "meaning": "Configuration, authentication, capability, or GitHub API execution failed."
+    },
+    {
+      "code": 2,
+      "meaning": "The command line is missing or invalid."
+    }
+  ],
+  "notes": [
+    "audit, plan, and classify without --apply are read-only.",
+    "apply displays the current plan and requests confirmation unless --yes is present.",
+    "Fine-grained tokens are authorized by GitHub per endpoint because they do not expose classic scope headers."
+  ],
+  "productVersion": "0.3.1"
+}

@@ -10,8 +10,10 @@ import type {
   RepoStructure,
 } from '../config/types.js';
 
+/** Authentication or token-scope error that can be corrected by the operator. */
 export class AuthError extends Error {}
 
+/** Observable owner limits used to explain audit and planning behavior. */
 export interface PlanLimits {
   ownerKind: OwnerKind;
   /** Account plan name as GitHub reports it, when visible. Organisations only. */
@@ -24,6 +26,7 @@ export interface PlanLimits {
   orgRulesets: boolean;
 }
 
+/** Create an authenticated GitHub client from `GITHUB_TOKEN` or `GH_TOKEN`. */
 export function createClient(): Octokit {
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN;
   if (!token) {
@@ -35,11 +38,6 @@ export function createClient(): Octokit {
   return new Octokit({
     auth: token,
     userAgent: 'octoform',
-    // Octokit narrates every request, and logs a warning for any 4xx. Several
-    // of the calls here expect a 403 or 404 as a legitimate answer — probing
-    // whether a feature applies at all, for one — so that narration reports
-    // failures that are not failures. Errors that matter are thrown, caught,
-    // and reported by the CLI with a message that says what to do about them.
     log: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} },
   });
 }
@@ -55,8 +53,6 @@ export async function requireScopes(octokit: Octokit, needed: string[]): Promise
   const res = await octokit.request('GET /user');
   const header = res.headers['x-oauth-scopes'];
 
-  // Fine-grained tokens do not report scopes at all. Absence is not evidence
-  // of a missing scope, so it cannot be treated as a failure.
   if (typeof header !== 'string') return;
 
   const granted = header.split(',').map((s) => s.trim()).filter(Boolean);
@@ -100,6 +96,7 @@ async function authenticatedLogin(octokit: Octokit): Promise<string | undefined>
   }
 }
 
+/** List repositories owned by an organization or personal account. */
 export async function listRepos(
   octokit: Octokit,
   owner: string,
@@ -122,17 +119,11 @@ export async function listRepos(
     const me = await authenticatedLogin(octokit);
     raw =
       me && me.toLowerCase() === owner.toLowerCase()
-        ? // Only /user/repos can see private repositories, and only for the
-          // token's own account. affiliation: owner excludes repositories this
-          // account merely collaborates on or belongs to as an org member,
-          // which is what "configure my repos" means here.
-          await octokit.paginate(octokit.repos.listForAuthenticatedUser, {
+        ? await octokit.paginate(octokit.repos.listForAuthenticatedUser, {
             per_page: 100,
             affiliation: 'owner',
           })
-        : // A different user's profile: only ever their public repositories,
-          // regardless of whose token is making the request.
-          await octokit.paginate(octokit.repos.listForUser, { username: owner, per_page: 100, type: 'owner' });
+        : await octokit.paginate(octokit.repos.listForUser, { username: owner, per_page: 100, type: 'owner' });
   }
 
   return raw.map((r) => ({
@@ -195,9 +186,6 @@ export async function getRepoDetail(
   const [alerts, codeScanning, autoFixes, privateReporting] = await Promise.all([
     probe(octokit, 'GET /repos/{owner}/{repo}/vulnerability-alerts', owner, base.name),
     codeScanningState(octokit, owner, base.name),
-    // Unlike vulnerability-alerts, these two answer with a body rather than by
-    // the status code alone, so a 404 here means the endpoint was not reachable
-    // at all rather than "the feature is off".
     enabledFlag(octokit, 'GET /repos/{owner}/{repo}/automated-security-fixes', owner, base.name),
     enabledFlag(octokit, 'GET /repos/{owner}/{repo}/private-vulnerability-reporting', owner, base.name),
   ]);
@@ -309,9 +297,6 @@ async function getRepoStructure(
     }
   }
 
-  // Only worth the requests when a rename is actually on the table: reading
-  // every workflow file of every repository on every run, to answer a question
-  // nobody asked, would dominate the cost of a plan.
   const wantedBranch = policy.default_branch?.name;
   if (wantedBranch && base.default_branch && wantedBranch !== base.default_branch) {
     asked = true;
@@ -340,8 +325,6 @@ async function listEnvironments(
   repo: string,
 ): Promise<ExistingEnvironment[] | undefined> {
   try {
-    // The list endpoint embeds each environment's protection_rules already —
-    // no second request per environment needed to see its reviewers.
     const { data } = await octokit.request('GET /repos/{owner}/{repo}/environments', { owner, repo });
     const list = (data as { environments?: RawEnvironment[] }).environments ?? [];
     return list.map((e) => ({ name: e.name, reviewers: reviewerLogins(e) }));
@@ -421,8 +404,6 @@ function toExistingRuleset(raw: RawRuleset): ExistingRuleset {
     target_branches: (raw.conditions?.ref_name?.include ?? []).map(fromRefName),
     ...(typeof approvals === 'number' ? { required_approvals: approvals } : {}),
     ...(checks ? { required_checks: checks.map((c) => c.context ?? '').filter(Boolean) } : {}),
-    // GitHub names these after what they permit, not what they block:
-    // non_fast_forward present means force-pushing is refused.
     block_force_push: rules.some((r) => r.type === 'non_fast_forward'),
     block_deletion: rules.some((r) => r.type === 'deletion'),
   };
@@ -475,7 +456,6 @@ async function workflowsNaming(
           });
           const content = (res.data as { content?: string }).content ?? '';
           const text = Buffer.from(content, 'base64').toString('utf8');
-          // Word boundaries so that renaming "main" does not match "domain".
           const mentions = new RegExp(`\\b${escapeRegExp(branch)}\\b`).test(text);
           return mentions ? file.path : undefined;
         } catch {
@@ -485,7 +465,6 @@ async function workflowsNaming(
     );
     return naming.filter((path): path is string => path !== undefined);
   } catch (error) {
-    // No workflows directory at all is a real answer, not a failure to read.
     if ((error as { status?: number }).status === 404) return [];
     return undefined;
   }
@@ -635,9 +614,6 @@ export async function putPropertySchema(
     custom_property_name: property,
     value_type: 'single_select',
     allowed_values: allowedValues,
-    // No default: a repository with no value is "not classified yet", which is
-    // a finding worth reporting. A default would quietly answer the question
-    // for every repository nobody has looked at.
     required: false,
   });
 }
@@ -683,15 +659,8 @@ export async function detectLimits(
         const { data } = await octokit.users.getAuthenticated();
         plan = (data as { plan?: { name?: string } }).plan?.name;
       } catch {
-        // Not fatal: the plan name is informational.
       }
     }
-    // orgRulesets: false is a conservative stand-in, not a verified fact. A
-    // personal GitHub Pro account CAN have private-repository rulesets
-    // enforced; actually confirming that would mean creating a real ruleset
-    // just to see whether it holds, which is too invasive for a read-only
-    // probe. Until there is a cheaper way to check, this may under-report
-    // what a Pro personal account can actually do.
     return { ownerKind: 'user', plan, orgRulesets: false };
   }
 
@@ -700,11 +669,8 @@ export async function detectLimits(
     const res = await octokit.orgs.get({ org: owner });
     plan = (res.data as { plan?: { name?: string } }).plan?.name;
   } catch {
-    // Not an admin, or the org hides it. Not fatal.
   }
 
-  // A 403 here is the expected answer on a plan without organisation rulesets,
-  // not a failure.
   let orgRulesets = true;
   try {
     await octokit.request('GET /orgs/{org}/rulesets', { org: owner, per_page: 1 });

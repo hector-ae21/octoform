@@ -9,7 +9,7 @@ import type { ClassifyRule } from '../config/types.js';
  */
 export interface RepoFacts {
   visibility: string;
-  /** Path -> file content, or null when the repository does not have it. */
+  /** File content by path, or `null` when the repository does not have it. */
   files: Record<string, string | null>;
 }
 
@@ -44,9 +44,6 @@ function matches(rule: ClassifyRule, facts: RepoFacts): boolean {
   if (visibility !== undefined && facts.visibility !== visibility) return false;
 
   if (filePath === undefined) {
-    // A rule with no file condition is only meaningful if it asked about
-    // something else; an empty `when` matches everything, which is a
-    // legitimate way to write a catch-all last rule.
     return json === undefined;
   }
 
@@ -58,9 +55,6 @@ function matches(rule: ClassifyRule, facts: RepoFacts): boolean {
   try {
     parsed = JSON.parse(content);
   } catch {
-    // The file exists but is not the JSON the rule expected. Not a match, and
-    // not an error either: a repository is allowed to have a package.json that
-    // this tool cannot read.
     return false;
   }
   if (typeof parsed !== 'object' || parsed === null) return false;

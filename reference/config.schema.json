@@ -1,0 +1,522 @@
+{
+  "$id": "https://hector-ae21.github.io/octoform-docs/0.3/assets/config.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/Config",
+  "definitions": {
+    "Config": {
+      "type": "object",
+      "properties": {
+        "owner": {
+          "type": "string",
+          "description": "A GitHub login: an organisation or a personal account. octoform tells which one it is by asking the API, not by anything declared here — an organisation and a user with the same login are indistinguishable in configuration, and forcing the author to say which invites the file to be wrong about it."
+        },
+        "imports": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Other configuration files to merge before this one, most general first. Paths are resolved relative to the file that lists them, so an imported file can itself import further files. This is how a set of type presets is shared across several owners without copying it around: put `types` and `defaults` in a file with no `owner` of its own, and import it from each real configuration."
+        },
+        "classify": {
+          "$ref": "#/definitions/ClassifyConfig"
+        },
+        "audit": {
+          "$ref": "#/definitions/AuditConfig"
+        },
+        "defaults": {
+          "$ref": "#/definitions/PolicySet"
+        },
+        "types": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/PolicySet"
+          }
+        },
+        "repos": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "manage": {
+                "type": "boolean",
+                "description": "When false, the repository is still inventoried and audited but no policy is applied to it. Distinct from `exclude`, which drops it entirely."
+              },
+              "features": {
+                "$ref": "#/definitions/FeaturePolicy"
+              },
+              "merge": {
+                "$ref": "#/definitions/MergePolicy"
+              },
+              "security": {
+                "$ref": "#/definitions/SecurityPolicy"
+              },
+              "repo": {
+                "$ref": "#/definitions/RepoPolicy"
+              },
+              "default_branch": {
+                "$ref": "#/definitions/DefaultBranchPolicy"
+              },
+              "ensure_branches": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "rulesets": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/RulesetPolicy"
+                }
+              },
+              "environments": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/EnvironmentPolicy"
+                }
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/FilePolicy"
+                }
+              }
+            }
+          }
+        },
+        "exclude": {
+          "type": "object",
+          "properties": {
+            "repos": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "owner"
+      ],
+      "additionalProperties": false,
+      "description": "A complete root configuration after imported files have been resolved."
+    },
+    "ClassifyConfig": {
+      "type": "object",
+      "properties": {
+        "property": {
+          "type": "string",
+          "description": "Name of the GitHub custom property holding the type."
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ClassifyRule"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Classification rules and optional organization property storage."
+    },
+    "ClassifyRule": {
+      "type": "object",
+      "properties": {
+        "when": {
+          "type": "object",
+          "properties": {
+            "file_exists": {
+              "type": "string"
+            },
+            "json": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "Shallow key/value match against the JSON file named by `file_exists`."
+            },
+            "visibility": {
+              "type": "string",
+              "enum": [
+                "public",
+                "private"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "when",
+        "type"
+      ],
+      "additionalProperties": false,
+      "description": "A condition used to infer a repository's type when it has none recorded."
+    },
+    "AuditConfig": {
+      "type": "object",
+      "properties": {
+        "require_description": {
+          "type": "object",
+          "properties": {
+            "visibility": {
+              "type": "string",
+              "enum": [
+                "public",
+                "private"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "require_topics": {
+          "type": "object",
+          "properties": {
+            "visibility": {
+              "type": "string",
+              "enum": [
+                "public",
+                "private"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "max_topics": {
+          "type": "number"
+        },
+        "require_type": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Audit-only expectations. These never mutate anything; they exist so that \"every public repository must have a description\" is a line of configuration rather than a branch in the code."
+    },
+    "PolicySet": {
+      "type": "object",
+      "properties": {
+        "manage": {
+          "type": "boolean",
+          "description": "When false, the repository is still inventoried and audited but no policy is applied to it. Distinct from `exclude`, which drops it entirely."
+        },
+        "features": {
+          "$ref": "#/definitions/FeaturePolicy"
+        },
+        "merge": {
+          "$ref": "#/definitions/MergePolicy"
+        },
+        "security": {
+          "$ref": "#/definitions/SecurityPolicy"
+        },
+        "repo": {
+          "$ref": "#/definitions/RepoPolicy"
+        },
+        "default_branch": {
+          "$ref": "#/definitions/DefaultBranchPolicy"
+        },
+        "ensure_branches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rulesets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RulesetPolicy"
+          }
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EnvironmentPolicy"
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FilePolicy"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Everything that can be declared at any level of the precedence chain."
+    },
+    "FeaturePolicy": {
+      "type": "object",
+      "properties": {
+        "issues": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "wiki": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "projects": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "discussions": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired state for repository feature switches."
+    },
+    "MergePolicy": {
+      "type": "object",
+      "properties": {
+        "allow_squash": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "allow_merge_commit": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "allow_rebase": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "allow_auto_merge": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "allow_update_branch": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "delete_branch_on_merge": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired state for pull-request merge behavior."
+    },
+    "SecurityPolicy": {
+      "type": "object",
+      "properties": {
+        "vulnerability_alerts": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "automated_security_fixes": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "private_vulnerability_reporting": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "secret_scanning": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "secret_scanning_push_protection": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "code_scanning_default_setup": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired state for repository security features."
+    },
+    "RepoPolicy": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "homepage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "topics": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "allow_forking": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "web_commit_signoff_required": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired state for repository metadata and access settings."
+    },
+    "DefaultBranchPolicy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Desired name of the default branch."
+        },
+        "rename_from": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Rename the default branch to `name` only when it currently has one of these."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired default-branch name and guarded rename sources."
+    },
+    "RulesetPolicy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "target_branches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_approvals": {
+          "type": "number"
+        },
+        "required_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "block_force_push": {
+          "type": "boolean"
+        },
+        "block_deletion": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "target_branches"
+      ],
+      "additionalProperties": false,
+      "description": "Desired branch ruleset reduced to the fields Octoform manages."
+    },
+    "EnvironmentPolicy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "GitHub logins that must approve a deployment to this environment."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "Desired deployment environment and its user reviewers."
+    },
+    "FilePolicy": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string",
+          "description": "Path to the local file to copy, relative to the configuration file."
+        },
+        "mode": {
+          "$ref": "#/definitions/FileMode"
+        }
+      },
+      "required": [
+        "path",
+        "from",
+        "mode"
+      ],
+      "additionalProperties": false,
+      "description": "Desired create-if-missing repository file."
+    },
+    "FileMode": {
+      "type": "string",
+      "const": "create-if-missing",
+      "description": "Supported behavior when reconciling a declared repository file."
+    }
+  }
+}

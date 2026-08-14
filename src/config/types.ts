@@ -19,8 +19,10 @@
  */
 export type Managed<T> = T | null | undefined;
 
+/** A tri-state Boolean policy value. */
 export type Toggle = Managed<boolean>;
 
+/** Desired state for repository feature switches. */
 export interface FeaturePolicy {
   issues?: Toggle;
   wiki?: Toggle;
@@ -28,6 +30,7 @@ export interface FeaturePolicy {
   discussions?: Toggle;
 }
 
+/** Desired state for pull-request merge behavior. */
 export interface MergePolicy {
   allow_squash?: Toggle;
   allow_merge_commit?: Toggle;
@@ -37,6 +40,7 @@ export interface MergePolicy {
   delete_branch_on_merge?: Toggle;
 }
 
+/** Desired state for repository security features. */
 export interface SecurityPolicy {
   vulnerability_alerts?: Toggle;
   automated_security_fixes?: Toggle;
@@ -46,6 +50,7 @@ export interface SecurityPolicy {
   code_scanning_default_setup?: Toggle;
 }
 
+/** Desired state for repository metadata and access settings. */
 export interface RepoPolicy {
   description?: Managed<string>;
   homepage?: Managed<string>;
@@ -54,6 +59,7 @@ export interface RepoPolicy {
   web_commit_signoff_required?: Toggle;
 }
 
+/** Desired default-branch name and guarded rename sources. */
 export interface DefaultBranchPolicy {
   /** Desired name of the default branch. */
   name?: Managed<string>;
@@ -61,6 +67,7 @@ export interface DefaultBranchPolicy {
   rename_from?: Managed<string[]>;
 }
 
+/** Desired branch ruleset reduced to the fields Octoform manages. */
 export interface RulesetPolicy {
   name: string;
   target_branches: string[];
@@ -70,14 +77,17 @@ export interface RulesetPolicy {
   block_deletion?: boolean;
 }
 
+/** Desired deployment environment and its user reviewers. */
 export interface EnvironmentPolicy {
   name: string;
   /** GitHub logins that must approve a deployment to this environment. */
   reviewers?: string[];
 }
 
+/** Supported behavior when reconciling a declared repository file. */
 export type FileMode = 'create-if-missing';
 
+/** Desired create-if-missing repository file. */
 export interface FilePolicy {
   path: string;
   /** Path to the local file to copy, relative to the configuration file. */
@@ -114,6 +124,7 @@ export interface ClassifyRule {
   type: string;
 }
 
+/** Classification rules and optional organization property storage. */
 export interface ClassifyConfig {
   /** Name of the GitHub custom property holding the type. */
   property?: string;
@@ -132,6 +143,7 @@ export interface AuditConfig {
   require_type?: boolean;
 }
 
+/** A complete root configuration after imported files have been resolved. */
 export interface Config {
   /**
    * A GitHub login: an organisation or a personal account. octoform tells
@@ -192,6 +204,7 @@ export interface RepoState {
  */
 export const UNREADABLE = Symbol('unreadable');
 
+/** An observed scalar setting or explicit unreadable sentinel. */
 export type SettingValue = boolean | string | string[] | null | typeof UNREADABLE;
 
 /**
@@ -239,9 +252,9 @@ export interface RepoStructure {
   /** Environments that exist, each with its current required reviewers. */
   environments?: ExistingEnvironment[];
   rulesets?: ExistingRuleset[];
-  /** Path -> whether it exists, for the paths a `files` policy named. */
+  /** Existence state by path for the paths named by a `files` policy. */
   files?: Record<string, boolean>;
-  /** Branch -> whether it exists, for the branches `ensure_branches` named. */
+  /** Existence state by branch for the branches named by `ensure_branches`. */
   branches?: Record<string, boolean>;
   /**
    * Workflow files that mention the current default branch by name. Renaming

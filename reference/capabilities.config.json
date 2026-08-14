@@ -1,0 +1,407 @@
+{
+  "schemaVersion": 1,
+  "sources": {
+    "githubRestApiVersion": "2026-03-10",
+    "apiSurface": "github-api-surface.json",
+    "fineGrainedPatPermissions": "https://docs.github.com/en/rest/authentication/permissions-required-for-fine-grained-personal-access-tokens?apiVersion=2026-03-10",
+    "githubAppPermissions": "https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps?apiVersion=2026-03-10",
+    "classicScopes": "https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps"
+  },
+  "permissions": [
+    {
+      "id": "classic-repo",
+      "tokenType": "classic-pat",
+      "scope": "account",
+      "name": "repo",
+      "access": "read-write",
+      "description": "Coarse classic scope required by the current CLI preflight for every command."
+    },
+    {
+      "id": "classic-admin-org",
+      "tokenType": "classic-pat",
+      "scope": "organization",
+      "name": "admin:org",
+      "access": "write",
+      "description": "Additional classic scope required before organization custom-property writes."
+    },
+    {
+      "id": "repository-metadata-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Metadata",
+      "access": "read",
+      "description": "Repository discovery and public repository metadata."
+    },
+    {
+      "id": "repository-administration-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Administration",
+      "access": "read",
+      "description": "Administrative settings, rulesets, environments, and security configuration state."
+    },
+    {
+      "id": "repository-administration-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Administration",
+      "access": "write",
+      "description": "Repository settings, branch rename, rulesets, environments, and supported security configuration changes."
+    },
+    {
+      "id": "repository-contents-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Contents",
+      "access": "read",
+      "description": "Repository files, workflows, branches, and Git references used as observed state."
+    },
+    {
+      "id": "repository-contents-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Contents",
+      "access": "write",
+      "description": "Branch creation and create-if-missing file writes."
+    },
+    {
+      "id": "organization-custom-properties-read",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Custom properties",
+      "access": "read",
+      "description": "Organization repository property definitions and values."
+    },
+    {
+      "id": "organization-custom-properties-write",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Custom properties",
+      "access": "write",
+      "description": "Organization repository property values."
+    },
+    {
+      "id": "organization-custom-properties-admin",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Custom properties",
+      "access": "admin",
+      "description": "Organization custom-property definitions."
+    },
+    {
+      "id": "organization-administration-write",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Administration",
+      "access": "write",
+      "description": "Organization ruleset capability discovery for an organization administrator."
+    }
+  ],
+  "routePermissions": {
+    "GET /orgs/{org}/rulesets": [
+      "classic-repo",
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "PUT /orgs/{org}/properties/schema/{custom_property_name}": [
+      "classic-repo",
+      "classic-admin-org",
+      "organization-custom-properties-admin"
+    ],
+    "PATCH /orgs/{org}/properties/values": [
+      "classic-repo",
+      "classic-admin-org",
+      "organization-custom-properties-write"
+    ]
+  },
+  "capabilities": [
+    {
+      "id": "authenticated-identity",
+      "area": "discovery",
+      "support": "supported",
+      "configPaths": [],
+      "commands": ["audit", "plan", "apply", "classify", "properties sync"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /user"],
+      "writeRoutes": [],
+      "readPermissions": ["classic-repo"],
+      "writePermissions": [],
+      "limitations": ["Some token types do not expose an authenticated user login or classic scope headers."]
+    },
+    {
+      "id": "owner-kind",
+      "area": "discovery",
+      "support": "supported",
+      "configPaths": ["owner"],
+      "commands": ["audit", "plan", "apply", "classify", "properties sync"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /orgs/{org}"],
+      "writeRoutes": [],
+      "readPermissions": ["classic-repo"],
+      "writePermissions": [],
+      "limitations": ["Owner kind is discovered from GitHub and is never declared in configuration."]
+    },
+    {
+      "id": "repository-inventory",
+      "area": "discovery",
+      "support": "supported",
+      "configPaths": ["exclude.repos", "repos"],
+      "commands": ["audit", "plan", "apply", "classify", "properties sync"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": [
+        "GET /orgs/{org}/repos",
+        "GET /user/repos",
+        "GET /users/{username}/repos",
+        "GET /repos/{owner}/{repo}"
+      ],
+      "writeRoutes": [],
+      "readPermissions": ["classic-repo", "repository-metadata-read"],
+      "writePermissions": [],
+      "limitations": ["Another personal account exposes public repositories only; the authenticated owner can expose repositories granted to the token."]
+    },
+    {
+      "id": "audit-expectations",
+      "area": "audit",
+      "support": "observational",
+      "configPaths": ["audit"],
+      "commands": ["audit"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}"],
+      "writeRoutes": [],
+      "readPermissions": ["classic-repo", "repository-metadata-read"],
+      "writePermissions": [],
+      "limitations": ["Audit findings are informational and do not change the command exit code."]
+    },
+    {
+      "id": "repository-features",
+      "area": "repository",
+      "support": "supported",
+      "configPaths": ["features.issues", "features.wiki", "features.projects"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}"],
+      "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "readPermissions": ["classic-repo", "repository-metadata-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": []
+    },
+    {
+      "id": "repository-discussions",
+      "area": "repository",
+      "support": "blocked",
+      "configPaths": ["features.discussions"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}"],
+      "writeRoutes": [],
+      "readPermissions": ["classic-repo", "repository-metadata-read"],
+      "writePermissions": [],
+      "limitations": ["This version observes the field but has no supported REST mutation and always blocks a requested change."]
+    },
+    {
+      "id": "merge-settings",
+      "area": "repository",
+      "support": "supported",
+      "configPaths": ["merge"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}"],
+      "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "readPermissions": ["classic-repo", "repository-metadata-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": []
+    },
+    {
+      "id": "repository-metadata",
+      "area": "repository",
+      "support": "supported",
+      "configPaths": ["repo.description", "repo.homepage", "repo.allow_forking", "repo.web_commit_signoff_required"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}"],
+      "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "readPermissions": ["classic-repo", "repository-metadata-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": []
+    },
+    {
+      "id": "repository-topics",
+      "area": "repository",
+      "support": "supported",
+      "configPaths": ["repo.topics"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}"],
+      "writeRoutes": ["PUT /repos/{owner}/{repo}/topics"],
+      "readPermissions": ["classic-repo", "repository-metadata-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": []
+    },
+    {
+      "id": "secret-scanning-settings",
+      "area": "security",
+      "support": "supported",
+      "configPaths": ["security.secret_scanning", "security.secret_scanning_push_protection"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}"],
+      "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": ["An omitted security_and_analysis field is unreadable and blocks mutation instead of being treated as disabled."]
+    },
+    {
+      "id": "vulnerability-alerts",
+      "area": "security",
+      "support": "supported",
+      "configPaths": ["security.vulnerability_alerts"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/vulnerability-alerts"],
+      "writeRoutes": ["PUT /repos/{owner}/{repo}/vulnerability-alerts", "DELETE /repos/{owner}/{repo}/vulnerability-alerts"],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
+    },
+    {
+      "id": "automated-security-fixes",
+      "area": "security",
+      "support": "supported",
+      "configPaths": ["security.automated_security_fixes"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/automated-security-fixes"],
+      "writeRoutes": ["PUT /repos/{owner}/{repo}/automated-security-fixes", "DELETE /repos/{owner}/{repo}/automated-security-fixes"],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
+    },
+    {
+      "id": "private-vulnerability-reporting",
+      "area": "security",
+      "support": "supported",
+      "configPaths": ["security.private_vulnerability_reporting"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/private-vulnerability-reporting"],
+      "writeRoutes": ["PUT /repos/{owner}/{repo}/private-vulnerability-reporting", "DELETE /repos/{owner}/{repo}/private-vulnerability-reporting"],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
+    },
+    {
+      "id": "code-scanning-default-setup",
+      "area": "security",
+      "support": "supported",
+      "configPaths": ["security.code_scanning_default_setup"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/code-scanning/default-setup"],
+      "writeRoutes": ["PATCH /repos/{owner}/{repo}/code-scanning/default-setup"],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
+    },
+    {
+      "id": "default-branch-rename",
+      "area": "branches",
+      "support": "supported",
+      "configPaths": ["default_branch.name", "default_branch.rename_from"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}", "GET /repos/{owner}/{repo}/contents/{path}"],
+      "writeRoutes": ["POST /repos/{owner}/{repo}/branches/{branch}/rename"],
+      "readPermissions": ["classic-repo", "repository-metadata-read", "repository-contents-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": ["Rename is guarded by rename_from and workflow references are reported but never rewritten."]
+    },
+    {
+      "id": "ensured-branches",
+      "area": "branches",
+      "support": "supported",
+      "configPaths": ["ensure_branches"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/branches/{branch}", "GET /repos/{owner}/{repo}/git/ref/{ref}"],
+      "writeRoutes": ["POST /repos/{owner}/{repo}/git/refs"],
+      "readPermissions": ["classic-repo", "repository-contents-read"],
+      "writePermissions": ["classic-repo", "repository-contents-write"],
+      "limitations": ["A missing branch is created from the current default branch; existing branches are never changed or deleted."]
+    },
+    {
+      "id": "repository-rulesets",
+      "area": "rules",
+      "support": "supported-with-capability-evidence",
+      "configPaths": ["rulesets"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": [
+        "GET /orgs/{org}/rulesets",
+        "GET /repos/{owner}/{repo}/branches/{branch}/protection",
+        "GET /repos/{owner}/{repo}/rulesets",
+        "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}"
+      ],
+      "writeRoutes": ["POST /repos/{owner}/{repo}/rulesets", "PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}"],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": ["Private repositories require positive owner, repository, token, and API evidence; unknown remote rule types are not removed."]
+    },
+    {
+      "id": "deployment-environments",
+      "area": "environments",
+      "support": "supported",
+      "configPaths": ["environments"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/environments", "GET /users/{username}"],
+      "writeRoutes": ["PUT /repos/{owner}/{repo}/environments/{environment_name}"],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": ["Declared reviewers resolve to users only; an observed team reviewer blocks replacement."]
+    },
+    {
+      "id": "create-if-missing-files",
+      "area": "files",
+      "support": "supported",
+      "configPaths": ["files"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/contents/{path}"],
+      "writeRoutes": ["PUT /repos/{owner}/{repo}/contents/{path}"],
+      "readPermissions": ["classic-repo", "repository-contents-read"],
+      "writePermissions": ["classic-repo", "repository-contents-write"],
+      "limitations": ["Only create-if-missing is supported; existing files are never overwritten or deleted."]
+    },
+    {
+      "id": "repository-classification",
+      "area": "classification",
+      "support": "supported",
+      "configPaths": ["classify", "repos.*.type", "types"],
+      "commands": ["classify", "plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/contents/{path}"],
+      "writeRoutes": [],
+      "readPermissions": ["classic-repo", "repository-contents-read"],
+      "writePermissions": [],
+      "limitations": ["Personal accounts use local type declarations because organization custom properties do not apply."]
+    },
+    {
+      "id": "organization-custom-properties",
+      "area": "classification",
+      "support": "organization-only",
+      "configPaths": ["classify.property", "types", "repos.*.type"],
+      "commands": ["audit", "plan", "apply", "classify --apply", "properties sync"],
+      "ownerKinds": ["organization"],
+      "readRoutes": ["GET /orgs/{org}/properties/values"],
+      "writeRoutes": ["PUT /orgs/{org}/properties/schema/{custom_property_name}", "PATCH /orgs/{org}/properties/values"],
+      "readPermissions": ["classic-repo", "organization-custom-properties-read"],
+      "writePermissions": [
+        "classic-repo",
+        "classic-admin-org",
+        "organization-custom-properties-write",
+        "organization-custom-properties-admin"
+      ],
+      "limitations": ["Schema definition requires organization custom-property administration; value assignment requires write access."]
+    }
+  ]
+}

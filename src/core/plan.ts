@@ -18,13 +18,10 @@ const SCALAR_GROUPS = ['features', 'merge', 'security', 'repo'] as const;
  * reported as blocked instead of skipped in silence.
  */
 const NOT_IMPLEMENTED: Record<string, string> = {
-  // Not a gap in effort: GitHub's REST API has no field for this anywhere.
-  // repos/update does not accept has_discussions, and there is no dedicated
-  // endpoint either — enabling Discussions is GraphQL-only as of this
-  // writing. Revisit if that changes.
   'features.discussions': 'not applicable over the REST API',
 };
 
+/** Capability evidence required to plan one repository safely. */
 export interface PlanOptions {
   /** False when the plan does not enforce rulesets on private repositories. */
   rulesetsEnforcedOnPrivate: boolean;
@@ -46,8 +43,6 @@ export function planRepo(
   if (policy.manage === false) return changes;
 
   if (repo.archived) {
-    // An archived repository is read-only on GitHub's side. Reporting changes
-    // that can never be applied would just be noise on every run.
     return changes;
   }
 
@@ -72,9 +67,6 @@ function planScalars(repo: RepoDetail, policy: PolicySet, changes: Change[]): vo
       const key = `${group}.${name}`;
       const current = repo.settings[key];
 
-      // Checked before anything else: an unimplemented policy has no current
-      // value to read, and reporting that as "unknown setting" would blame the
-      // configuration for a gap in this tool.
       const unimplemented = NOT_IMPLEMENTED[key];
       if (unimplemented) {
         changes.push({ repo: repo.name, key, from: current ?? null, to: wanted, blocked: unimplemented });
@@ -141,9 +133,6 @@ function planDefaultBranch(repo: RepoDetail, policy: PolicySet, changes: Change[
       key: 'default_branch.name',
       from: current,
       to: wanted,
-      // The whole point of rename_from is that a branch nobody listed is a
-      // branch nobody thought about. Renaming it anyway would be the tool
-      // deciding something the configuration declined to decide.
       blocked: `current default branch "${current}" is not in rename_from (${renameFrom.join(', ')})`,
     });
     return;
@@ -216,8 +205,6 @@ function planRulesets(
         key: `rulesets.${ruleset.name}`,
         from: null,
         to: describeRuleset(ruleset),
-        // A ruleset that exists but is never enforced is worse than none at
-        // all: it reads as protection that is not there.
         blocked: 'rulesets cannot be managed on this private repository with the current owner plan and token',
       });
     }
@@ -401,8 +388,6 @@ function same(current: unknown, wanted: unknown): boolean {
     const b = [...wanted].map(String).sort();
     return a.every((value, index) => value === b[index]);
   }
-  // GitHub returns an unset description or homepage as an empty string in some
-  // responses and null in others; neither is a reason to plan a change.
   if ((current === '' || current === null) && (wanted === '' || wanted === null)) return true;
   return current === wanted;
 }

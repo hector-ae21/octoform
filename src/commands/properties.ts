@@ -63,9 +63,6 @@ export async function propertiesSync(octokit: Octokit, config: Config): Promise<
     return 0;
   }
 
-  // Only write what differs. This is what makes a second run a no-op rather
-  // than seventeen redundant writes, and it is the same reason `plan` exists:
-  // the tool should be able to say "nothing to do" and mean it.
   const current = await readPropertyValues(octokit, config.owner, property);
   const byType = new Map<string, string[]>();
   for (const [repo, type] of declared) {
