@@ -53,6 +53,34 @@ function operationFor(draft: ChangeDraft): OperationKind {
 const SCALAR_GROUPS = ['features', 'merge', 'security', 'repo'] as const;
 
 /**
+ * Settings GitHub only exposes on a repository covered by Advanced Security.
+ * Outside a public repository, an unreadable value for one of these is
+ * explained by that alone.
+ */
+const ADVANCED_SECURITY_KEYS: ReadonlySet<string> = new Set([
+  'security.secret_scanning',
+  'security.secret_scanning_push_protection',
+  'security.code_scanning_default_setup',
+]);
+
+/**
+ * Explain an unreadable value from evidence already in hand instead of
+ * guessing at a commercial plan. Repository visibility is observed, so where
+ * it settles the question the reason is stated outright; where it does not,
+ * the report says only what it knows.
+ *
+ * @param key - Fully qualified setting key, such as `security.secret_scanning`.
+ * @param visibility - Observed repository visibility.
+ */
+function unreadableReason(key: string, visibility: RepoDetail['visibility']): string {
+  if (visibility !== 'public' && ADVANCED_SECURITY_KEYS.has(key)) {
+    const setting = key.slice(key.indexOf('.') + 1).replaceAll('_', ' ');
+    return `${setting} is not available on a ${visibility} repository without Advanced Security`;
+  }
+  return 'current value could not be read, so the change was not attempted';
+}
+
+/**
  * Policies octoform can express but cannot yet carry out. Declaring one and
  * having it silently do nothing is the worst outcome available, so they are
  * reported as blocked instead of skipped in silence.
@@ -137,7 +165,7 @@ function planScalars(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]
           key,
           from: current,
           to: wanted,
-          blocked: 'current value could not be read, probably not available on this plan',
+          blocked: unreadableReason(key, repo.visibility),
         });
         continue;
       }

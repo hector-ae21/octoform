@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { plan } from '../src/commands/plan.js';
+import { plan, summarizePlan } from '../src/commands/plan.js';
 import type { OwnerScope } from '../src/types/index.js';
 
 function apiError(status: number, message: string): Error {
@@ -62,4 +62,30 @@ test('a personal owner can plan rulesets for a private repository when the capab
   assert.equal(result.changes.length, 1);
   assert.equal(result.changes[0]?.key, 'rulesets.protect');
   assert.ok(routes.includes('GET /repos/{owner}/{repo}/branches/{branch}/protection'));
+});
+
+test('the summary reports repositories carrying blocked work, not only those blocked outright', () => {
+  const change = (repo: string, key: string) => ({ repo, key, from: false, to: true }) as never;
+  const summary = summarizePlan({
+    changes: [change('both', 'merge.allow_squash'), change('only-changed', 'merge.allow_squash')],
+    blocked: [
+      change('both', 'security.secret_scanning'),
+      change('only-blocked', 'security.secret_scanning'),
+    ],
+    errors: [],
+    scanned: 4,
+  });
+
+  assert.equal(summary.changed, 2);
+  assert.equal(summary.blocked, 1, 'exclusive buckets must still sum to what was scanned');
+  assert.equal(
+    summary.blockedRepositories,
+    2,
+    'a repository that also changed still carries blocked work',
+  );
+  assert.equal(summary.unchanged, 1);
+  assert.equal(
+    summary.changed + summary.blocked + summary.failed + summary.unchanged,
+    summary.scanned,
+  );
 });

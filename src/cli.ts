@@ -662,11 +662,25 @@ function mergeInto(totals: Record<string, number>, summary: Record<string, numbe
   }
 }
 
+/**
+ * The buckets are exclusive so they sum to what was scanned, which means a
+ * repository that both changed and was blocked is counted as changed. Left
+ * there, the total would understate how much of the run cannot be applied, so
+ * the wider count is reported alongside it rather than folded into it.
+ */
 function printTotals(totals: Record<string, number>, ownerFailures: number): void {
-  const parts = Object.entries(totals).map(([key, value]) => `${key}: ${value}`);
+  const { blockedRepositories, ...buckets } = totals;
+  const parts = Object.entries(buckets).map(([key, value]) => `${key}: ${value}`);
   if (ownerFailures > 0) parts.push(`owners unreachable: ${ownerFailures}`);
   if (parts.length === 0) return;
   console.log(`\nTotal — ${parts.join(', ')}`);
+  const alsoChanged = (blockedRepositories ?? 0) - (buckets.blocked ?? 0);
+  if (alsoChanged > 0) {
+    console.log(
+      `${blockedRepositories} repositories carry blocked work; ${alsoChanged} of them are ` +
+        'counted above as changed because they also have changes to apply.',
+    );
+  }
 }
 
 /**
