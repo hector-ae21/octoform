@@ -65,6 +65,7 @@ export { plan, summarizePlan } from './commands/plan.js';
 export { apply, summarizeApply } from './commands/apply.js';
 export { classify } from './commands/classify.js';
 export { propertiesSync } from './commands/properties.js';
+export { INVITATION_ROLES, convertMember, inviteMember, removeMember } from './commands/members.js';
 export { validateConfig, migrateConfig } from './commands/config.js';
 export { selectOwners, parseRepoSelector, narrowToQualifiedRepo } from './config/selectors.js';
 export { migrateToMultiOwner } from './config/migrate.js';
@@ -135,6 +136,7 @@ export type {
   InspectedRepository,
   LabelPolicy,
   Managed,
+  MembershipOptions,
   MergeQueueRule,
   MergeCommitMessage,
   MergeCommitTitle,

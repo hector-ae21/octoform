@@ -24,3 +24,4 @@ export * from './graphql.js';
 export * from './plan-artifact.js';
 export * from './token.js';
 export * from './inspect.js';
+export * from './members.js';

@@ -16,7 +16,7 @@
   },
   "summary": {
     "total": 1338,
-    "implemented": 91,
+    "implemented": 94,
     "deprecated": 47,
     "byTransport": {
       "graphql": 274,
@@ -31,13 +31,13 @@
     },
     "byTarget": {
       "0.3.1": 37,
-      "0.5.0": 317,
-      "0.6.0": 980,
+      "0.5.0": 319,
+      "0.6.0": 978,
       "none": 4
     },
     "byImplementedIn": {
       "0.3.1": 37,
-      "0.5.0": 54
+      "0.5.0": 57
     }
   },
   "operations": [
@@ -3825,10 +3825,10 @@
       "tag": "orgs",
       "summary": "Create an organization invitation",
       "disposition": "sensitive-declarative",
-      "target": "0.6.0",
+      "target": "0.5.0",
       "rationale": "Durable access, secret, identity, webhook, runner, or trust state with elevated impact.",
       "rule": "access-and-secrets",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/orgs/members#create-an-organization-invitation"
@@ -4129,10 +4129,10 @@
       "tag": "orgs",
       "summary": "Remove organization membership for a user",
       "disposition": "sensitive-declarative",
-      "target": "0.6.0",
+      "target": "0.5.0",
       "rationale": "Durable access, secret, identity, webhook, runner, or trust state with elevated impact.",
       "rule": "access-and-secrets",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/orgs/members#remove-organization-membership-for-a-user"
@@ -4484,7 +4484,7 @@
       "target": "0.5.0",
       "rationale": "Membership conversion is an explicit actor-driven access workflow.",
       "rule": "membership-conversion",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/orgs/outside-collaborators#convert-an-organization-member-to-outside-collaborator"

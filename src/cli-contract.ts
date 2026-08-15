@@ -124,6 +124,33 @@ export const CLI_CONTRACT: CliContract = {
       options: ['config', 'owner', 'format', 'help'],
       classicScopes: ['read:org'],
     },
+    {
+      path: ['members', 'invite'],
+      usage: 'octoform members invite  --user <login> [--role <role>] [--owner <login>] [--yes]',
+      summary:
+        'Invite one person to the organization. Asks first, and emails them. Organizations only.',
+      mode: 'confirmed-write',
+      options: ['config', 'owner', 'user', 'role', 'yes', 'help'],
+      classicScopes: ['admin:org'],
+    },
+    {
+      path: ['members', 'remove'],
+      usage: 'octoform members remove  --user <login> [--owner <login>] [--yes]',
+      summary:
+        'Remove one person from the organization, or withdraw the invitation they never answered. Refused for the last owner and for the account running it.',
+      mode: 'confirmed-write',
+      options: ['config', 'owner', 'user', 'yes', 'help'],
+      classicScopes: ['admin:org'],
+    },
+    {
+      path: ['members', 'convert'],
+      usage: 'octoform members convert --user <login> [--owner <login>] [--yes]',
+      summary:
+        'Turn one member into an outside collaborator, keeping only the repositories their teams allow. Guarded like a removal.',
+      mode: 'confirmed-write',
+      options: ['config', 'owner', 'user', 'yes', 'help'],
+      classicScopes: ['admin:org'],
+    },
   ],
   options: [
     {
@@ -143,6 +170,17 @@ export const CLI_CONTRACT: CliContract = {
       description: 'Limit to one repository; accepts "owner/name" to disambiguate',
     },
     { id: 'type', syntax: '--type <type>', description: 'Limit to repositories of one type' },
+    {
+      id: 'user',
+      syntax: '--user <login>',
+      description: 'members: the one person the command is about',
+    },
+    {
+      id: 'role',
+      syntax: '--role <role>',
+      description: 'members invite: admin, direct_member or billing_manager',
+      default: 'direct_member',
+    },
     { id: 'yes', syntax: '--yes, -y', description: 'Apply without asking for confirmation' },
     {
       id: 'apply',
