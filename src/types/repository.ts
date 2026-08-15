@@ -7,6 +7,7 @@ import type {
   RulesetEnforcement,
   RulesetTarget,
 } from './config.js';
+import type { Resolution, StoredActor } from './identity.js';
 
 /**
  * Whether `owner` turned out to be an organisation or a personal account.
@@ -34,9 +35,8 @@ export type SettingValue = boolean | string | string[] | null | typeof UNREADABL
 
 /**
  * A ruleset as it exists on GitHub right now, reduced to the parts octoform
- * manages. Everything else GitHub stores on a ruleset — bypass actors, rules
- * octoform does not model — is deliberately absent: `plan` must not offer to
- * remove a rule it never knew how to describe.
+ * manages, plus the parts it must carry back untouched: `plan` must not offer
+ * to remove a rule it never knew how to describe.
  */
 export interface ExistingRuleset {
   id: number;
@@ -45,6 +45,14 @@ export interface ExistingRuleset {
   enforcement: RulesetEnforcement;
   include: string[];
   exclude: string[];
+  /**
+   * Who GitHub currently lets past these rules, by id.
+   *
+   * Kept for the same reason `unmodelled` is: updating a ruleset replaces its
+   * bypass list too, so a policy that says nothing about bypass would revoke
+   * every exception if this were dropped.
+   */
+  bypass: StoredActor[];
   /** The rules octoform models, in the same flat shape a policy declares. */
   rules: RuleSettings;
   /**
@@ -113,6 +121,14 @@ export interface RepoStructure {
    * none existing.
    */
   workflowsUploadingCodeScanning?: string[];
+  /**
+   * Every name a ruleset policy has to send as a number, looked up once.
+   *
+   * Resolved while reading rather than while applying, so a team nobody can
+   * find is a blocked change in the plan instead of an exception halfway
+   * through writing one.
+   */
+  resolved?: Resolution;
 }
 
 /**

@@ -36,6 +36,7 @@ after(() => rmSync(dir, { recursive: true, force: true }));
 
 const OPTIONS = {
   rulesetCapability: capability('supported', 'assumed in this suite', 'permission'),
+  ownerKind: 'org' as const,
 };
 
 /** How many generated cases each property runs over. */

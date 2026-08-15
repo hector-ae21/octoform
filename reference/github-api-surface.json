@@ -15,32 +15,48 @@
     }
   },
   "summary": {
-    "total": 1337,
-    "implemented": 44,
+    "total": 1338,
+    "implemented": 46,
     "deprecated": 47,
     "byTransport": {
       "graphql": 274,
-      "rest": 1063
+      "rest": 1064
     },
     "byDisposition": {
       "declarative": 65,
       "excluded": 4,
-      "observational": 541,
+      "observational": 542,
       "operational": 432,
       "sensitive-declarative": 295
     },
     "byTarget": {
       "0.3.1": 37,
-      "0.5.0": 295,
+      "0.5.0": 296,
       "0.6.0": 1001,
       "none": 4
     },
     "byImplementedIn": {
       "0.3.1": 37,
-      "0.5.0": 7
+      "0.5.0": 9
     }
   },
   "operations": [
+    {
+      "transport": "rest",
+      "operation": "apps/get-by-slug",
+      "method": "GET",
+      "path": "/apps/{app_slug}",
+      "tag": "apps",
+      "summary": "Get an app",
+      "disposition": "observational",
+      "target": "0.5.0",
+      "rationale": "Read-only inventory, capability evidence, or audit data.",
+      "rule": "rest-read",
+      "status": "implemented-v0.5.0",
+      "deprecated": false,
+      "githubApps": true,
+      "documentation": "https://docs.github.com/rest/apps/apps#get-an-app"
+    },
     {
       "transport": "rest",
       "operation": "orgs/delete",
@@ -5812,7 +5828,7 @@
       "target": "0.5.0",
       "rationale": "Read-only inventory, capability evidence, or audit data.",
       "rule": "rest-read",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/teams/teams#get-a-team-by-name"

@@ -11,15 +11,19 @@
  * back. The tests round-trip that description rather than each rule by hand.
  */
 
+import { bypassFor, describeBypass, sameBypass, storedWorkflow } from './identity.js';
 import type {
   CodeScanningRule,
   ExistingRuleset,
   MergeQueueRule,
   PatternRule,
+  Resolution,
   RuleSettings,
   RulesetEnforcement,
   RulesetPolicy,
   RulesetTarget,
+  StoredActor,
+  WorkflowRequirement,
 } from '../types/index.js';
 
 /** A GitHub rule as it is stored: a type, and parameters for some of them. */
@@ -27,6 +31,18 @@ interface RawRule {
   type: string;
   parameters?: Record<string, unknown>;
 }
+
+/**
+ * What a rule needs beyond the policy itself: the names already looked up, and
+ * the repository a required workflow belongs to when it does not name one.
+ */
+export interface RuleContext {
+  resolution: Resolution;
+  /** `owner/name` of the repository being managed. */
+  repository: string;
+}
+
+const NO_CONTEXT: RuleContext = { resolution: new Map(), repository: '' };
 
 /**
  * Rules that carry nothing but their own presence, by the policy key that
@@ -49,7 +65,7 @@ interface ParameterRule {
   type: string;
   /** Declaring any of these declares the rule. */
   keys: readonly (keyof RuleSettings)[];
-  write: (settings: RuleSettings) => Record<string, unknown>;
+  write: (settings: RuleSettings, context: RuleContext) => Record<string, unknown>;
   read: (parameters: Record<string, unknown>) => Partial<RuleSettings>;
 }
 
@@ -190,6 +206,20 @@ const PARAMETER_RULES: readonly ParameterRule[] = [
       copilot_code_review: parameters as RuleSettings['copilot_code_review'],
     }),
   },
+  {
+    type: 'workflows',
+    keys: ['required_workflows', 'workflows_not_enforced_on_create'],
+    write: (settings, context) => ({
+      workflows: (settings.required_workflows ?? []).map((workflow) =>
+        storedWorkflow(workflow, context.resolution, context.repository),
+      ),
+      do_not_enforce_on_create: settings.workflows_not_enforced_on_create ?? false,
+    }),
+    read: (parameters) => ({
+      required_workflows: (parameters['workflows'] ?? []) as WorkflowRequirement[],
+      workflows_not_enforced_on_create: parameters['do_not_enforce_on_create'] === true,
+    }),
+  },
   patternRule('commit_message_pattern', 'commit_message_pattern'),
   patternRule('commit_author_email_pattern', 'commit_author_email_pattern'),
   patternRule('committer_email_pattern', 'committer_email_pattern'),
@@ -236,6 +266,7 @@ export function readRuleset(raw: {
   target?: string;
   enforcement?: string;
   conditions?: { ref_name?: { include?: string[]; exclude?: string[] } };
+  bypass_actors?: StoredActor[];
   rules?: RawRule[];
 }): ExistingRuleset {
   const rules: RuleSettings = {};
@@ -267,6 +298,11 @@ export function readRuleset(raw: {
     enforcement: (raw.enforcement ?? 'active') as RulesetEnforcement,
     include: (raw.conditions?.ref_name?.include ?? []).map(fromRefName),
     exclude: (raw.conditions?.ref_name?.exclude ?? []).map(fromRefName),
+    bypass: (raw.bypass_actors ?? []).map((actor) => ({
+      actor_type: actor.actor_type,
+      actor_id: actor.actor_id ?? null,
+      bypass_mode: actor.bypass_mode ?? 'always',
+    })),
     rules,
     unmodelled,
   };
@@ -283,8 +319,13 @@ export function readRuleset(raw: {
  *
  * @param policy - The declared ruleset.
  * @param existing - The stored ruleset, when there is one to preserve.
+ * @param context - Names already looked up, for the rules that need numbers.
  */
-export function rulesFor(policy: RulesetPolicy, existing?: ExistingRuleset): RawRule[] {
+export function rulesFor(
+  policy: RulesetPolicy,
+  existing?: ExistingRuleset,
+  context: RuleContext = NO_CONTEXT,
+): RawRule[] {
   const settings: RuleSettings = { ...existing?.rules };
   for (const key of RULE_KEYS) {
     const declared = (policy as RuleSettings)[key];
@@ -299,7 +340,7 @@ export function rulesFor(policy: RulesetPolicy, existing?: ExistingRuleset): Raw
     if (!binding.keys.some((key) => settings[key] !== undefined)) continue;
     /** `block_update: false` and `require_pull_request: false` remove the rule. */
     if (settings[binding.keys[0] as keyof RuleSettings] === false) continue;
-    rules.push({ type: binding.type, parameters: binding.write(settings) });
+    rules.push({ type: binding.type, parameters: binding.write(settings, context) });
   }
 
   return [...rules, ...((existing?.unmodelled ?? []) as RawRule[])];
@@ -309,12 +350,14 @@ export function rulesFor(policy: RulesetPolicy, existing?: ExistingRuleset): Raw
 export function rulesetBody(
   policy: RulesetPolicy,
   existing?: ExistingRuleset,
+  context: RuleContext = NO_CONTEXT,
 ): Record<string, unknown> {
   const target = targetOf(policy);
   return {
     name: policy.name,
     target: target?.target ?? 'branch',
     enforcement: policy.enforcement ?? 'active',
+    bypass_actors: bypassFor(policy, existing?.bypass, context.resolution),
     conditions:
       target?.target === 'push'
         ? {}
@@ -324,7 +367,7 @@ export function rulesetBody(
               exclude: (policy.exclude ?? []).map((ref) => toRefName(ref, target?.target)),
             },
           },
-    rules: rulesFor(policy, existing),
+    rules: rulesFor(policy, existing, context),
   };
 }
 
@@ -335,7 +378,11 @@ export function rulesetBody(
  * rule octoform models but this policy says nothing about, are both left out
  * of the question — otherwise every run would offer to strip them.
  */
-export function sameRuleset(current: ExistingRuleset, declared: RulesetPolicy): boolean {
+export function sameRuleset(
+  current: ExistingRuleset,
+  declared: RulesetPolicy,
+  context: RuleContext = NO_CONTEXT,
+): boolean {
   const target = targetOf(declared);
   if (target && target.target !== current.target) return false;
   if (target && !sameList(current.include, target.include)) return false;
@@ -343,16 +390,37 @@ export function sameRuleset(current: ExistingRuleset, declared: RulesetPolicy): 
   if (declared.enforcement !== undefined && declared.enforcement !== current.enforcement) {
     return false;
   }
+  if (!sameBypass(current.bypass, declared, context.resolution)) return false;
 
   return RULE_KEYS.every((key) => {
     const wanted = (declared as RuleSettings)[key];
     if (wanted === undefined) return true;
+    /**
+     * A required workflow names its repository and GitHub stores its id, so
+     * the two forms are compared as the one GitHub keeps rather than as text
+     * that could never match.
+     */
+    if (key === 'required_workflows') {
+      return same(
+        workflowForms(current.rules.required_workflows, context),
+        workflowForms(wanted as WorkflowRequirement[], context),
+      );
+    }
     return same(current.rules[key], wanted);
   });
 }
 
+function workflowForms(
+  workflows: readonly WorkflowRequirement[] | undefined,
+  context: RuleContext,
+): Record<string, unknown>[] {
+  return (workflows ?? []).map((workflow) =>
+    storedWorkflow(workflow, context.resolution, context.repository),
+  );
+}
+
 /** A ruleset in one line, for the report. */
-export function describeRuleset(policy: RulesetPolicy): string {
+export function describeRuleset(policy: RulesetPolicy, context: RuleContext = NO_CONTEXT): string {
   const target = targetOf(policy);
   const parts = [
     target?.target === 'push'
@@ -362,17 +430,26 @@ export function describeRuleset(policy: RulesetPolicy): string {
   if (policy.exclude?.length) parts.push(`except ${policy.exclude.join(', ')}`);
   if (policy.enforcement && policy.enforcement !== 'active') parts.push(policy.enforcement);
   parts.push(...ruleSummary(policy));
+  if (policy.bypass !== undefined) {
+    parts.push(
+      describeBypass(bypassFor(policy, undefined, context.resolution), context.resolution),
+    );
+  }
   return parts.join('; ');
 }
 
 /** The stored ruleset in the same one-line form, so a diff reads as a diff. */
-export function describeExistingRuleset(current: ExistingRuleset): string {
+export function describeExistingRuleset(
+  current: ExistingRuleset,
+  context: RuleContext = NO_CONTEXT,
+): string {
   const parts = [
     current.target === 'push' ? 'every push' : `${current.target}: ${current.include.join(', ')}`,
   ];
   if (current.exclude.length) parts.push(`except ${current.exclude.join(', ')}`);
   if (current.enforcement !== 'active') parts.push(current.enforcement);
   parts.push(...ruleSummary(current.rules));
+  if (current.bypass.length) parts.push(describeBypass(current.bypass, context.resolution));
   if (current.unmodelled.length) parts.push(`${current.unmodelled.length} unmanaged rule(s)`);
   return parts.join('; ');
 }
@@ -388,6 +465,9 @@ function ruleSummary(settings: RuleSettings): string[] {
     parts.push(`checks: ${settings.required_checks.join(', ')}`);
   if (settings.required_deployments?.length) {
     parts.push(`deployments: ${settings.required_deployments.join(', ')}`);
+  }
+  if (settings.required_workflows?.length) {
+    parts.push(`workflows: ${settings.required_workflows.map((w) => w.path).join(', ')}`);
   }
   if (settings.block_force_push) parts.push('no force-push');
   if (settings.block_deletion) parts.push('no deletion');
@@ -453,10 +533,30 @@ function sameList(current: readonly string[], wanted: readonly string[]): boolea
 
 function same(current: unknown, wanted: unknown): boolean {
   if (Array.isArray(current) && Array.isArray(wanted)) {
-    return sameList(current.map(String), wanted.map(String));
+    return sameList(current.map(canonical), wanted.map(canonical));
   }
   if (typeof current === 'object' && typeof wanted === 'object') {
-    return JSON.stringify(current ?? null) === JSON.stringify(wanted ?? null);
+    return canonical(current) === canonical(wanted);
   }
   return current === wanted;
+}
+
+/**
+ * A value as one comparable string, with object keys in a fixed order.
+ *
+ * Rules whose value is a list of objects — required workflows, code scanning
+ * tools — are the reason this cannot be `String`: that renders every object as
+ * `[object Object]`, so two different lists of the same length would compare
+ * as identical and the difference would never be planned. Sorting the keys is
+ * the other half, since a policy writes them in whatever order reads best and
+ * GitHub returns them in its own.
+ */
+function canonical(value: unknown): string {
+  if (value === null || value === undefined) return 'null';
+  if (typeof value !== 'object') return String(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, held]) => held !== undefined)
+    .sort(([a], [b]) => a.localeCompare(b));
+  return `{${entries.map(([key, held]) => `${key}:${canonical(held)}`).join(',')}}`;
 }

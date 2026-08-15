@@ -7,6 +7,7 @@
  */
 
 export * from './config.js';
+export * from './identity.js';
 export * from './repository.js';
 export * from './github.js';
 export * from './shape.js';

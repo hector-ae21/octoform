@@ -1,6 +1,8 @@
 import { isManaged } from '../config/resolve.js';
 import { UNREADABLE } from '../config/sentinels.js';
 import { describeProtection, sameProtection } from './branch-protection.js';
+import { bypassProblems, workflowProblems } from './identity.js';
+import type { RuleContext } from './rulesets.js';
 import {
   coversBranch,
   describeExistingRuleset,
@@ -194,7 +196,7 @@ export function planRepo(
   planDefaultBranch(repo, policy, drafts);
   planEnsureBranches(repo, policy, drafts);
   planBranchProtection(repo, policy, drafts);
-  planRulesets(repo, policy, options, drafts);
+  planRulesets(owner, repo, policy, options, drafts);
   refuseOverlappingProtection(repo, policy, drafts);
   planEnvironments(repo, policy, drafts);
   planFiles(repo, policy, drafts);
@@ -560,6 +562,7 @@ function block(changes: ChangeDraft[], repo: string, key: string, reason: string
 }
 
 function planRulesets(
+  owner: string,
   repo: RepoDetail,
   policy: PolicySet,
   options: PlanOptions,
@@ -581,6 +584,10 @@ function planRulesets(
   }
 
   const existing = repo.structure?.rulesets;
+  const context: RuleContext = {
+    resolution: repo.structure?.resolved ?? new Map(),
+    repository: `${owner}/${repo.name}`,
+  };
 
   for (const declared of policy.rulesets) {
     const key = `rulesets.${declared.name}`;
@@ -590,7 +597,8 @@ function planRulesets(
      * to match, and two disagree with each other; guessing either way would
      * apply protection to refs nobody named.
      */
-    if (targetOf(declared) === null) {
+    const target = targetOf(declared);
+    if (target === null) {
       changes.push({
         repo: repo.name,
         key,
@@ -602,12 +610,33 @@ function planRulesets(
       continue;
     }
 
+    /**
+     * A name that did not resolve stops the whole ruleset, not just the actor
+     * it names. Sending the rest would create a ruleset that enforces
+     * everything it was asked to and lets nobody past — the opposite of the
+     * exception somebody was trying to grant.
+     */
+    const problems = [
+      ...bypassProblems(declared, context.resolution, options.ownerKind, target.target),
+      ...workflowProblems(declared, context.resolution, context.repository),
+    ];
+    if (problems.length > 0) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: null,
+        to: describeRuleset(declared, context),
+        blocked: problems.join('; '),
+      });
+      continue;
+    }
+
     if (existing === undefined) {
       changes.push({
         repo: repo.name,
         key,
         from: UNREADABLE,
-        to: describeRuleset(declared),
+        to: describeRuleset(declared, context),
         blocked: 'could not read the existing rulesets',
       });
       continue;
@@ -619,19 +648,19 @@ function planRulesets(
         repo: repo.name,
         key,
         from: null,
-        to: describeRuleset(declared),
-        payload: { ruleset: declared },
+        to: describeRuleset(declared, context),
+        payload: { ruleset: declared, context },
       });
       continue;
     }
-    if (sameRuleset(current, declared)) continue;
+    if (sameRuleset(current, declared, context)) continue;
 
     changes.push({
       repo: repo.name,
       key,
-      from: describeExistingRuleset(current),
-      to: describeRuleset(declared),
-      payload: { ruleset: declared, id: current.id, existing: current },
+      from: describeExistingRuleset(current, context),
+      to: describeRuleset(declared, context),
+      payload: { ruleset: declared, id: current.id, existing: current, context },
     });
   }
 }

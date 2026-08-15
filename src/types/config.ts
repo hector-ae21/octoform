@@ -252,6 +252,73 @@ export interface RuleSettings {
   restricted_file_extensions?: string[];
   max_file_size?: number;
   max_file_path_length?: number;
+
+  required_workflows?: WorkflowRequirement[];
+  /** Let a branch be created without the required workflows having run. */
+  workflows_not_enforced_on_create?: boolean;
+}
+
+/**
+ * A workflow that has to pass before a change reaches a targeted ref.
+ *
+ * GitHub identifies the workflow's repository by numeric id, not by name, so
+ * `repository` is resolved before the rule can be sent, and `repository_id` is
+ * the form the rule comes back in. A policy normally writes the name; writing
+ * the number instead is allowed and skips the lookup, which is the only way to
+ * name a repository the token cannot read.
+ */
+export interface WorkflowRequirement {
+  /** Path to the workflow file from the root of its repository. */
+  path: string;
+  /** `owner/name` of the repository holding it. Defaults to this repository. */
+  repository?: string;
+  /** The id of {@link WorkflowRequirement.repository}, resolved or written. */
+  repository_id?: number;
+  /** Branch or tag to take the file from. */
+  ref?: string;
+  /** Commit to take the file from. */
+  sha?: string;
+}
+
+/**
+ * When an actor may bypass a ruleset.
+ *
+ * `pull_request` only lets the actor past on a pull request, and GitHub
+ * accepts it on branch rulesets only. `exempt` skips the rules entirely and
+ * writes no bypass entry to the audit log, so it is the one mode that leaves
+ * no trace of having been used.
+ */
+export type BypassMode = 'always' | 'pull_request' | 'exempt';
+
+/**
+ * Actors that may bypass a ruleset, grouped by the mode they bypass in.
+ *
+ * Grouping by mode rather than listing each actor with its own is what keeps
+ * the common case — one exception, granted to several people at once — from
+ * repeating the mode on every line. A policy that needs two modes writes two
+ * groups.
+ *
+ * Everything here is named except `roles`. GitHub's ruleset endpoints take a
+ * repository role as a numeric id, and its REST surface has no route that maps
+ * a repository-role name to one: only *organisation* roles can be listed. So
+ * the number is what a policy writes, rather than a name octoform would have
+ * to translate through a table it cannot verify.
+ */
+export interface RulesetBypass {
+  /** Defaults to `always`. */
+  mode?: BypassMode;
+  /** GitHub logins. */
+  users?: string[];
+  /** Team slugs. Organisation repositories only. */
+  teams?: string[];
+  /** GitHub App slugs. */
+  apps?: string[];
+  /** Repository role ids. */
+  roles?: number[];
+  /** Every deploy key on the repository, which GitHub grants as one actor. */
+  deploy_keys?: boolean;
+  /** Organisation owners. Organisation repositories only. */
+  organization_admins?: boolean;
 }
 
 /**
@@ -273,6 +340,11 @@ export interface RulesetPolicy extends RuleSettings {
   /** Refs matching any of these are exempt, whatever the target matched. */
   exclude?: string[];
   enforcement?: RulesetEnforcement;
+  /**
+   * Who may bypass these rules. Omitting this keeps whoever GitHub already
+   * lets past; an empty list is what removes them.
+   */
+  bypass?: RulesetBypass[];
 }
 
 /**

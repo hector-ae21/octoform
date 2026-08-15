@@ -63,8 +63,8 @@ const dispositions = new Set([
 test('the generated API surface has valid complete dispositions', () => {
   assert.equal(register.schemaVersion, config.schemaVersion);
   assert.equal(register.summary.total, register.operations.length);
-  assert.equal(register.summary.total, 1_337);
-  assert.equal(register.summary.byTransport.rest, 1_063);
+  assert.equal(register.summary.total, 1_338);
+  assert.equal(register.summary.byTransport.rest, 1_064);
   assert.equal(register.summary.byTransport.graphql, 274);
   assert.equal(register.generatedFrom.rest.apiVersion, '2026-03-10');
   assert.match(register.generatedFrom.rest.commit, /^[0-9a-f]{40}$/);

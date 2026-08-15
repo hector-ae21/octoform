@@ -9,6 +9,7 @@
       "sha256": "6f36bc90e67debdb256880d0c5daaaba0afa8ce7bde343db7cc7f608492a997f"
     },
     "scopePrefixes": [
+      "/apps/{app_slug}",
       "/user",
       "/users/{username}",
       "/orgs/{org}",
@@ -384,7 +385,9 @@
         "DELETE /repos/{owner}/{repo}/immutable-releases",
         "PUT /repos/{owner}/{repo}/branches/{branch}/protection",
         "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
-        "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures"
+        "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
+        "GET /orgs/{org}/teams/{team_slug}",
+        "GET /apps/{app_slug}"
       ]
     },
     "reviewedOperations": [
@@ -558,6 +561,7 @@
       "DELETE /users/{username}/packages/{package_type}/{package_name} :: packages/delete-package-for-user",
       "DELETE /users/{username}/packages/{package_type}/{package_name}/versions/{package_version_id} :: packages/delete-package-version-for-user",
       "DELETE /users/{username}/projectsV2/{project_number}/items/{item_id} :: projects/delete-item-for-user",
+      "GET /apps/{app_slug} :: apps/get-by-slug",
       "GET /orgs/{org} :: orgs/get",
       "GET /orgs/{org}/actions/cache/usage :: actions/get-actions-cache-usage-for-org",
       "GET /orgs/{org}/actions/cache/usage-by-repository :: actions/get-actions-cache-usage-by-repo-for-org",

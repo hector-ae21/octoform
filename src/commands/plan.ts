@@ -73,7 +73,7 @@ export async function plan(
       const detail = await getRepoDetail(octokit, scope.owner, repo, policy);
       return {
         repo: repo.name,
-        changes: planRepo(scope.owner, detail, policy, { rulesetCapability }),
+        changes: planRepo(scope.owner, detail, policy, { rulesetCapability, ownerKind: kind }),
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
