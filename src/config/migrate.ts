@@ -96,6 +96,63 @@ export function migrateToMultiOwner(raw: string, sourcePath: string): MigratedCo
 }
 
 /**
+ * Move an imported file's root `repos` block under the account it belongs to.
+ *
+ * The block is legal beside a root `owner` and rejected beside `owners`, so
+ * once the root file is converted this one has to move too. It moves rather
+ * than being rewritten, for the same reason the root conversion does: a moved
+ * block keeps the comments written above its keys.
+ *
+ * The account comes from the root file, not from this one — an imported file
+ * has no `owner` of its own, which is exactly why its repositories were
+ * ambiguous in the first place.
+ *
+ * @param raw - Contents of the imported file.
+ * @param owner - Account login the root file declares.
+ * @param sourcePath - Path, for error messages.
+ */
+export function moveRepositoriesUnderOwner(
+  raw: string,
+  owner: string,
+  sourcePath: string,
+): MigratedConfig {
+  const doc = parseDocument(raw);
+  if (doc.errors.length > 0) {
+    throw new ConfigError(`${sourcePath}: ${doc.errors[0]?.message ?? 'invalid YAML'}`);
+  }
+  if (!(doc.contents instanceof YAMLMap)) {
+    throw new ConfigError(`${sourcePath} is not a YAML mapping.`);
+  }
+  const root = doc.contents as YAMLMap;
+
+  const reposPair = root.items.find((pair) => keyName(pair) === 'repos');
+  if (!reposPair) {
+    throw new ConfigError(`${sourcePath} has no root "repos" — there is nothing to move.`);
+  }
+  if (root.items.some((pair) => keyName(pair) === 'owners')) {
+    throw new ConfigError(
+      `${sourcePath} already declares "owners" alongside a root "repos". Move the block by ` +
+        `hand: octoform cannot tell which account those repositories belong to.`,
+    );
+  }
+
+  const insertAt = root.items.indexOf(reposPair);
+  root.items = root.items.filter((pair) => pair !== reposPair);
+
+  const ownerBlock = new YAMLMap();
+  ownerBlock.items = [reposPair];
+  const owners = new YAMLMap();
+  owners.set(owner, ownerBlock);
+  root.items.splice(
+    Math.min(insertAt, root.items.length),
+    0,
+    new Pair(new Scalar('owners'), owners),
+  );
+
+  return { yaml: doc.toString(), owner };
+}
+
+/**
  * Whether a file binds policy to bare repository names at its own root.
  *
  * Legal beside a root `owner`, and rejected beside `owners`: once more than

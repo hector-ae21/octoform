@@ -1,8 +1,12 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve, sep } from 'node:path';
 import { ConfigError, loadConfig, loadConfigWithSources } from '../config/resolve.js';
-import { declaresRootRepositories, migrateToMultiOwner } from '../config/migrate.js';
+import {
+  declaresRootRepositories,
+  migrateToMultiOwner,
+  moveRepositoriesUnderOwner,
+} from '../config/migrate.js';
 import type { MigrateOptions } from '../types/index.js';
 
 /**
@@ -33,57 +37,75 @@ export function validateConfig(path: string): number {
  * asked for explicitly.
  */
 export function migrateConfig(path: string, options: MigrateOptions = {}): number {
-  const raw = readFileSync(path, 'utf8');
-  const migrated = migrateToMultiOwner(raw, path);
-  refuseStrandedImports(path);
+  const migrated = migrateToMultiOwner(readFileSync(path, 'utf8'), path);
+  const stranded = strandedImports(path).map((source) => ({
+    path: source,
+    // Shown the way the root file declares it, rather than as the absolute
+    // path resolution produced, so the preview matches what is in `imports`.
+    shown: relative(dirname(path), source).split(sep).join('/'),
+    ...moveRepositoriesUnderOwner(readFileSync(source, 'utf8'), migrated.owner, source),
+  }));
+  const files = [{ path, shown: path, ...migrated }, ...stranded];
 
   if (!options.write) {
-    console.log(migrated.yaml);
-    console.error(`\nPreview only. Re-run with --write to update ${path} in place.`);
+    for (const file of files) {
+      console.log(`# ${file.shown}`);
+      console.log(file.yaml);
+    }
+    console.error(
+      `\nPreview only. Re-run with --write to update ${describe(files.length)} in place.`,
+    );
     return 0;
   }
 
-  const dirty = uncommittedChanges(path);
-  if (dirty === true) {
+  /**
+   * Every file is checked before any of them is written. A migration that
+   * converted the root and then refused an import would leave exactly the
+   * broken state this whole feature exists to avoid.
+   */
+  const states = files.map((file) => ({ ...file, dirty: uncommittedChanges(file.path) }));
+  const blocked = states.filter((file) => file.dirty === true);
+  if (blocked.length > 0) {
     throw new ConfigError(
-      `${path} has uncommitted changes. Commit or stash them first, so the migration can be ` +
-        `reviewed as its own diff.`,
+      `${blocked.map((file) => file.shown).join(', ')} ${blocked.length === 1 ? 'has' : 'have'} ` +
+        `uncommitted changes. Commit or stash them first, so the migration can be reviewed as ` +
+        `its own diff. Nothing was written.`,
     );
   }
 
-  writeFileSync(path, migrated.yaml, 'utf8');
-  console.log(`Migrated ${path} for owner "${migrated.owner}".`);
-  if (dirty === undefined) {
+  for (const file of states) writeFileSync(file.path, file.yaml, 'utf8');
+
+  console.log(`Migrated ${describe(files.length)} for owner "${migrated.owner}":`);
+  for (const file of states) console.log(`  ${file.shown}`);
+  if (states.some((file) => file.dirty === undefined)) {
     console.log('(Not inside a git working tree — nothing checked before writing.)');
   }
   return 0;
 }
 
+function describe(count: number): string {
+  return count === 1 ? '1 file' : `${count} files`;
+}
+
 /**
- * Refuse a migration that the file's own imports would invalidate.
+ * Imported files whose root `repos` block the root conversion would strand.
  *
- * Only the root file is converted, so a `repos` block at the root of an
- * imported file stays where it is. That block is legal beside a root `owner`
- * and rejected beside `owners`, which means converting the root alone turns a
- * configuration that loads into one that does not. Rewriting the import
- * instead is not this command's business — the operator did not offer that
- * file — so the migration stops and says which file has to move first.
+ * Such a block is legal beside a root `owner` and rejected beside `owners`, so
+ * converting the root on its own turns a configuration that loads into one
+ * that does not. `0.4.1` refused the whole migration for this reason; the
+ * files are now converted alongside the root instead, which is why this
+ * returns them rather than throwing.
+ *
+ * Sorted so two runs over the same configuration migrate in the same order and
+ * print the same preview.
  */
-function refuseStrandedImports(path: string): void {
+function strandedImports(path: string): string[] {
   const { sourceDigests } = loadConfigWithSources(path);
   const root = resolve(path);
-  const stranded = Object.keys(sourceDigests)
+  return Object.keys(sourceDigests)
     .filter((source) => source !== root)
-    .filter((source) => declaresRootRepositories(readFileSync(source, 'utf8')));
-  if (stranded.length === 0) return;
-
-  throw new ConfigError(
-    `${path} cannot be migrated automatically. ${stranded.join(', ')} ` +
-      `${stranded.length === 1 ? 'declares' : 'declare'} "repos" at the root, and only the file ` +
-      `you named is converted. A bare repository name does not identify anything once more than ` +
-      `one account is in scope, so migrating this file alone would leave a configuration that no ` +
-      `longer loads. Move those entries under the account they belong to, then migrate again.`,
-  );
+    .filter((source) => declaresRootRepositories(readFileSync(source, 'utf8')))
+    .sort();
 }
 
 /**
@@ -96,6 +118,9 @@ function uncommittedChanges(path: string): boolean | undefined {
     const status = execFileSync('git', ['status', '--porcelain', '--', path], {
       cwd: dirname(path),
       encoding: 'utf8',
+      // Outside a working tree git says so on stderr, which is this function's
+      // answer rather than something the operator needs to read.
+      stdio: ['ignore', 'pipe', 'ignore'],
     });
     return status.trim().length > 0;
   } catch {
