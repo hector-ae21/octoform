@@ -668,8 +668,18 @@ export async function applyOrganizationChanges(
   const settings = changes.filter((change) => ORGANIZATION_FIELDS[change.key] !== undefined);
   const definitions = changes.filter((change) => change.key.startsWith('organization.properties.'));
   const rulesets = changes.filter((change) => change.key.startsWith('organization.rulesets.'));
+  /**
+   * Teams and the people on them are ordered together, because a membership
+   * waits for the team it is on the same way a child team waits for its
+   * parent. Ordering them apart would put someone on a team that the same run
+   * had not created yet.
+   */
   const teams = orderByDependency(
-    changes.filter((change) => change.key.startsWith('organization.teams.')),
+    changes.filter(
+      (change) =>
+        change.key.startsWith('organization.teams.') ||
+        change.key.startsWith('organization.membership.'),
+    ),
   );
 
   const results: AppliedChange[] = [];
@@ -721,10 +731,38 @@ export async function applyOrganizationChanges(
     }
 
     const payload = change.payload as
-      { team: string; body?: Record<string, unknown>; remove?: boolean } | undefined;
+      | {
+          team: string;
+          body?: Record<string, unknown>;
+          remove?: boolean;
+          login?: string;
+          role?: string;
+        }
+      | undefined;
     record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no team to change');
+
+        /**
+         * One person on one team. The same endpoint adds, promotes and demotes;
+         * for somebody who is not an organisation member yet it sends an email
+         * invitation instead, which is why the plan counts a pending
+         * invitation as already asked.
+         */
+        if (payload.login !== undefined) {
+          const target = { org: owner, team_slug: payload.team, username: payload.login };
+          if (payload.remove) {
+            await octokit.request(
+              'DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}',
+              target,
+            );
+            return;
+          }
+          const put: string = 'PUT /orgs/{org}/teams/{team_slug}/memberships/{username}';
+          await octokit.request(put, { ...target, role: payload.role });
+          return;
+        }
+
         if (payload.remove) {
           await octokit.request('DELETE /orgs/{org}/teams/{team_slug}', {
             org: owner,
