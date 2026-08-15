@@ -216,6 +216,7 @@ const NOT_PLANNED_PER_REPOSITORY: ReadonlySet<string> = new Set([
   'organization-teams',
   'organization-role-assignment',
   'team-membership',
+  'organization-member-inventory',
   'audit-expectations',
   'authenticated-identity',
   'owner-kind',
