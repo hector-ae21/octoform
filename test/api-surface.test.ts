@@ -82,17 +82,49 @@ test('the generated API surface has valid complete dispositions', () => {
   }
 });
 
-test('irreversible owner and repository operations remain excluded', () => {
-  const excluded = register.operations
-    .filter((operation) => operation.disposition === 'excluded')
-    .map((operation) => `${operation.transport}:${operation.operation}`)
-    .sort();
-  assert.deepEqual(excluded, [
+/**
+ * Operations octoform will never perform, for one of two reasons: it has
+ * decided not to, or it cannot.
+ *
+ * The list is exhaustive on purpose. Excluding an operation is a promise that
+ * no release will ever reach for it, and a promise is exactly the kind of thing
+ * that should not be able to grow by one line without anybody noticing.
+ */
+const NEVER_PERFORMED = {
+  /** Destroying or handing away an account or a repository, which nothing undoes. */
+  irreversible: [
     'graphql:transferEnterpriseOrganization',
     'rest:orgs/delete',
     'rest:repos/delete',
     'rest:repos/transfer',
-  ]);
+  ],
+  /**
+   * Out of reach rather than out of scope: every fine-grained personal access
+   * token endpoint states that only GitHub Apps can use it, and octoform
+   * authenticates with a personal access token.
+   */
+  beyondTheCredentials: [
+    'rest:orgs/list-pat-grant-repositories',
+    'rest:orgs/list-pat-grant-request-repositories',
+    'rest:orgs/list-pat-grant-requests',
+    'rest:orgs/list-pat-grants',
+    'rest:orgs/review-pat-grant-request',
+    'rest:orgs/review-pat-grant-requests-in-bulk',
+    'rest:orgs/update-pat-access',
+    'rest:orgs/update-pat-accesses',
+  ],
+};
+
+test('the operations octoform will never perform are exactly the ones it says', () => {
+  const excluded = register.operations
+    .filter((operation) => operation.disposition === 'excluded')
+    .map((operation) => `${operation.transport}:${operation.operation}`)
+    .sort();
+
+  assert.deepEqual(
+    excluded,
+    [...NEVER_PERFORMED.irreversible, ...NEVER_PERFORMED.beyondTheCredentials].sort(),
+  );
 });
 
 test('every relevant REST operation is explicitly reviewed', () => {
