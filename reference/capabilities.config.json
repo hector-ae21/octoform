@@ -159,6 +159,34 @@
       "classic-admin-org",
       "organization-administration-write"
     ],
+    "GET /orgs/{org}/organization-roles": [
+      "classic-admin-org",
+      "organization-administration-read"
+    ],
+    "GET /orgs/{org}/organization-roles/{role_id}/users": [
+      "classic-admin-org",
+      "organization-administration-read"
+    ],
+    "GET /orgs/{org}/organization-roles/{role_id}/teams": [
+      "classic-admin-org",
+      "organization-administration-read"
+    ],
+    "PUT /orgs/{org}/organization-roles/users/{username}/{role_id}": [
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "DELETE /orgs/{org}/organization-roles/users/{username}/{role_id}": [
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "PUT /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}": [
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}": [
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
     "GET /orgs/{org}/teams": [
       "classic-admin-org",
       "organization-members-read"
@@ -589,6 +617,37 @@
         "Deleting a team is destructive: GitHub deletes its child teams with it, so a parent whose children the file declares is refused.",
         "The permission field is not modelled: GitHub documents it as closing down.",
         "The listing is what the token can see, so a secret team it cannot see reads as absent."
+      ]
+    },
+    {
+      "id": "organization-role-assignment",
+      "area": "access",
+      "support": "supported",
+      "configPaths": ["organization.roles"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": [
+        "GET /orgs/{org}/organization-roles",
+        "GET /orgs/{org}/organization-roles/{role_id}/users",
+        "GET /orgs/{org}/organization-roles/{role_id}/teams"
+      ],
+      "writeRoutes": [
+        "PUT /orgs/{org}/organization-roles/users/{username}/{role_id}",
+        "DELETE /orgs/{org}/organization-roles/users/{username}/{role_id}",
+        "PUT /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}",
+        "DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-administration-read"],
+      "writePermissions": ["classic-admin-org", "organization-administration-write"],
+      "limitations": [
+        "Blocked on a personal account, which has no organization roles.",
+        "Assignment only: GitHub's description has no endpoint that creates an organization role, so a name that matches none is refused rather than defined.",
+        "Custom repository roles are not managed at all, because the description exposes no endpoint for them.",
+        "The role listing is what turns a declared name into the id the assignment endpoints take, which repository roles in a ruleset bypass have no equivalent of.",
+        "Granting and revoking are both sensitive: an organization role carries permissions across every repository the organization owns.",
+        "Additive unless the block says authoritative, with the same two guards team membership uses.",
+        "A team granted a role waits for a team the same run is creating."
       ]
     },
     {

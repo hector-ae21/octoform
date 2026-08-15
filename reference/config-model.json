@@ -172,6 +172,11 @@
     },
     {
       "shape": "OrganizationPolicy",
+      "field": "roles",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationPolicy",
       "field": "rulesets",
       "merge": "replace"
     },
@@ -473,6 +478,16 @@
     {
       "shape": "RepoPolicy",
       "field": "topics",
+      "merge": "replace"
+    },
+    {
+      "shape": "RoleHolders",
+      "field": "teams",
+      "merge": "replace"
+    },
+    {
+      "shape": "RoleHolders",
+      "field": "users",
       "merge": "replace"
     },
     {

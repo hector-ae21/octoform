@@ -678,7 +678,8 @@ export async function applyOrganizationChanges(
     changes.filter(
       (change) =>
         change.key.startsWith('organization.teams.') ||
-        change.key.startsWith('organization.membership.'),
+        change.key.startsWith('organization.membership.') ||
+        change.key.startsWith('organization.roles.'),
     ),
   );
 
@@ -718,10 +719,11 @@ export async function applyOrganizationChanges(
   }
 
   /**
-   * Teams are already ordered so a parent comes before its children. A child
-   * whose parent failed is recorded as blocked rather than attempted, which is
-   * the difference between a run that reports what it did and one that reports
-   * an error GitHub raised about a team nobody can see in the plan.
+   * Already ordered so a parent comes before its children, and a team before
+   * the people on it and the roles it is granted. Anything whose prerequisite
+   * failed is recorded as blocked rather than attempted, which is the
+   * difference between a run that reports what it did and one that reports an
+   * error GitHub raised about a team nobody can see in the plan.
    */
   for (const change of teams) {
     const reason = blockedByPrerequisite(change, failed);
@@ -732,16 +734,41 @@ export async function applyOrganizationChanges(
 
     const payload = change.payload as
       | {
-          team: string;
+          team?: string;
           body?: Record<string, unknown>;
           remove?: boolean;
           login?: string;
-          role?: string;
+          role?: string | number;
+          kind?: 'users' | 'teams';
+          name?: string;
         }
       | undefined;
     record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no team to change');
+
+        /**
+         * One holder of one organisation role. The endpoint takes the role's
+         * id, which the role listing is what turns the declared name into.
+         */
+        if (payload.kind !== undefined && payload.name !== undefined) {
+          const route =
+            payload.kind === 'users'
+              ? '/orgs/{org}/organization-roles/users/{username}/{role_id}'
+              : '/orgs/{org}/organization-roles/teams/{team_slug}/{role_id}';
+          const target = {
+            org: owner,
+            role_id: payload.role,
+            ...(payload.kind === 'users'
+              ? { username: payload.name }
+              : { team_slug: payload.name }),
+          };
+          const verb: string = `${payload.remove ? 'DELETE' : 'PUT'} ${route}`;
+          await octokit.request(verb, target);
+          return;
+        }
+
+        if (payload.team === undefined) throw new Error('no team to change');
 
         /**
          * One person on one team. The same endpoint adds, promotes and demotes;

@@ -8,6 +8,7 @@ import { canonicalLevel, readLevel } from '../core/access.js';
 import { readLabel, readMilestone } from '../core/collections.js';
 import { readDefinition } from '../core/properties.js';
 import { readTeam } from '../core/teams.js';
+import { readRole } from '../core/roles.js';
 import { identityKey, namesToResolve } from '../core/identity.js';
 import { ORGANIZATION_FIELDS } from '../core/organization.js';
 import { CHANGED_BY_MUTATION } from '../core/plan.js';
@@ -19,6 +20,7 @@ import type {
   ExistingLabel,
   ExistingMilestone,
   ExistingProperty,
+  ExistingRole,
   ExistingRuleset,
   ExistingTeam,
   OwnerDiscovery,
@@ -1347,6 +1349,58 @@ export async function readTeamMembers(
   } catch {
     return undefined;
   }
+}
+
+/**
+ * The organisation's roles, by name, and who holds each of the named ones.
+ *
+ * The listing is what turns a name in a configuration file into the id the
+ * assignment endpoints take. Holders are only read for the roles a policy
+ * actually names, at two requests each.
+ *
+ * @param wanted - Role names the policy declares; others are listed but not
+ *   asked about, since nothing is going to be compared against them.
+ */
+export async function readOrganizationRoles(
+  octokit: Octokit,
+  org: string,
+  wanted: readonly string[],
+): Promise<Record<string, ExistingRole> | undefined> {
+  let roles: Record<string, ExistingRole>;
+  try {
+    const { data } = await octokit.request('GET /orgs/{org}/organization-roles', { org });
+    const listed = (data as { roles?: Array<Parameters<typeof readRole>[0]> }).roles ?? [];
+    roles = {};
+    for (const raw of listed) {
+      const role = readRole(raw);
+      if (role) roles[role.name] = role;
+    }
+  } catch {
+    return undefined;
+  }
+
+  for (const name of wanted) {
+    const role = roles[name];
+    if (role === undefined) continue;
+    try {
+      const users = (await octokit.paginate('GET /orgs/{org}/organization-roles/{role_id}/users', {
+        org,
+        role_id: role.id,
+        per_page: 100,
+      })) as Array<{ login?: string }>;
+      const teams = (await octokit.paginate('GET /orgs/{org}/organization-roles/{role_id}/teams', {
+        org,
+        role_id: role.id,
+        per_page: 100,
+      })) as Array<{ slug?: string }>;
+      role.users = users.map((entry) => entry.login).filter((login): login is string => !!login);
+      role.teams = teams.map((entry) => entry.slug).filter((slug): slug is string => !!slug);
+    } catch {
+      /** Left absent rather than empty, so nobody is granted a role they hold. */
+    }
+  }
+
+  return roles;
 }
 
 /**

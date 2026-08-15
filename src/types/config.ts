@@ -347,6 +347,22 @@ export interface RulesetPolicy extends RuleSettings {
   bypass?: RulesetBypass[];
 }
 
+/**
+ * Who holds an organisation role.
+ *
+ * The same shape and the same default as a team's membership, because it is
+ * the same question: additive unless the file says otherwise, so nobody loses
+ * a role for not being written down.
+ */
+export interface RoleHolders {
+  /** Logins that hold the role directly. */
+  users?: string[];
+  /** Team slugs whose members hold it. */
+  teams?: string[];
+  /** Revoke the role from anyone the lists do not name. */
+  authoritative?: boolean;
+}
+
 /** What someone is on a team: an ordinary member, or one who administers it. */
 export type TeamRole = 'member' | 'maintainer';
 
@@ -799,6 +815,15 @@ export interface OrganizationPolicy {
    * reference point at a position instead of at a name.
    */
   teams?: Record<string, Managed<TeamPolicy>>;
+  /**
+   * Who holds each organisation role, by the role's name.
+   *
+   * Assignment only. GitHub's description offers no endpoint that creates an
+   * organisation role and none at all for custom repository roles, so a name
+   * here is a role that already exists — naming one that does not is refused
+   * rather than treated as a request to define it.
+   */
+  roles?: Record<string, Managed<RoleHolders>>;
 }
 
 /** A condition used to infer a repository's type when it has none recorded. */

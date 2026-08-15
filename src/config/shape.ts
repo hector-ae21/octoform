@@ -457,6 +457,11 @@ const TEAM_POLICY: ObjectShape = {
   },
 };
 
+const ROLE_HOLDERS: ObjectShape = {
+  name: 'RoleHolders',
+  fields: { users: scalarList, teams: scalarList, authoritative: scalar },
+};
+
 const ORGANIZATION_POLICY: ObjectShape = {
   name: 'OrganizationPolicy',
   fields: {
@@ -465,6 +470,7 @@ const ORGANIZATION_POLICY: ObjectShape = {
     properties: mapOfObjects(() => PROPERTY_DEFINITION),
     rulesets: objectList(() => ORGANIZATION_RULESET_POLICY),
     teams: mapOfObjects(() => TEAM_POLICY),
+    roles: mapOfObjects(() => ROLE_HOLDERS),
   },
 };
 

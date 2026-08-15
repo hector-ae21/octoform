@@ -7,6 +7,7 @@ import {
   getOrganizationDetail,
   getRepoDetail,
   listRepos,
+  readOrganizationRoles,
   readOrganizationRulesets,
   readPropertyDefinitions,
   readPropertyValues,
@@ -171,6 +172,9 @@ async function readOrganization(
     if (team === undefined) continue;
     team.members = await readTeamMembers(octokit, owner, slug);
   }
+  const roles = policy.roles
+    ? await readOrganizationRoles(octokit, owner, Object.keys(policy.roles))
+    : undefined;
   /**
    * The names a ruleset has to send as numbers are looked up once for the
    * whole organisation, so a team named by three rulesets costs one request
@@ -186,6 +190,7 @@ async function readOrganization(
     ...(properties === undefined ? {} : { properties }),
     ...(rulesets === undefined ? {} : { rulesets }),
     ...(teams === undefined ? {} : { teams }),
+    ...(roles === undefined ? {} : { roles }),
     ...(resolved === undefined ? {} : { resolved }),
   };
 }
