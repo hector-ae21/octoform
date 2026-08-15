@@ -1,5 +1,6 @@
 import { isManaged } from '../config/resolve.js';
 import { UNREADABLE } from '../config/sentinels.js';
+import { withPrerequisites } from './dependencies.js';
 import type {
   Change,
   EnvironmentPolicy,
@@ -116,14 +117,16 @@ export function planRepo(
   planEnvironments(repo, policy, drafts);
   planFiles(repo, policy, drafts);
 
-  return drafts.map((draft) => ({
-    ...draft,
-    id: `${owner}/${draft.repo}#${draft.key}`,
-    owner,
-    operation: operationFor(draft),
-    risk: riskFor(draft.key),
-    prerequisites: [],
-  }));
+  return withPrerequisites(
+    drafts.map((draft) => ({
+      ...draft,
+      id: `${owner}/${draft.repo}#${draft.key}`,
+      owner,
+      operation: operationFor(draft),
+      risk: riskFor(draft.key),
+      prerequisites: [],
+    })),
+  );
 }
 
 function planScalars(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]): void {

@@ -90,28 +90,47 @@ export async function apply(
   );
 
   let failures = 0;
+  let unattempted = 0;
   for (const [index, results] of perRepo.entries()) {
     const repoName = grouped[index]?.[0] ?? '';
     for (const result of results) {
       if (result.outcome === 'failed') failures++;
+      if (result.outcome === 'blocked') unattempted++;
       const outcome =
-        result.outcome === 'applied' ? 'done' : `FAILED — ${printable(result.error ?? '')}`;
+        result.outcome === 'applied'
+          ? 'done'
+          : result.outcome === 'blocked'
+            ? `BLOCKED — ${printable(result.error ?? '')}`
+            : `FAILED — ${printable(result.error ?? '')}`;
       console.log(`  ${printable(repoName)}  ${result.key}: ${outcome}`);
     }
   }
 
   console.log('');
-  console.log(
-    failures === 0 ? 'All changes applied.' : `${failures} change(s) failed — see above.`,
-  );
+  const note = [
+    failures > 0 ? `${failures} change(s) failed` : undefined,
+    unattempted > 0
+      ? `${unattempted} were not attempted because something they depend on failed`
+      : undefined,
+  ].filter(Boolean);
+  console.log(note.length === 0 ? 'All changes applied.' : `${note.join(', and ')} — see above.`);
   const allResults = perRepo.flat();
-  const status = failures > 0 ? EXIT_FAILED : blocked.length > 0 ? EXIT_BLOCKED : EXIT_SUCCESS;
+  const status =
+    failures > 0 ? EXIT_FAILED : blocked.length + unattempted > 0 ? EXIT_BLOCKED : EXIT_SUCCESS;
   return { status, summary: summarizeApply(allResults, blocked.length) };
 }
 
-/** Reduce an apply run's results to the counts that matter. */
+/**
+ * Reduce an apply run's results to the counts that matter.
+ *
+ * `blockedCount` carries what planning already refused to hand over. Anything
+ * this run stopped attempting, because a prerequisite failed part way through,
+ * is added to it: both were left alone for the same reason, and counting them
+ * apart would suggest one of them might have been half-applied.
+ */
 export function summarizeApply(results: AppliedChange[], blockedCount: number): ApplySummary {
   const applied = results.filter((r) => r.outcome === 'applied').length;
   const failed = results.filter((r) => r.outcome === 'failed').length;
-  return { applied, failed, blocked: blockedCount };
+  const unattempted = results.filter((r) => r.outcome === 'blocked').length;
+  return { applied, failed, blocked: blockedCount + unattempted };
 }
