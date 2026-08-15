@@ -184,6 +184,24 @@ export interface TeamMembers {
 }
 
 /**
+ * An organisation role as it stands, with who holds it.
+ *
+ * The id is kept because the assignment endpoints take one, and unlike a
+ * ruleset's repository roles there is a listing that maps the name to it — so
+ * a configuration can say the name and octoform can still send the number.
+ */
+export interface ExistingRole {
+  id: number;
+  name: string;
+  /** Where the role came from: the organisation, its enterprise, or GitHub. */
+  source: 'Organization' | 'Enterprise' | 'Predefined';
+  /** Logins holding it directly, absent when they could not be read. */
+  users?: string[];
+  /** Team slugs holding it, absent when they could not be read. */
+  teams?: string[];
+}
+
+/**
  * The organisation itself as it stands, gathered before anything is planned.
  *
  * Each field is absent when it could not be read, and an absent field blocks
@@ -206,6 +224,8 @@ export interface OrganizationState {
    * reported as the failure it is instead of being retried.
    */
   teams?: Record<string, ExistingTeam>;
+  /** Organisation roles, by name, with who holds each one. */
+  roles?: Record<string, ExistingRole>;
   /** The names a ruleset has to send as numbers, already looked up. */
   resolved?: Resolution;
 }

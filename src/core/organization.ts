@@ -26,6 +26,7 @@ import type {
   OwnerKind,
   PropertyDefinition,
   Risk,
+  RoleHolders,
   TeamMembership,
   TeamPolicy,
 } from '../types/index.js';
@@ -38,6 +39,7 @@ import {
 } from './properties.js';
 import { bypassProblems, workflowProblems } from './identity.js';
 import { matchByName } from './collections.js';
+import { holderProblems } from './roles.js';
 import {
   declaredMembership,
   describeTeam,
@@ -221,6 +223,7 @@ export function planOrganization(
 
   planDefinitions(ownerKind, observed?.properties, policy, draft);
   planTeams(owner, ownerKind, observed?.teams, policy, actor, draft);
+  planRoles(owner, ownerKind, observed, policy, actor, draft);
   planOrganizationRulesets(owner, ownerKind, observed, policy, draft);
 
   return changes;
@@ -397,6 +400,104 @@ function planMembership(
       prerequisites: waitingForTeam,
       payload: { team: slug, login, remove: true },
     });
+  }
+}
+
+/**
+ * Who holds each organisation role.
+ *
+ * Every one of these is sensitive in both directions. An organisation role
+ * carries permissions across the whole organisation, so granting one reaches
+ * every repository it owns — the same argument that makes the base permission
+ * sensitive — and revoking one takes that reach away.
+ *
+ * A team granted a role that this run is creating waits for the team, the same
+ * way a membership does.
+ */
+function planRoles(
+  owner: string,
+  ownerKind: OwnerKind,
+  observed: OrganizationState | undefined,
+  policy: OrganizationPolicy,
+  actor: string | undefined,
+  draft: Draft,
+): void {
+  const declaredTeams = new Set(Object.keys(policy.teams ?? {}));
+
+  for (const [role, holders] of Object.entries(policy.roles ?? {})) {
+    if (!isManaged(holders)) continue;
+    const wanted = holders as RoleHolders;
+    const key = (kind: 'users' | 'teams', name: string): string =>
+      `organization.roles.${role}.${kind}.${name}`;
+    const named: Array<['users' | 'teams', string]> = [
+      ...(wanted.users ?? []).map((login): ['users', string] => ['users', login]),
+      ...(wanted.teams ?? []).map((slug): ['teams', string] => ['teams', slug]),
+    ];
+
+    const refuse = (reason: string): void => {
+      for (const [kind, name] of named) {
+        draft(key(kind, name), null, role, { risk: 'sensitive', blocked: reason });
+      }
+    };
+
+    if (ownerKind === 'user') {
+      refuse(`"${owner}" is a personal account, which has no organisation roles`);
+      continue;
+    }
+
+    const problems = holderProblems(wanted, actor);
+    if (problems.length > 0) {
+      refuse(problems.join('; '));
+      continue;
+    }
+
+    if (observed?.roles === undefined) {
+      refuse('could not read the organisation roles');
+      continue;
+    }
+
+    const current = observed.roles[role];
+    if (current === undefined) {
+      refuse(
+        `no organisation role called "${role}", and there is no endpoint that creates one, so this is a name rather than a definition`,
+      );
+      continue;
+    }
+    if (current.users === undefined || current.teams === undefined) {
+      refuse(`could not read who holds "${role}"`);
+      continue;
+    }
+
+    for (const [kind, name] of named) {
+      const held = kind === 'users' ? current.users : current.teams;
+      if (held.includes(name)) continue;
+
+      const waitingFor =
+        kind === 'teams' && declaredTeams.has(name) && observed.teams?.[name] === undefined
+          ? [`${owner}#organization.teams.${name}`]
+          : [];
+
+      draft(key(kind, name), null, role, {
+        operation: 'attach',
+        risk: 'sensitive',
+        prerequisites: waitingFor,
+        payload: { role: current.id, kind, name },
+      });
+    }
+
+    if (!wanted.authoritative) continue;
+
+    for (const kind of ['users', 'teams'] as const) {
+      const declaredNames = new Set(kind === 'users' ? (wanted.users ?? []) : (wanted.teams ?? []));
+      for (const name of kind === 'users' ? current.users : current.teams) {
+        if (declaredNames.has(name)) continue;
+        draft(key(kind, name), role, null, {
+          operation: 'detach',
+          risk: 'sensitive',
+          payload: { role: current.id, kind, name, remove: true },
+        });
+      }
+    }
   }
 }
 

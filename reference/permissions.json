@@ -22,6 +22,7 @@
         "organization-member-policies",
         "organization-profile",
         "organization-property-definitions",
+        "organization-role-assignment",
         "organization-rulesets",
         "organization-teams",
         "team-membership"
@@ -79,6 +80,7 @@
       "capabilityIds": [
         "organization-member-policies",
         "organization-profile",
+        "organization-role-assignment",
         "organization-rulesets"
       ]
     },
@@ -92,6 +94,7 @@
       "capabilityIds": [
         "organization-member-policies",
         "organization-profile",
+        "organization-role-assignment",
         "organization-rulesets"
       ]
     },
@@ -304,6 +307,28 @@
   ],
   "operations": [
     {
+      "route": "DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /orgs/{org}/organization-roles/users/{username}/{role_id}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-write"
+      ]
+    },
+    {
       "route": "DELETE /orgs/{org}/properties/schema/{custom_property_name}",
       "access": "write",
       "capabilityIds": [
@@ -469,6 +494,39 @@
       "permissionProfiles": [
         "classic-admin-org",
         "classic-repo",
+        "organization-administration-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/organization-roles",
+      "access": "read",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/organization-roles/{role_id}/teams",
+      "access": "read",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/organization-roles/{role_id}/users",
+      "access": "read",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
         "organization-administration-read"
       ]
     },
@@ -1056,6 +1114,28 @@
       "permissionProfiles": [
         "classic-repo",
         "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /orgs/{org}/organization-roles/users/{username}/{role_id}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-write"
       ]
     },
     {

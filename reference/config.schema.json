@@ -135,6 +135,13 @@
             "$ref": "#/definitions/Managed%3CTeamPolicy%3E"
           },
           "description": "Teams, by the slug GitHub addresses each one by.\n\nA map rather than a list because a team is referred to by that slug from elsewhere — a child names its parent by it — and a list would make the reference point at a position instead of at a name."
+        },
+        "roles": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CRoleHolders%3E"
+          },
+          "description": "Who holds each organisation role, by the role's name.\n\nAssignment only. GitHub's description offers no endpoint that creates an organisation role and none at all for custom repository roles, so a name here is a role that already exists — naming one that does not is refused rather than treated as a request to define it."
         }
       },
       "additionalProperties": false,
@@ -934,6 +941,45 @@
       },
       "additionalProperties": false,
       "description": "Who is on a team.\n\nAdditive unless the file says otherwise, for the reason absence means \"not managed\" everywhere else: deleting a line from a configuration file should not quietly take somebody's access away."
+    },
+    "Managed<RoleHolders>": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/RoleHolders"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "not": {}
+        }
+      ],
+      "description": "A managed setting is tri-state:\n\n  true       enforce it on   false      enforce it off   undefined  not managed at all, leave whatever the repository has\n\n`null` is accepted as an explicit \"stop managing this\", which is how a repository-level entry cancels a policy it would otherwise inherit from its type or from the defaults. Both collapse to `undefined` once resolved."
+    },
+    "RoleHolders": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Logins that hold the role directly."
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Team slugs whose members hold it."
+        },
+        "authoritative": {
+          "type": "boolean",
+          "description": "Revoke the role from anyone the lists do not name."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Who holds an organisation role.\n\nThe same shape and the same default as a team's membership, because it is the same question: additive unless the file says otherwise, so nobody loses a role for not being written down."
     },
     "ClassifyConfig": {
       "type": "object",

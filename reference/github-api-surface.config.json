@@ -421,7 +421,14 @@
         "GET /orgs/{org}/teams/{team_slug}/invitations",
         "GET /orgs/{org}/teams/{team_slug}/memberships/{username}",
         "PUT /orgs/{org}/teams/{team_slug}/memberships/{username}",
-        "DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}"
+        "DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}",
+        "GET /orgs/{org}/organization-roles",
+        "GET /orgs/{org}/organization-roles/{role_id}/users",
+        "GET /orgs/{org}/organization-roles/{role_id}/teams",
+        "PUT /orgs/{org}/organization-roles/users/{username}/{role_id}",
+        "DELETE /orgs/{org}/organization-roles/users/{username}/{role_id}",
+        "PUT /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}",
+        "DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}"
       ]
     },
     "reviewedOperations": [
