@@ -45,6 +45,14 @@ export interface PlanSummary {
   changed: number;
   /** Repositories with at least one blocked change and no unblocked one. */
   blocked: number;
+  /**
+   * Repositories with at least one blocked change, whether or not they also
+   * have unblocked ones. Always at least `blocked`, and the honest answer to
+   * "how much of this plan cannot be applied": the exclusive buckets sum to
+   * `scanned`, which necessarily files a repository that both changed and was
+   * blocked under `changed` alone.
+   */
+  blockedRepositories: number;
   /** Repositories whose plan could not be computed at all. */
   failed: number;
   /** Repositories that matched their policy exactly. */

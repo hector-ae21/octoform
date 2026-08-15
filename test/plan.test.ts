@@ -94,6 +94,25 @@ test('an unreadable current value is blocked, not silently applied', () => {
   assert.match(String(changes[0]?.blocked), /could not be read/);
 });
 
+test('an unreadable scanning setting is explained by visibility, never by a guessed plan', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.secret_scanning': UNREADABLE },
+    visibility: 'private',
+  });
+  const policy: PolicySet = { security: { secret_scanning: true } };
+  const reason = String(planned(state, policy, OPTIONS)[0]?.blocked);
+  assert.match(reason, /private repository without Advanced Security/);
+  assert.doesNotMatch(reason, /plan/i);
+});
+
+test('an unreadable value visibility cannot explain says only what is known', () => {
+  const state = repo({ settings: { ...repo().settings, 'merge.allow_squash': UNREADABLE } });
+  const policy: PolicySet = { merge: { allow_squash: true } };
+  const reason = String(planned(state, policy, OPTIONS)[0]?.blocked);
+  assert.match(reason, /could not be read/);
+  assert.doesNotMatch(reason, /plan|Advanced Security/i);
+});
+
 test('a policy with no REST endpoint at all is blamed on the API, not on the configuration', () => {
   const state = repo({ settings: { ...repo().settings, 'features.discussions': false } });
   const policy: PolicySet = { features: { discussions: true } };

@@ -9,6 +9,36 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-08-15
+
+Found by running `0.4.0` against real multi-account configurations rather than
+against fixtures. Every change is compatible: no exit class, schema, or
+exported signature moved.
+
+### Fixed
+
+- `config migrate` no longer produces a configuration that fails to load. It
+  converted the root file's `owner` to `owners` while leaving a `repos` block
+  at the root of an imported file, and that block is accepted beside `owner`
+  but rejected beside `owners`. The migration now stops, names the files that
+  have to move first, and writes nothing. Imports that keep repositories out
+  of their root migrate exactly as before.
+- A setting whose current value could not be read is explained from what was
+  observed instead of guessing at a commercial plan. Where repository
+  visibility settles the question — GitHub hides scanning settings outside a
+  public repository without Advanced Security — the report says so; where it
+  does not, the report says only that the value could not be read.
+- A plan summary reports how many repositories carry blocked work. The buckets
+  are exclusive so they sum to what was scanned, which files a repository that
+  is both changed and blocked under `changed` alone; that count is now stated
+  alongside the totals instead of being left implicit.
+
+### Added
+
+- `PlanSummary` gains `blockedRepositories`, the number of repositories with at
+  least one blocked change whether or not they also changed. Adding a field is
+  a compatible change.
+
 ## [0.4.0] - 2026-08-15
 
 ### Added

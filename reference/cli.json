@@ -306,5 +306,5 @@
     "Exit codes are frozen for the v0 line: their meaning never changes once published here.",
     "--format json wraps output in a versioned envelope. Currently supported by plan, inspect config, and inspect capabilities; other commands remain text-only."
   ],
-  "productVersion": "0.4.0"
+  "productVersion": "0.4.1"
 }

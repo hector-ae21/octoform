@@ -110,7 +110,14 @@ export function summarizePlan(result: PlanResult): PlanSummary {
   const blockedOnly = [...blockedRepos].filter((repo) => !changedRepos.has(repo)).length;
   const failed = failedRepos.size;
   const unchanged = Math.max(0, result.scanned - changed - blockedOnly - failed);
-  return { scanned: result.scanned, changed, blocked: blockedOnly, failed, unchanged };
+  return {
+    scanned: result.scanned,
+    changed,
+    blocked: blockedOnly,
+    blockedRepositories: blockedRepos.size,
+    failed,
+    unchanged,
+  };
 }
 
 function report(
