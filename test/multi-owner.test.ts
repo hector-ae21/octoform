@@ -298,6 +298,34 @@ owners:
   );
 });
 
+test('a value outside a closed set is rejected with the values that are allowed', () => {
+  const path = config(`
+owner: account
+defaults:
+  merge: { squash_title: PR_BODY }
+`);
+
+  assert.throws(
+    () => loadConfig(path),
+    (error: Error) => {
+      assert.ok(error instanceof ConfigError);
+      assert.match(error.message, /"defaults\.merge\.squash_title" is "PR_BODY"/);
+      assert.match(error.message, /PR_TITLE, COMMIT_OR_PR_TITLE/);
+      return true;
+    },
+  );
+});
+
+test('cancelling a closed-set value is still allowed', () => {
+  const path = config(`
+owner: account
+defaults:
+  merge: { squash_title: null }
+`);
+
+  assert.doesNotThrow(() => loadConfig(path));
+});
+
 test('an unknown key at the root is reported against the root', () => {
   const path = config(`
 owner: account

@@ -390,3 +390,89 @@ test('turning the default setup off cannot disable a workflow, so it carries no 
   const policy: PolicySet = { security: { code_scanning_default_setup: false } };
   assert.equal(planned(state, policy, OPTIONS)[0]?.warning, undefined);
 });
+
+const merging = (over: Record<string, unknown> = {}): RepoDetail =>
+  repo({
+    settings: {
+      ...repo().settings,
+      'merge.squash_title': 'PR_TITLE',
+      'merge.squash_message': 'COMMIT_MESSAGES',
+      'merge.merge_commit_title': 'MERGE_MESSAGE',
+      'merge.merge_commit_message': 'PR_TITLE',
+      ...over,
+    },
+  });
+
+test('a merge message default is planned like any other setting', () => {
+  const policy: PolicySet = { merge: { squash_title: 'COMMIT_OR_PR_TITLE' } };
+  const [change] = planned(merging(), policy, OPTIONS);
+
+  assert.deepEqual(
+    { key: change?.key, from: change?.from, to: change?.to, blocked: change?.blocked },
+    {
+      key: 'merge.squash_title',
+      from: 'PR_TITLE',
+      to: 'COMMIT_OR_PR_TITLE',
+      blocked: undefined,
+    },
+  );
+});
+
+test('a message default declared without its title is blocked, not sent', () => {
+  const policy: PolicySet = { merge: { squash_message: 'BLANK' } };
+  const [change] = planned(merging(), policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /merge\.squash_title/u);
+});
+
+test('a message default carries the declared title so GitHub accepts it', () => {
+  const policy: PolicySet = { merge: { squash_message: 'BLANK', squash_title: 'PR_TITLE' } };
+  const change = planned(merging(), policy, OPTIONS).find((c) => c.key === 'merge.squash_message');
+
+  assert.deepEqual(change?.payload, { requires: { 'merge.squash_title': 'PR_TITLE' } });
+});
+
+test('the title it carries is the declared one even when the repository already has it', () => {
+  // squash_title is unchanged, so it is planned as no change at all — and yet
+  // the request still has to state it, or GitHub rejects the message.
+  const policy: PolicySet = { merge: { squash_message: 'BLANK', squash_title: 'PR_TITLE' } };
+  const changes = planned(merging(), policy, OPTIONS);
+
+  assert.deepEqual(
+    changes.map((c) => c.key),
+    ['merge.squash_message'],
+  );
+});
+
+test('the merge-commit pair is independent of the squash pair', () => {
+  const policy: PolicySet = { merge: { merge_commit_message: 'BLANK' } };
+  const [change] = planned(merging(), policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /merge\.merge_commit_title/u);
+});
+
+test('a message default that already matches is not blocked, because nothing is sent', () => {
+  const policy: PolicySet = { merge: { squash_message: 'COMMIT_MESSAGES' } };
+  assert.deepEqual(planned(merging(), policy, OPTIONS), []);
+});
+
+test('a setting the owner enforces is blocked with the reason, not attempted', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.immutable_releases': true },
+    enforced: { 'security.immutable_releases': 'account enforces immutable releases' },
+  });
+  const policy: PolicySet = { security: { immutable_releases: false } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.blocked, 'account enforces immutable releases');
+});
+
+test('enforcement only matters where the policy disagrees with it', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.immutable_releases': true },
+    enforced: { 'security.immutable_releases': 'account enforces immutable releases' },
+  });
+  const policy: PolicySet = { security: { immutable_releases: true } };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});

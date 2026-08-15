@@ -17,7 +17,12 @@ export type MergeSemantics =
 
 /** What kind of value a field holds. */
 export type ValueShape =
-  | { readonly kind: 'scalar' }
+  /**
+   * A single value. `values`, when present, is the closed set it may take —
+   * the loader rejects anything else by name, rather than letting GitHub
+   * refuse the whole request later for a value that was knowably wrong.
+   */
+  | { readonly kind: 'scalar'; readonly values?: readonly string[] }
   | { readonly kind: 'any' }
   | { readonly kind: 'scalar-list' }
   | { readonly kind: 'object'; readonly of: () => ObjectShape }

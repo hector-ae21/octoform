@@ -152,6 +152,12 @@ function validateValue(value: unknown, shape: ValueShape, file: string, path: st
           `${file}: ${describe(path)} must be a single value, not a collection`,
         );
       }
+      if (shape.values && !shape.values.includes(String(value))) {
+        throw new ConfigError(
+          `${file}: ${describe(path)} is ${JSON.stringify(value)}, which is not one of ` +
+            `${shape.values.join(', ')}.`,
+        );
+      }
       return;
     case 'scalar-list':
       requireList(value, file, path);

@@ -303,6 +303,24 @@
       "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
     },
     {
+      "id": "immutable-releases",
+      "area": "security",
+      "support": "supported",
+      "configPaths": ["security.immutable_releases"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/immutable-releases"],
+      "writeRoutes": [
+        "PUT /repos/{owner}/{repo}/immutable-releases",
+        "DELETE /repos/{owner}/{repo}/immutable-releases"
+      ],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": [
+        "An owner that enforces immutable releases leaves the setting readable but not writable, so a change is reported as blocked rather than attempted."
+      ]
+    },
+    {
       "id": "default-branch-rename",
       "area": "branches",
       "support": "supported",
