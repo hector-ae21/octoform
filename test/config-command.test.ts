@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
 import { migrateConfig, validateConfig } from '../src/commands/config.js';
-import { ConfigError } from '../src/config/resolve.js';
+import { ConfigError, loadConfig } from '../src/config/resolve.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'octoform-config-command-'));
 after(() => rmSync(dir, { recursive: true, force: true }));
@@ -69,19 +70,34 @@ test('migrateConfig rejects a file that is already migrated', () => {
   assert.throws(() => silently(() => migrateConfig(path)), /already declares "owners"/);
 });
 
-test('migrateConfig refuses when an import would be stranded at the root', () => {
-  write('stranded-import.yml', 'repos:\n  svc:\n    merge:\n      allow_squash: true\n');
-  const path = write('stranded.yml', 'owner: my-account\nimports:\n  - stranded-import.yml\n');
-  const before = readFileSync(path, 'utf8');
-
-  assert.throws(
-    () => silently(() => migrateConfig(path, { write: true })),
-    (error: unknown) =>
-      error instanceof ConfigError &&
-      /stranded-import\.yml/.test(error.message) &&
-      /cannot be migrated automatically/.test(error.message),
+test('migrateConfig moves an import that would otherwise be stranded', () => {
+  const importPath = write(
+    'stranded-import.yml',
+    '# Overrides.\nrepos:\n  svc:\n    merge:\n      allow_squash: true\n',
   );
-  assert.equal(readFileSync(path, 'utf8'), before, 'nothing may be written when it refuses');
+  const path = write('stranded.yml', 'owner: my-account\nimports:\n  - stranded-import.yml\n');
+
+  assert.equal(
+    silently(() => migrateConfig(path, { write: true })),
+    0,
+  );
+
+  const converted = readFileSync(importPath, 'utf8');
+  assert.match(converted, /owners:\n\s+my-account:/u, 'the account comes from the root file');
+  assert.match(converted, /repos:/u);
+  assert.match(converted, /# Overrides\./u, 'comments survive the move');
+  assert.doesNotMatch(converted, /^repos:/mu, 'nothing is left binding a bare repository name');
+});
+
+test('the configuration a multi-file migration produces still loads', () => {
+  write('roundtrip-import.yml', 'repos:\n  svc:\n    merge:\n      allow_squash: true\n');
+  const path = write('roundtrip.yml', 'owner: my-account\nimports:\n  - roundtrip-import.yml\n');
+
+  silently(() => migrateConfig(path, { write: true }));
+
+  const config = loadConfig(path);
+  assert.equal(config.owners.length, 1);
+  assert.deepEqual(config.owners[0]?.repos?.svc, { merge: { allow_squash: true } });
 });
 
 test('migrateConfig still migrates when imports keep repositories out of their root', () => {
@@ -91,5 +107,37 @@ test('migrateConfig still migrates when imports keep repositories out of their r
   assert.equal(
     silently(() => migrateConfig(path)),
     0,
+  );
+});
+
+test('a dirty file anywhere in the set stops the whole migration', () => {
+  const repo = mkdtempSync(join(tmpdir(), 'octoform-migrate-git-'));
+  after(() => rmSync(repo, { recursive: true, force: true }));
+  const run = (...args: string[]): void => {
+    execFileSync('git', args, { cwd: repo, stdio: ['ignore', 'ignore', 'ignore'] });
+  };
+  run('init');
+  run('config', 'user.email', 'test@example.invalid');
+  run('config', 'user.name', 'Test');
+
+  const root = join(repo, 'octoform.yml');
+  const imported = join(repo, 'overrides.yml');
+  writeFileSync(root, 'owner: my-account\nimports:\n  - overrides.yml\n', 'utf8');
+  writeFileSync(imported, 'repos:\n  svc:\n    merge:\n      allow_squash: true\n', 'utf8');
+  run('add', '.');
+  run('commit', '-m', 'initial');
+
+  // Only the import is dirty. The root is clean and would have been written.
+  writeFileSync(imported, 'repos:\n  svc:\n    merge:\n      allow_squash: false\n', 'utf8');
+  const rootBefore = readFileSync(root, 'utf8');
+
+  assert.throws(
+    () => silently(() => migrateConfig(root, { write: true })),
+    (error: unknown) => error instanceof ConfigError && /Nothing was written/.test(error.message),
+  );
+  assert.equal(
+    readFileSync(root, 'utf8'),
+    rootBefore,
+    'the clean root must not be converted while an import cannot be',
   );
 });

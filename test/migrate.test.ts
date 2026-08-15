@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, test } from 'node:test';
-import { migrateToMultiOwner } from '../src/config/migrate.js';
+import { migrateToMultiOwner, moveRepositoriesUnderOwner } from '../src/config/migrate.js';
 import { ConfigError, loadConfig, resolvePolicy } from '../src/config/resolve.js';
 import type { RepoState } from '../src/types/index.js';
 
@@ -92,5 +92,35 @@ test('an already-migrated file is rejected rather than silently accepted', () =>
   assert.throws(
     () => migrateToMultiOwner('owner: a\nowners:\n  b: {}\n', 'octoform.yml'),
     ConfigError,
+  );
+});
+
+test('an imported file has its root repositories moved under the account', () => {
+  const { yaml } = moveRepositoriesUnderOwner(
+    '# Overrides.\nrepos:\n  svc:\n    merge:\n      allow_squash: true\n',
+    'my-account',
+    'overrides.yml',
+  );
+
+  assert.match(yaml, /^owners:\n  my-account:\n/u);
+  assert.match(yaml, /# Overrides\./u);
+});
+
+test('an imported file with nothing to move says so instead of rewriting it', () => {
+  assert.throws(
+    () => moveRepositoriesUnderOwner('types:\n  lib: {}\n', 'my-account', 'preset.yml'),
+    /has no root "repos"/u,
+  );
+});
+
+test('an imported file already naming accounts is left for a human', () => {
+  assert.throws(
+    () =>
+      moveRepositoriesUnderOwner(
+        'owners:\n  other: {}\nrepos:\n  svc: {}\n',
+        'my-account',
+        'mixed.yml',
+      ),
+    /cannot tell which account those repositories belong to/u,
   );
 });
