@@ -31,8 +31,11 @@ import type {
 
 interface RegisterCapability {
   id: string;
+  support: string;
   ownerKinds: string[];
   configPaths: string[];
+  readRoutes: string[];
+  writeRoutes: string[];
 }
 
 const register = JSON.parse(
@@ -218,6 +221,7 @@ const NOT_PLANNED_PER_REPOSITORY: ReadonlySet<string> = new Set([
   'team-membership',
   'organization-member-inventory',
   'organization-membership-commands',
+  'personal-access-token-governance',
   'audit-expectations',
   'authenticated-identity',
   'owner-kind',
@@ -320,5 +324,34 @@ test('every capability a repository policy can express has a fixture', () => {
     missing,
     [],
     'a published capability with no fixture is a claim about behaviour that nothing checks',
+  );
+});
+
+/**
+ * The one capability the register records as absent.
+ *
+ * Every fine-grained personal access token endpoint states that only GitHub
+ * Apps can use it, and octoform authenticates with a personal access token.
+ * The register says so, and this holds the two halves of that statement
+ * together: if octoform ever grows GitHub App authentication and wires one of
+ * these routes up, the note has to be revisited rather than left contradicting
+ * the code.
+ */
+test('the token endpoints the register calls unavailable are not used anywhere', () => {
+  const entry = register.capabilities.find(
+    (capability) => capability.id === 'personal-access-token-governance',
+  );
+
+  assert.ok(entry, 'the register must keep stating why this is unavailable');
+  assert.equal(entry.support, 'unsupported');
+  assert.deepEqual([...entry.readRoutes, ...entry.writeRoutes], []);
+
+  const used = register.capabilities.flatMap((capability) => [
+    ...capability.readRoutes,
+    ...capability.writeRoutes,
+  ]);
+  assert.deepEqual(
+    used.filter((route) => route.includes('personal-access-token')),
+    [],
   );
 });

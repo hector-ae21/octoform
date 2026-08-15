@@ -773,6 +773,27 @@
       ]
     },
     {
+      "id": "personal-access-token-governance",
+      "area": "access",
+      "support": "unsupported",
+      "configPaths": [],
+      "commands": [],
+      "ownerKinds": [
+        "organization"
+      ],
+      "readRoutes": [],
+      "writeRoutes": [],
+      "writeMutations": [],
+      "readPermissions": [],
+      "writePermissions": [],
+      "limitations": [
+        "Not available to octoform: every endpoint for fine-grained personal access token requests and grants states that only GitHub Apps can use it.",
+        "octoform authenticates with a personal access token from GITHUB_TOKEN or GH_TOKEN, so these endpoints refuse it whatever permissions it carries.",
+        "Recorded here rather than left out so the gap is a published statement, not something an operator discovers by assuming it was covered.",
+        "Approving or denying a token request stays a task for the organization's settings pages, or for a GitHub App built for it."
+      ]
+    },
+    {
       "id": "private-vulnerability-reporting",
       "area": "security",
       "support": "supported",

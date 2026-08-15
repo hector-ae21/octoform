@@ -266,6 +266,22 @@
         "rationale": "Membership conversion is an explicit actor-driven access workflow."
       },
       {
+        "id": "personal-access-token-governance",
+        "operationIds": [
+          "orgs/list-pat-grant-requests",
+          "orgs/review-pat-grant-requests-in-bulk",
+          "orgs/review-pat-grant-request",
+          "orgs/list-pat-grant-request-repositories",
+          "orgs/list-pat-grants",
+          "orgs/update-pat-accesses",
+          "orgs/update-pat-access",
+          "orgs/list-pat-grant-repositories"
+        ],
+        "disposition": "excluded",
+        "target": null,
+        "rationale": "Every one of these states that only GitHub Apps can use it, and octoform authenticates with a personal access token."
+      },
+      {
         "id": "access-and-secrets",
         "pathPattern": "(secrets|variables|collaborators|memberships|members|invitations|outside_collaborators|teams|deploy-keys|keys|hooks|oidc|runner-groups)",
         "methods": [
