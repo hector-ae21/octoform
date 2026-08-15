@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "productVersion": "0.4.0",
+  "productVersion": "0.4.1",
   "sources": {
     "githubRestApiVersion": "2026-03-10",
     "apiSurface": "github-api-surface.json",
