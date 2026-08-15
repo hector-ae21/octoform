@@ -7,7 +7,7 @@ breaking change bumps the middle number rather than the first, which is what
 a zero major means. Security fixes are always a patch bump. See
 [SECURITY.md](.github/SECURITY.md) for which versions get them.
 
-## [Unreleased]
+## [0.5.0] - 2026-08-16
 
 Octoform now governs the account above the repositories as well as the
 repositories themselves, and finishes the repository surface it had started.

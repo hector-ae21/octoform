@@ -276,7 +276,7 @@ export const CLI_CONTRACT: CliContract = {
     'A run against more than one owner prints a total across every owner it reached.',
     'apply --plan verifies actor, owner identity, source and configuration digests, and expiry before applying anything; a stale or altered plan is refused, never repaired.',
     'Exit codes are frozen for the v0 line: their meaning never changes once published here.',
-    '--format json wraps output in a versioned envelope. Currently supported by plan, inspect config, and inspect capabilities; other commands remain text-only.',
+    '--format json wraps output in a versioned envelope. Currently supported by plan, inspect config, inspect capabilities, and inspect members; other commands remain text-only.',
   ],
 };
 
