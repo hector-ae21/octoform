@@ -102,6 +102,45 @@
       ]
     },
     {
+      "id": "branch-protection",
+      "area": "branches",
+      "support": "supported",
+      "configPaths": [
+        "branch_protection"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization",
+        "personal"
+      ],
+      "readRoutes": [
+        "GET /repos/{owner}/{repo}/branches/{branch}",
+        "GET /repos/{owner}/{repo}/branches/{branch}/protection"
+      ],
+      "writeRoutes": [
+        "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
+        "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
+        "PUT /repos/{owner}/{repo}/branches/{branch}/protection"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-repo",
+        "repository-administration-read"
+      ],
+      "writePermissions": [
+        "classic-repo",
+        "repository-administration-write"
+      ],
+      "limitations": [
+        "The update endpoint has no partial form and reads an omitted member as a removal, so the current protection is read and declared keys are folded over it.",
+        "Protection is never removed from a branch the policy stops naming; only a declared value changes anything.",
+        "A branch also governed by a declared ruleset is blocked on both sides, because GitHub applies both and the stricter wins per rule."
+      ]
+    },
+    {
       "id": "code-scanning-default-setup",
       "area": "security",
       "support": "supported",

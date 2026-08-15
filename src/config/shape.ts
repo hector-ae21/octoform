@@ -191,6 +191,37 @@ const RULESET_POLICY: ObjectShape = {
   },
 };
 
+const BRANCH_RESTRICTIONS: ObjectShape = {
+  name: 'BranchRestrictions',
+  fields: { users: scalarList, teams: scalarList, apps: scalarList },
+};
+
+const BRANCH_PROTECTION_POLICY: ObjectShape = {
+  name: 'BranchProtectionPolicy',
+  fields: {
+    branch: scalar,
+    required_checks: scalarList,
+    strict_required_checks: scalar,
+    enforce_admins: scalar,
+    require_pull_request: scalar,
+    required_approvals: scalar,
+    dismiss_stale_reviews: scalar,
+    require_code_owner_review: scalar,
+    require_last_push_approval: scalar,
+    dismissal_restrictions: object(() => BRANCH_RESTRICTIONS),
+    bypass_pull_request_allowances: object(() => BRANCH_RESTRICTIONS),
+    restrict_pushes: object(() => BRANCH_RESTRICTIONS),
+    require_linear_history: scalar,
+    allow_force_pushes: scalar,
+    allow_deletions: scalar,
+    block_creations: scalar,
+    require_conversation_resolution: scalar,
+    lock_branch: scalar,
+    allow_fork_syncing: scalar,
+    require_signatures: scalar,
+  },
+};
+
 const ENVIRONMENT_POLICY: ObjectShape = {
   name: 'EnvironmentPolicy',
   fields: { name: scalar, reviewers: scalarList },
@@ -212,6 +243,7 @@ const POLICY_SET: ObjectShape = {
     repo: object(() => REPO_POLICY),
     default_branch: object(() => DEFAULT_BRANCH_POLICY),
     ensure_branches: scalarList,
+    branch_protection: objectList(() => BRANCH_PROTECTION_POLICY),
     rulesets: objectList(() => RULESET_POLICY),
     environments: objectList(() => ENVIRONMENT_POLICY),
     files: objectList(() => FILE_POLICY),

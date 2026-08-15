@@ -670,3 +670,72 @@ test('with no rename planned it is cut from the branch that is there', () => {
 
   assert.deepEqual(change?.payload, { branch: 'develop', from: 'main' });
 });
+
+test('branch protection is planned against what is currently in force', () => {
+  const state = repo({ structure: { branchProtection: { main: null } } });
+  const policy: PolicySet = { branch_protection: [{ branch: 'main', enforce_admins: true }] };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.key, 'branch_protection.main');
+  assert.equal(change?.from, null);
+  assert.equal(change?.risk, 'sensitive');
+});
+
+test('protection for a branch that does not exist is blocked, not created', () => {
+  const state = repo({ structure: { branchProtection: {} } });
+  const policy: PolicySet = { branch_protection: [{ branch: 'nope', enforce_admins: true }] };
+
+  assert.match(String(planned(state, policy, OPTIONS)[0]?.blocked), /no branch called/u);
+});
+
+test('unreadable protection blocks rather than being assumed absent', () => {
+  const state = repo({ structure: {} });
+  const policy: PolicySet = { branch_protection: [{ branch: 'main', enforce_admins: true }] };
+
+  assert.match(String(planned(state, policy, OPTIONS)[0]?.blocked), /could not read/u);
+});
+
+test('a branch governed by both protection and a ruleset blocks both sides', () => {
+  const state = repo({ structure: { branchProtection: { main: null }, rulesets: [] } });
+  const policy: PolicySet = {
+    branch_protection: [{ branch: 'main', enforce_admins: true }],
+    rulesets: [{ name: 'protect', target_branches: ['~DEFAULT_BRANCH'], block_deletion: true }],
+  };
+  const changes = planned(state, policy, OPTIONS);
+
+  assert.match(
+    String(changes.find((c) => c.key === 'branch_protection.main')?.blocked),
+    /ruleset/u,
+  );
+  assert.match(
+    String(changes.find((c) => c.key === 'rulesets.protect')?.blocked),
+    /branch_protection/u,
+  );
+});
+
+test('the conflict is reported even when neither side would otherwise change', () => {
+  const state = repo({
+    structure: {
+      branchProtection: { main: { enforce_admins: true } },
+      rulesets: [stored({ include: ['main'], rules: { block_deletion: true } })],
+    },
+  });
+  const policy: PolicySet = {
+    branch_protection: [{ branch: 'main', enforce_admins: true }],
+    rulesets: [{ name: 'protect', target_branches: ['main'], block_deletion: true }],
+  };
+  const changes = planned(state, policy, OPTIONS);
+
+  assert.equal(changes.length, 2, 'both are reported, though neither differs');
+  assert.ok(changes.every((change) => change.blocked !== undefined));
+});
+
+test('a ruleset governing other refs is not a conflict', () => {
+  const state = repo({ structure: { branchProtection: { main: null }, rulesets: [] } });
+  const policy: PolicySet = {
+    branch_protection: [{ branch: 'main', enforce_admins: true }],
+    rulesets: [{ name: 'tags', target_tags: ['v*'], block_deletion: true }],
+  };
+
+  assert.ok(planned(state, policy, OPTIONS).every((change) => change.blocked === undefined));
+});

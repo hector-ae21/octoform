@@ -409,6 +409,36 @@ export function toRefName(ref: string, target: RulesetTarget = 'branch'): string
   return `refs/${target === 'tag' ? 'tags' : 'heads'}/${ref}`;
 }
 
+/**
+ * Whether a ruleset's ref patterns cover a branch.
+ *
+ * Used to notice that a branch is claimed by both a ruleset and classic
+ * protection. Erring towards "yes" is deliberate: reporting an overlap that
+ * turns out to be harmless costs a sentence in the plan, while missing a real
+ * one leaves two features quietly fighting over the same branch.
+ *
+ * @param patterns - Ref names or patterns from a ruleset's include list.
+ * @param branch - The branch classic protection names.
+ * @param defaultBranch - What `~DEFAULT_BRANCH` currently resolves to.
+ */
+export function coversBranch(
+  patterns: readonly string[],
+  branch: string,
+  defaultBranch: string,
+): boolean {
+  return patterns.some((raw) => {
+    const pattern = fromRefName(raw);
+    if (pattern === '~ALL') return true;
+    if (pattern === '~DEFAULT_BRANCH') return branch === defaultBranch;
+    if (!pattern.includes('*')) return pattern === branch;
+    const expression = pattern
+      .split('*')
+      .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+      .join('.*');
+    return new RegExp(`^${expression}$`).test(branch);
+  });
+}
+
 function fromRefName(ref: string): string {
   if (ref.startsWith('~')) return ref;
   return ref.replace(/^refs\/(?:heads|tags)\//, '');
