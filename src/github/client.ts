@@ -2,6 +2,7 @@ import { Octokit } from '@octokit/rest';
 import { UNREADABLE } from '../config/sentinels.js';
 import { capability, errorMessage, errorStatus } from './capabilities.js';
 import { graphqlRequest, valueOrUnreadable } from './graphql.js';
+import { readRuleset } from '../core/rulesets.js';
 import { CHANGED_BY_MUTATION } from '../core/plan.js';
 import type {
   CapabilityResult,
@@ -551,57 +552,13 @@ async function listRulesets(
           repo,
           ruleset_id: summary.id,
         });
-        return toExistingRuleset(res.data as RawRuleset);
+        return readRuleset(res.data as Parameters<typeof readRuleset>[0]);
       }),
     );
     return full;
   } catch {
     return undefined;
   }
-}
-
-interface RawRuleset {
-  id: number;
-  name: string;
-  conditions?: { ref_name?: { include?: string[] } };
-  rules?: Array<{ type: string; parameters?: Record<string, unknown> }>;
-}
-
-function toExistingRuleset(raw: RawRuleset): ExistingRuleset {
-  const rules = raw.rules ?? [];
-  const pullRequest = rules.find((r) => r.type === 'pull_request');
-  const statusChecks = rules.find((r) => r.type === 'required_status_checks');
-
-  const approvals = pullRequest?.parameters?.['required_approving_review_count'];
-  const checks = statusChecks?.parameters?.['required_status_checks'] as
-    Array<{ context?: string }> | undefined;
-
-  return {
-    id: raw.id,
-    name: raw.name,
-    target_branches: (raw.conditions?.ref_name?.include ?? []).map(fromRefName),
-    ...(typeof approvals === 'number' ? { required_approvals: approvals } : {}),
-    ...(checks ? { required_checks: checks.map((c) => c.context ?? '').filter(Boolean) } : {}),
-    block_force_push: rules.some((r) => r.type === 'non_fast_forward'),
-    block_deletion: rules.some((r) => r.type === 'deletion'),
-  };
-}
-
-/**
- * Ruleset conditions are stored as full refs (`refs/heads/main`), except for
- * the `~ALL` / `~DEFAULT_BRANCH` placeholders, which stand on their own. The
- * configuration says `main`, so the two forms are translated at this boundary
- * and nowhere else — `plan` compares branch names, not refs.
- */
-export function toRefName(branch: string): string {
-  if (branch.startsWith('~')) return branch;
-  if (branch.startsWith('refs/')) return branch;
-  return `refs/heads/${branch}`;
-}
-
-function fromRefName(ref: string): string {
-  if (ref.startsWith('~')) return ref;
-  return ref.replace(/^refs\/heads\//, '');
 }
 
 /**

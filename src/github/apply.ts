@@ -1,12 +1,13 @@
 import { readFileSync } from 'node:fs';
 import type { Octokit } from '@octokit/rest';
-import { toRefName } from './client.js';
 import { graphqlRequest } from './graphql.js';
 import { blockedByPrerequisite, orderByDependency } from '../core/dependencies.js';
+import { rulesetBody } from '../core/rulesets.js';
 import type {
   AppliedChange,
   Change,
   EnvironmentPolicy,
+  ExistingRuleset,
   FilePolicy,
   RulesetPolicy,
 } from '../types/index.js';
@@ -279,11 +280,12 @@ export async function applyRepoChanges(
 
   for (const change of changes.filter((c) => c.key.startsWith('rulesets.'))) {
     if (stopped(change)) continue;
-    const payload = change.payload as { ruleset: RulesetPolicy; id?: number } | undefined;
+    const payload = change.payload as
+      { ruleset: RulesetPolicy; id?: number; existing?: ExistingRuleset } | undefined;
     record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no ruleset to apply');
-        const body = rulesetBody(payload.ruleset);
+        const body = rulesetBody(payload.ruleset, payload.existing);
         const route: string =
           payload.id === undefined
             ? 'POST /repos/{owner}/{repo}/rulesets'
@@ -409,57 +411,6 @@ async function resolveReviewers(
     }
   }
   return resolved;
-}
-
-/**
- * Translate a declared ruleset into GitHub's own shape.
- *
- * GitHub names its rules after what they permit rather than what they block,
- * and requires every parameter of a rule to be present even when only one of
- * them is interesting. Both are contained here so the configuration model can
- * stay in the shape a person would write.
- */
-function rulesetBody(policy: RulesetPolicy): Record<string, unknown> {
-  const rules: Array<Record<string, unknown>> = [];
-
-  if (policy.required_approvals !== undefined) {
-    rules.push({
-      type: 'pull_request',
-      parameters: {
-        required_approving_review_count: policy.required_approvals,
-        dismiss_stale_reviews_on_push: false,
-        require_code_owner_review: false,
-        require_last_push_approval: false,
-        required_review_thread_resolution: false,
-      },
-    });
-  }
-
-  if (policy.required_checks?.length) {
-    rules.push({
-      type: 'required_status_checks',
-      parameters: {
-        required_status_checks: policy.required_checks.map((context) => ({ context })),
-        strict_required_status_checks_policy: false,
-      },
-    });
-  }
-
-  if (policy.block_force_push) rules.push({ type: 'non_fast_forward' });
-  if (policy.block_deletion) rules.push({ type: 'deletion' });
-
-  return {
-    name: policy.name,
-    target: 'branch',
-    enforcement: 'active',
-    conditions: {
-      ref_name: {
-        include: policy.target_branches.map(toRefName),
-        exclude: [],
-      },
-    },
-    rules,
-  };
 }
 
 /**

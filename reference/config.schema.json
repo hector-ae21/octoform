@@ -616,17 +616,35 @@
     "RulesetPolicy": {
       "type": "object",
       "properties": {
-        "name": {
-          "type": "string"
-        },
-        "target_branches": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "require_pull_request": {
+          "type": "boolean",
+          "description": "Require a pull request. The keys below configure it and imply it."
         },
         "required_approvals": {
           "type": "number"
+        },
+        "dismiss_stale_reviews": {
+          "type": "boolean"
+        },
+        "require_code_owner_review": {
+          "type": "boolean"
+        },
+        "require_last_push_approval": {
+          "type": "boolean"
+        },
+        "require_thread_resolution": {
+          "type": "boolean"
+        },
+        "allowed_merge_methods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "merge",
+              "squash",
+              "rebase"
+            ]
+          }
         },
         "required_checks": {
           "type": "array",
@@ -634,19 +652,252 @@
             "type": "string"
           }
         },
-        "block_force_push": {
+        "strict_required_checks": {
           "type": "boolean"
+        },
+        "checks_not_enforced_on_create": {
+          "type": "boolean",
+          "description": "Let a branch be created without the required checks having run."
+        },
+        "required_deployments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "block_creation": {
+          "type": "boolean",
+          "description": "Refuse creating a matching ref."
+        },
+        "block_update": {
+          "type": "boolean",
+          "description": "Refuse updating a matching ref."
+        },
+        "allow_fetch_and_merge": {
+          "type": "boolean",
+          "description": "Allow an otherwise blocked update when it is a fetch and merge."
         },
         "block_deletion": {
           "type": "boolean"
+        },
+        "block_force_push": {
+          "type": "boolean"
+        },
+        "require_linear_history": {
+          "type": "boolean"
+        },
+        "require_signatures": {
+          "type": "boolean"
+        },
+        "merge_queue": {
+          "$ref": "#/definitions/MergeQueueRule"
+        },
+        "required_code_scanning": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeScanningRule"
+          }
+        },
+        "require_license_compliance_scanning": {
+          "type": "boolean"
+        },
+        "copilot_code_review": {
+          "type": "object",
+          "properties": {
+            "review_draft_pull_requests": {
+              "type": "boolean"
+            },
+            "review_on_push": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "commit_message_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "commit_author_email_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "committer_email_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "branch_name_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "tag_name_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "restricted_file_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "restricted_file_extensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "max_file_size": {
+          "type": "number"
+        },
+        "max_file_path_length": {
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "target_branches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Branch names or patterns, including `~DEFAULT_BRANCH` and `~ALL`."
+        },
+        "target_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tag names or patterns."
+        },
+        "target_pushes": {
+          "type": "boolean",
+          "description": "A push ruleset, which governs the whole repository and matches no refs."
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Refs matching any of these are exempt, whatever the target matched."
+        },
+        "enforcement": {
+          "$ref": "#/definitions/RulesetEnforcement"
         }
       },
       "required": [
-        "name",
-        "target_branches"
+        "name"
       ],
       "additionalProperties": false,
-      "description": "Desired branch ruleset reduced to the fields Octoform manages."
+      "description": "A desired ruleset.\n\nExactly one of the three target keys says what the ruleset governs, and the key names which. A single `target` field plus a shared list of patterns would let a file say `target: tag` beside `target_branches`, which is a disagreement nothing could resolve."
+    },
+    "MergeQueueRule": {
+      "type": "object",
+      "properties": {
+        "merge_method": {
+          "type": "string",
+          "enum": [
+            "MERGE",
+            "SQUASH",
+            "REBASE"
+          ]
+        },
+        "grouping_strategy": {
+          "type": "string",
+          "enum": [
+            "ALLGREEN",
+            "HEADGREEN"
+          ]
+        },
+        "max_entries_to_build": {
+          "type": "number"
+        },
+        "max_entries_to_merge": {
+          "type": "number"
+        },
+        "min_entries_to_merge": {
+          "type": "number"
+        },
+        "min_entries_to_merge_wait_minutes": {
+          "type": "number"
+        },
+        "check_response_timeout_minutes": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired merge queue behaviour, when a ruleset requires one."
+    },
+    "CodeScanningRule": {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "type": "string"
+        },
+        "alerts_threshold": {
+          "type": "string",
+          "enum": [
+            "none",
+            "errors",
+            "errors_and_warnings",
+            "all"
+          ]
+        },
+        "security_alerts_threshold": {
+          "type": "string",
+          "enum": [
+            "none",
+            "critical",
+            "high_or_higher",
+            "medium_or_higher",
+            "all"
+          ]
+        }
+      },
+      "required": [
+        "tool",
+        "alerts_threshold",
+        "security_alerts_threshold"
+      ],
+      "additionalProperties": false,
+      "description": "How much of a code scanning tool's output blocks a merge."
+    },
+    "PatternRule": {
+      "type": "object",
+      "properties": {
+        "operator": {
+          "$ref": "#/definitions/PatternOperator"
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "negate": {
+          "type": "boolean",
+          "description": "Match everything the pattern does not, instead of what it does."
+        },
+        "name": {
+          "type": "string",
+          "description": "Shown by GitHub when the rule rejects a push."
+        }
+      },
+      "required": [
+        "operator",
+        "pattern"
+      ],
+      "additionalProperties": false,
+      "description": "A rule matching some piece of commit or ref text against a pattern."
+    },
+    "PatternOperator": {
+      "type": "string",
+      "enum": [
+        "starts_with",
+        "ends_with",
+        "contains",
+        "regex"
+      ],
+      "description": "How a pattern rule compares the text it is given."
+    },
+    "RulesetEnforcement": {
+      "type": "string",
+      "enum": [
+        "active",
+        "evaluate",
+        "disabled"
+      ],
+      "description": "How strictly a ruleset is applied. `evaluate` reports what would have been blocked without blocking it, and GitHub offers it only on some plans."
     },
     "EnvironmentPolicy": {
       "type": "object",

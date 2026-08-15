@@ -156,14 +156,123 @@ export interface DefaultBranchPolicy {
   rename_from?: Managed<string[]>;
 }
 
-/** Desired branch ruleset reduced to the fields Octoform manages. */
-export interface RulesetPolicy {
-  name: string;
-  target_branches: string[];
+/**
+ * How strictly a ruleset is applied. `evaluate` reports what would have been
+ * blocked without blocking it, and GitHub offers it only on some plans.
+ */
+export type RulesetEnforcement = 'active' | 'evaluate' | 'disabled';
+
+/** Which refs a ruleset governs. */
+export type RulesetTarget = 'branch' | 'tag' | 'push';
+
+/** How a pattern rule compares the text it is given. */
+export type PatternOperator = 'starts_with' | 'ends_with' | 'contains' | 'regex';
+
+/** A rule matching some piece of commit or ref text against a pattern. */
+export interface PatternRule {
+  operator: PatternOperator;
+  pattern: string;
+  /** Match everything the pattern does not, instead of what it does. */
+  negate?: boolean;
+  /** Shown by GitHub when the rule rejects a push. */
+  name?: string;
+}
+
+/** How much of a code scanning tool's output blocks a merge. */
+export interface CodeScanningRule {
+  tool: string;
+  alerts_threshold: 'none' | 'errors' | 'errors_and_warnings' | 'all';
+  security_alerts_threshold: 'none' | 'critical' | 'high_or_higher' | 'medium_or_higher' | 'all';
+}
+
+/** Desired merge queue behaviour, when a ruleset requires one. */
+export interface MergeQueueRule {
+  merge_method?: 'MERGE' | 'SQUASH' | 'REBASE';
+  grouping_strategy?: 'ALLGREEN' | 'HEADGREEN';
+  max_entries_to_build?: number;
+  max_entries_to_merge?: number;
+  min_entries_to_merge?: number;
+  min_entries_to_merge_wait_minutes?: number;
+  check_response_timeout_minutes?: number;
+}
+
+/**
+ * Every rule a repository ruleset can carry, flattened.
+ *
+ * GitHub models these as a list of tagged objects, several of which exist only
+ * to hold one value. Flattening them is what lets a ruleset be read top to
+ * bottom, and what lets a policy say `block_force_push: false` — GitHub has no
+ * "off" for a rule, only its absence, so the two spellings have to be
+ * translated somewhere and this is the boundary that does it.
+ *
+ * Every key is optional and only a declared one is compared or sent. A rule
+ * octoform never modelled, or one the policy simply did not mention, survives
+ * an update untouched.
+ */
+export interface RuleSettings {
+  /** Require a pull request. The keys below configure it and imply it. */
+  require_pull_request?: boolean;
   required_approvals?: number;
+  dismiss_stale_reviews?: boolean;
+  require_code_owner_review?: boolean;
+  require_last_push_approval?: boolean;
+  require_thread_resolution?: boolean;
+  allowed_merge_methods?: Array<'merge' | 'squash' | 'rebase'>;
+
   required_checks?: string[];
-  block_force_push?: boolean;
+  strict_required_checks?: boolean;
+  /** Let a branch be created without the required checks having run. */
+  checks_not_enforced_on_create?: boolean;
+
+  required_deployments?: string[];
+
+  /** Refuse creating a matching ref. */
+  block_creation?: boolean;
+  /** Refuse updating a matching ref. */
+  block_update?: boolean;
+  /** Allow an otherwise blocked update when it is a fetch and merge. */
+  allow_fetch_and_merge?: boolean;
   block_deletion?: boolean;
+  block_force_push?: boolean;
+  require_linear_history?: boolean;
+  require_signatures?: boolean;
+
+  merge_queue?: MergeQueueRule;
+  required_code_scanning?: CodeScanningRule[];
+  require_license_compliance_scanning?: boolean;
+  copilot_code_review?: { review_draft_pull_requests?: boolean; review_on_push?: boolean };
+
+  commit_message_pattern?: PatternRule;
+  commit_author_email_pattern?: PatternRule;
+  committer_email_pattern?: PatternRule;
+  branch_name_pattern?: PatternRule;
+  tag_name_pattern?: PatternRule;
+
+  restricted_file_paths?: string[];
+  restricted_file_extensions?: string[];
+  max_file_size?: number;
+  max_file_path_length?: number;
+}
+
+/**
+ * A desired ruleset.
+ *
+ * Exactly one of the three target keys says what the ruleset governs, and the
+ * key names which. A single `target` field plus a shared list of patterns
+ * would let a file say `target: tag` beside `target_branches`, which is a
+ * disagreement nothing could resolve.
+ */
+export interface RulesetPolicy extends RuleSettings {
+  name: string;
+  /** Branch names or patterns, including `~DEFAULT_BRANCH` and `~ALL`. */
+  target_branches?: string[];
+  /** Tag names or patterns. */
+  target_tags?: string[];
+  /** A push ruleset, which governs the whole repository and matches no refs. */
+  target_pushes?: boolean;
+  /** Refs matching any of these are exempt, whatever the target matched. */
+  exclude?: string[];
+  enforcement?: RulesetEnforcement;
 }
 
 /** Desired deployment environment and its user reviewers. */
