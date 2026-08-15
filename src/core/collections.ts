@@ -155,3 +155,64 @@ export function describePropertyValue(value: string | string[] | undefined): str
   if (value === undefined) return null;
   return Array.isArray(value) ? value.join(', ') : value;
 }
+
+/**
+ * A label as GitHub returns it, reduced to what octoform compares.
+ *
+ * Paired with {@link labelBody} so the two directions are written next to each
+ * other: a field readable under one name and written under another is the
+ * defect this pairing exists to make visible.
+ */
+export function readLabel(raw: {
+  name?: string;
+  color?: string;
+  description?: string | null;
+  default?: boolean;
+}): ExistingLabel | undefined {
+  if (!raw.name) return undefined;
+  return {
+    name: raw.name,
+    color: normalizeColor(raw.color ?? ''),
+    description: raw.description ?? null,
+    default: raw.default === true,
+  };
+}
+
+/** The request body that creates or updates a label. */
+export function labelBody(declared: LabelPolicy, current?: string): Record<string, unknown> {
+  return {
+    ...(current === undefined ? { name: declared.name } : {}),
+    ...(current !== undefined && current !== declared.name ? { new_name: declared.name } : {}),
+    ...(declared.color === undefined ? {} : { color: normalizeColor(declared.color) }),
+    ...(declared.description === undefined ? {} : { description: declared.description }),
+  };
+}
+
+/** A milestone as GitHub returns it, reduced to what octoform compares. */
+export function readMilestone(raw: {
+  number?: number;
+  title?: string;
+  description?: string | null;
+  state?: string;
+  due_on?: string | null;
+}): ExistingMilestone | undefined {
+  if (!raw.title || raw.number === undefined) return undefined;
+  const due = dueDate(raw.due_on);
+  return {
+    number: raw.number,
+    title: raw.title,
+    description: raw.description ?? null,
+    state: raw.state === 'closed' ? 'closed' : 'open',
+    ...(due === undefined ? {} : { due }),
+  };
+}
+
+/** The request body that creates or updates a milestone. */
+export function milestoneBody(declared: MilestonePolicy): Record<string, unknown> {
+  return {
+    title: declared.title,
+    ...(declared.state === undefined ? {} : { state: declared.state }),
+    ...(declared.description === undefined ? {} : { description: declared.description }),
+    ...(declared.due === undefined ? {} : { due_on: dueTimestamp(declared.due) }),
+  };
+}

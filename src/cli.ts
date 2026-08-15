@@ -300,7 +300,7 @@ export async function main(argv: string[]): Promise<number> {
           return EXIT_USAGE_ERROR;
         }
         return await each(async (scope) => {
-          const report = await inspectCapabilities(octokit, scope);
+          const report = await inspectCapabilities(octokit, scope, selection.repoName);
           if (args.format === 'json') {
             console.log(JSON.stringify(envelope('inspect capabilities', report), null, 2));
           } else {

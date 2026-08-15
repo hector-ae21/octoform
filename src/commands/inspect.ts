@@ -1,7 +1,13 @@
 import type { Octokit } from '@octokit/rest';
-import { detectLimits, discoverOwner } from '../github/client.js';
+import { detectLimits, detectRulesetCapability, discoverOwner } from '../github/client.js';
+import { capability } from '../github/capabilities.js';
 import { describeNotApplicable, notApplicable } from '../config/applicability.js';
-import type { InspectedCapabilities, InspectedOwner, OwnerScope } from '../types/index.js';
+import type {
+  InspectedCapabilities,
+  InspectedOwner,
+  InspectedRepository,
+  OwnerScope,
+} from '../types/index.js';
 
 /**
  * The fully resolved policy for one owner, with nothing left to imports,
@@ -24,6 +30,7 @@ export function inspectConfig(scopes: OwnerScope[]): InspectedOwner[] {
 export async function inspectCapabilities(
   octokit: Octokit,
   scope: OwnerScope,
+  repo?: string,
 ): Promise<InspectedCapabilities> {
   const discovery = await discoverOwner(octokit, scope.owner);
   const limits = await detectLimits(octokit, scope.owner, discovery.kind);
@@ -37,7 +44,42 @@ export async function inspectCapabilities(
     plan: limits.plan,
     organizationRulesets: limits.orgRulesets,
     notApplicable: findings,
+    ...(repo === undefined
+      ? {}
+      : { repository: await inspectRepository(octokit, scope.owner, repo) }),
   };
+}
+
+/**
+ * What one repository supports, which is not always what its owner supports.
+ *
+ * Rulesets are the reason this is asked per repository rather than per owner:
+ * on a private repository they depend on the account's plan and on the token,
+ * and octoform refuses to assume either. On a public repository they are
+ * always available, so nothing is probed and the answer says so — a probe
+ * whose result is known in advance is a request spent proving nothing.
+ */
+async function inspectRepository(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<InspectedRepository> {
+  const { data } = await octokit.request('GET /repos/{owner}/{repo}', { owner, repo });
+  const { visibility, default_branch: defaultBranch } = data as {
+    visibility?: string;
+    default_branch?: string;
+  };
+
+  const rulesets =
+    visibility === 'private'
+      ? await detectRulesetCapability(octokit, owner, repo, defaultBranch ?? '')
+      : capability(
+          'supported',
+          'rulesets are always available on a repository that is not private',
+          'resource-state',
+        );
+
+  return { name: repo, visibility: visibility ?? 'unknown', rulesets };
 }
 
 /** Print one owner's resolved configuration as text. */
@@ -64,6 +106,11 @@ export function reportInspectedCapabilities(owner: string, report: InspectedCapa
     console.log('  declarations that do not apply to this owner:');
     for (const finding of report.notApplicable)
       console.log(`    ${finding.path}: ${finding.reason}`);
+  }
+  if (report.repository) {
+    const { name, visibility, rulesets } = report.repository;
+    console.log(`  ${name} (${visibility}):`);
+    console.log(`    rulesets: ${rulesets.status} — ${rulesets.reason} (${rulesets.source})`);
   }
   console.log('');
 }

@@ -107,10 +107,11 @@ export const CLI_CONTRACT: CliContract = {
     {
       path: ['inspect', 'capabilities'],
       usage:
-        'octoform inspect capabilities [--config <path>] [--owner <login>]... [--format <text|json>]',
-      summary: 'Print what octoform determined each selected owner supports, and the evidence why.',
+        'octoform inspect capabilities [--config <path>] [--owner <login>]... [--repo <name>] [--format <text|json>]',
+      summary:
+        'Print what octoform determined each selected owner supports, and the evidence why. With --repo, also whether rulesets can be managed on that repository.',
       mode: 'read-only',
-      options: ['config', 'owner', 'format', 'help'],
+      options: ['config', 'owner', 'repo', 'format', 'help'],
       classicScopes: ['repo'],
     },
   ],
