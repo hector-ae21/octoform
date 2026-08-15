@@ -652,7 +652,13 @@
       "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-contents-read"],
       "writePermissions": ["classic-repo", "repository-contents-write"],
-      "limitations": ["Only create-if-missing is supported; existing files are never overwritten or deleted."]
+      "limitations": [
+        "Only create-if-missing is supported; existing files are never overwritten or deleted.",
+        "Existing content is never fetched to compare against, since a difference octoform refuses to correct is not worth reporting on every run.",
+        "A files[].from that resolves outside the directory of the file declaring it is refused when the configuration loads, as is one that cannot be read.",
+        "The source is copied byte for byte, so a file that is not text survives.",
+        "Existence is probed on the branch the file would be created on, not on the default branch."
+      ]
     },
     {
       "id": "repository-classification",

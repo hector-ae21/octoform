@@ -508,6 +508,11 @@ async function getRepoStructure(
     asked = true;
     const entries = await Promise.all(
       policy.files.map(async (file) => {
+        /**
+         * Probed on the branch the file would be created on. Asking the
+         * default branch instead would report a file as missing because it is
+         * only missing somewhere else, and seed a second copy of it.
+         */
         const exists = await probe(
           octokit,
           'GET /repos/{owner}/{repo}/contents/{path}',
@@ -515,6 +520,7 @@ async function getRepoStructure(
           base.name,
           {
             path: file.path,
+            ...(file.branch === undefined ? {} : { ref: file.branch }),
           },
         );
         return [file.path, exists] as const;

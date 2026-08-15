@@ -283,7 +283,13 @@ const ENVIRONMENT_POLICY: ObjectShape = {
 
 const FILE_POLICY: ObjectShape = {
   name: 'FilePolicy',
-  fields: { path: scalar, from: scalar, mode: enumeration('create-if-missing') },
+  fields: {
+    path: scalar,
+    from: scalar,
+    mode: enumeration('create-if-missing'),
+    message: scalar,
+    branch: scalar,
+  },
 };
 
 const POLICY_SET: ObjectShape = {
@@ -307,6 +313,8 @@ const POLICY_SET: ObjectShape = {
     files: objectList(() => FILE_POLICY),
   },
 };
+
+export { POLICY_SET };
 
 const REPO_ENTRY: ObjectShape = {
   name: 'RepoEntry',
