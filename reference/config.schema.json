@@ -893,6 +893,9 @@
           "type": "string",
           "description": "Slug of the team this one sits under. Empty lifts it back to the top."
         },
+        "membership": {
+          "$ref": "#/definitions/TeamMembership"
+        },
         "rename_from": {
           "type": "array",
           "items": {
@@ -906,6 +909,31 @@
       },
       "additionalProperties": false,
       "description": "A desired team, declared under the slug GitHub addresses it by.\n\nThe slug is the key rather than a field because it is the handle every endpoint takes and the handle another team names as its parent. `name` is what the team is called, which GitHub re-slugs when it changes — so a rename says which slug the team currently has, the same way a label does."
+    },
+    "TeamMembership": {
+      "type": "object",
+      "properties": {
+        "maintainers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Logins who administer the team."
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Logins who belong to it without administering it."
+        },
+        "authoritative": {
+          "type": "boolean",
+          "description": "Remove anyone the lists do not name.\n\nOff unless asked for, and refused when the lists are empty: an authoritative block naming nobody empties the team, and emptying a team is not something anyone says by leaving a section blank."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Who is on a team.\n\nAdditive unless the file says otherwise, for the reason absence means \"not managed\" everywhere else: deleting a line from a configuration file should not quietly take somebody's access away."
     },
     "ClassifyConfig": {
       "type": "object",

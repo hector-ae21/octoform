@@ -347,6 +347,31 @@ export interface RulesetPolicy extends RuleSettings {
   bypass?: RulesetBypass[];
 }
 
+/** What someone is on a team: an ordinary member, or one who administers it. */
+export type TeamRole = 'member' | 'maintainer';
+
+/**
+ * Who is on a team.
+ *
+ * Additive unless the file says otherwise, for the reason absence means
+ * "not managed" everywhere else: deleting a line from a configuration file
+ * should not quietly take somebody's access away.
+ */
+export interface TeamMembership {
+  /** Logins who administer the team. */
+  maintainers?: string[];
+  /** Logins who belong to it without administering it. */
+  members?: string[];
+  /**
+   * Remove anyone the lists do not name.
+   *
+   * Off unless asked for, and refused when the lists are empty: an
+   * authoritative block naming nobody empties the team, and emptying a team is
+   * not something anyone says by leaving a section blank.
+   */
+  authoritative?: boolean;
+}
+
 /**
  * A desired team, declared under the slug GitHub addresses it by.
  *
@@ -369,6 +394,7 @@ export interface TeamPolicy {
   notifications?: boolean;
   /** Slug of the team this one sits under. Empty lifts it back to the top. */
   parent?: string;
+  membership?: TeamMembership;
   /**
    * Slugs this team may currently have, for a rename. Without it a renamed
    * team reads as missing, and creating it again would leave two.

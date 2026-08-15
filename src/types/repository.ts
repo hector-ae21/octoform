@@ -10,6 +10,7 @@ import type {
   RulesetEnforcement,
   RulesetRepositories,
   RulesetTarget,
+  TeamRole,
 } from './config.js';
 import type { Resolution, StoredActor } from './identity.js';
 
@@ -156,6 +157,30 @@ export interface ExistingTeam {
   /** Whether members are notified when the team is mentioned. */
   notifications: boolean;
   parent: string | null;
+  /** Who is on it, gathered only when a policy asks about membership. */
+  members?: TeamMembers;
+}
+
+/**
+ * Who is on a team, with the people who have been asked kept apart from the
+ * people who have answered.
+ *
+ * Adding someone who is not yet an organisation member sends them an email
+ * invitation, and the membership stays `pending` until they accept. Reading
+ * only the active side would see the same person missing on every run and
+ * invite them again on every run.
+ */
+export interface TeamMembers {
+  /** Role by login, for people who are on the team now. */
+  active: Record<string, TeamRole>;
+  /**
+   * Role by login, for invitations sent and not yet accepted.
+   *
+   * The invitation listing cannot answer this on its own: the `role` it
+   * carries is the organisation invitation role, not the team one, which is
+   * why the team role is asked for per pending person instead of assumed.
+   */
+  pending: Record<string, TeamRole>;
 }
 
 /**

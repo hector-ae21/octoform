@@ -26,6 +26,7 @@ import type {
   OwnerKind,
   PropertyDefinition,
   Risk,
+  TeamMembership,
   TeamPolicy,
 } from '../types/index.js';
 import {
@@ -37,7 +38,14 @@ import {
 } from './properties.js';
 import { bypassProblems, workflowProblems } from './identity.js';
 import { matchByName } from './collections.js';
-import { describeTeam, sameTeam, teamBody, teamProblems } from './teams.js';
+import {
+  declaredMembership,
+  describeTeam,
+  membershipProblems,
+  sameTeam,
+  teamBody,
+  teamProblems,
+} from './teams.js';
 import type { RuleContext } from './rulesets.js';
 import { describeExistingRuleset, describeRuleset, sameRuleset, targetOf } from './rulesets.js';
 import {
@@ -144,12 +152,15 @@ export function declaredOrganization(policy: OrganizationPolicy): Map<string, un
  * @param ownerKind - What the login turned out to be.
  * @param observed - The organisation as it stands, or nothing if unread.
  * @param policy - The declared organisation policy.
+ * @param actor - The login this run is authenticated as, when it is known.
+ *   Only the membership guards use it, and only to refuse removing it.
  */
 export function planOrganization(
   owner: string,
   ownerKind: OwnerKind,
   observed: OrganizationState | undefined,
   policy: OrganizationPolicy | undefined,
+  actor?: string,
 ): Change[] {
   if (!policy) return [];
 
@@ -209,7 +220,7 @@ export function planOrganization(
   }
 
   planDefinitions(ownerKind, observed?.properties, policy, draft);
-  planTeams(owner, ownerKind, observed?.teams, policy, draft);
+  planTeams(owner, ownerKind, observed?.teams, policy, actor, draft);
   planOrganizationRulesets(owner, ownerKind, observed, policy, draft);
 
   return changes;
@@ -229,6 +240,7 @@ function planTeams(
   ownerKind: OwnerKind,
   existing: Record<string, ExistingTeam> | undefined,
   policy: OrganizationPolicy,
+  actor: string | undefined,
   draft: Draft,
 ): void {
   const declared = new Map<string, TeamPolicy>();
@@ -289,7 +301,15 @@ function planTeams(
         prerequisites: waitingFor,
         payload: { team: slug, body: teamBody(slug, team, true) },
       });
+      /** Nobody is on a team that does not exist yet, so everyone is an addition. */
+      if (team.membership) {
+        planMembership(owner, slug, undefined, team.membership, actor, [`${owner}#${key}`], draft);
+      }
       continue;
+    }
+
+    if (team.membership) {
+      planMembership(owner, found.entry.slug, found.entry, team.membership, actor, [], draft);
     }
 
     if (sameTeam(found.entry, slug, team)) continue;
@@ -298,6 +318,84 @@ function planTeams(
       operation: 'update',
       risk: teamRisk(found.entry, team),
       payload: { team: found.entry.slug, body: teamBody(slug, team, false) },
+    });
+  }
+}
+
+/**
+ * Who is on a team.
+ *
+ * Additive by default, so nobody is removed for not appearing in a file, and
+ * a person is only removed when the block says `authoritative` and survives
+ * the guards in {@link membershipProblems}.
+ *
+ * A pending invitation counts as somebody already asked. Without that, every
+ * run would see the same person missing and send the same invitation again —
+ * the same lesson repository collaborators taught, and the reason the team's
+ * pending list is read at all.
+ */
+function planMembership(
+  owner: string,
+  slug: string,
+  team: ExistingTeam | undefined,
+  declared: TeamMembership,
+  actor: string | undefined,
+  waitingForTeam: string[],
+  draft: Draft,
+): void {
+  const key = (login: string): string => `organization.membership.${slug}.${login}`;
+  const wanted = declaredMembership(declared);
+
+  const problems = membershipProblems(declared, actor);
+  if (problems.length > 0) {
+    for (const [login, role] of wanted) {
+      draft(key(login), null, role, { blocked: problems.join('; ') });
+    }
+    return;
+  }
+
+  /**
+   * A team this run is creating has nobody on it yet, and no membership to
+   * read. Everyone declared is an addition, waiting on the team itself.
+   */
+  const held = team?.members;
+  if (team !== undefined && held === undefined) {
+    for (const [login, role] of wanted) {
+      draft(key(login), UNREADABLE, role, {
+        blocked: `could not read who is on "${slug}"`,
+      });
+    }
+    return;
+  }
+
+  for (const [login, role] of wanted) {
+    const current = held?.active[login];
+    const invited = held?.pending[login];
+
+    if (current === role || (current === undefined && invited === role)) continue;
+
+    draft(key(login), current ?? (invited === undefined ? null : `${invited} (invited)`), role, {
+      operation: current === undefined && invited === undefined ? 'attach' : 'update',
+      risk: role === 'maintainer' && current !== 'maintainer' ? 'sensitive' : 'normal',
+      prerequisites: waitingForTeam,
+      payload: { team: slug, login, role },
+    });
+  }
+
+  if (!declared.authoritative) return;
+
+  /**
+   * Removal takes the person out of every repository the team has access to,
+   * which is why it is destructive rather than an ordinary update: the team is
+   * the reason they could reach any of them.
+   */
+  for (const [login, role] of Object.entries({ ...held?.active, ...held?.pending })) {
+    if (wanted.has(login)) continue;
+    draft(key(login), role, null, {
+      operation: 'detach',
+      risk: 'destructive',
+      prerequisites: waitingForTeam,
+      payload: { team: slug, login, remove: true },
     });
   }
 }

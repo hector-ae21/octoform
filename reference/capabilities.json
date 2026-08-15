@@ -1279,6 +1279,49 @@
       ]
     },
     {
+      "id": "team-membership",
+      "area": "organization",
+      "support": "supported",
+      "configPaths": [
+        "organization.teams.*.membership"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization"
+      ],
+      "readRoutes": [
+        "GET /orgs/{org}/teams/{team_slug}/invitations",
+        "GET /orgs/{org}/teams/{team_slug}/members",
+        "GET /orgs/{org}/teams/{team_slug}/memberships/{username}"
+      ],
+      "writeRoutes": [
+        "DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}",
+        "PUT /orgs/{org}/teams/{team_slug}/memberships/{username}"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-admin-org",
+        "organization-members-read"
+      ],
+      "writePermissions": [
+        "classic-admin-org",
+        "organization-members-write"
+      ],
+      "limitations": [
+        "Additive unless the block says authoritative: nobody is removed for not appearing in a file.",
+        "An authoritative block that names nobody is refused, because emptying a team is not something a blank section should say.",
+        "An authoritative block that would remove the account the run is authenticated as is refused.",
+        "A pending invitation counts as somebody already asked, so nobody is invited twice.",
+        "The team role of a pending invitation is asked for per person: the role on the invitation listing is the organization invitation role, not the team one.",
+        "An invitation sent to an email address has no login and is skipped, since nothing in the file can name it.",
+        "Removal is destructive: it takes the person out of every repository the team reaches.",
+        "A team synchronized with an identity provider refuses membership changes through the API, and that refusal is reported as the failure it is."
+      ]
+    },
+    {
       "id": "team-repository-access",
       "area": "access",
       "support": "supported",

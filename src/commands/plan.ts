@@ -10,6 +10,7 @@ import {
   readOrganizationRulesets,
   readPropertyDefinitions,
   readPropertyValues,
+  readTeamMembers,
   readTeams,
   resolveOwnerNames,
 } from '../github/client.js';
@@ -90,6 +91,7 @@ export async function plan(
           ? await readOrganization(octokit, scope.owner, scope.organization)
           : undefined,
         scope.organization,
+        actor,
       )
     : [];
 
@@ -157,6 +159,18 @@ async function readOrganization(
     ? await readOrganizationRulesets(octokit, owner)
     : undefined;
   const teams = policy.teams ? await readTeams(octokit, owner) : undefined;
+  /**
+   * Who is on a team is only read for the teams whose policy asks about it,
+   * and only for the ones that already exist. It costs several requests each,
+   * and a file that declares a team's name and nothing about its people has
+   * not asked a question that needs answering.
+   */
+  for (const [slug, declared] of Object.entries(policy.teams ?? {})) {
+    if (!declared || declared.membership === undefined) continue;
+    const team = teams?.[slug];
+    if (team === undefined) continue;
+    team.members = await readTeamMembers(octokit, owner, slug);
+  }
   /**
    * The names a ruleset has to send as numbers are looked up once for the
    * whole organisation, so a team named by three rulesets costs one request

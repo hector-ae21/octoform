@@ -32,6 +32,8 @@ import type {
   Resolution,
   Resolvable,
   SettingValue,
+  TeamMembers,
+  TeamRole,
   TokenProvider,
 } from '../types/index.js';
 
@@ -1287,6 +1289,61 @@ export async function readTeams(
       if (team) teams[team.slug] = team;
     }
     return teams;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Who is on a team, with the people who have answered kept apart from the
+ * people who have only been asked.
+ *
+ * Three requests, and a fourth per pending person. The two role listings
+ * partition the active members, so their roles come for free rather than
+ * costing a request each. The pending ones cannot: GitHub says the `role` on a
+ * team invitation "refers to the Organization Invitation role", not the team
+ * one, so the team role is asked for per pending person instead of guessed —
+ * which in the steady state is nobody.
+ */
+export async function readTeamMembers(
+  octokit: Octokit,
+  org: string,
+  slug: string,
+): Promise<TeamMembers | undefined> {
+  try {
+    const active: Record<string, TeamRole> = {};
+    for (const role of ['member', 'maintainer'] as const) {
+      const pages = await octokit.paginate('GET /orgs/{org}/teams/{team_slug}/members', {
+        org,
+        team_slug: slug,
+        role,
+        per_page: 100,
+      });
+      for (const entry of pages as Array<{ login?: string }>) {
+        if (entry.login) active[entry.login] = role;
+      }
+    }
+
+    const invited = (await octokit.paginate('GET /orgs/{org}/teams/{team_slug}/invitations', {
+      org,
+      team_slug: slug,
+      per_page: 100,
+    })) as Array<{ login?: string | null }>;
+
+    const pending: Record<string, TeamRole> = {};
+    for (const entry of invited) {
+      /** An invitation sent to an email address has no login to match against. */
+      if (!entry.login) continue;
+      const { data } = await octokit.request(
+        'GET /orgs/{org}/teams/{team_slug}/memberships/{username}',
+        { org, team_slug: slug, username: entry.login },
+      );
+      const membership = data as { role?: string; state?: string };
+      if (membership.state !== 'pending') continue;
+      pending[entry.login] = membership.role === 'maintainer' ? 'maintainer' : 'member';
+    }
+
+    return { active, pending };
   } catch {
     return undefined;
   }

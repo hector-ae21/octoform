@@ -18,7 +18,7 @@
  * custom property definition, only the declared fields are sent.
  */
 
-import type { ExistingTeam, TeamPolicy } from '../types/index.js';
+import type { ExistingTeam, TeamMembership, TeamPolicy, TeamRole } from '../types/index.js';
 
 /** How GitHub spells a team's notification choice. */
 const NOTIFICATIONS = {
@@ -191,6 +191,61 @@ export function describeTeam(slug: string, team: TeamPolicy | ExistingTeam): str
   else if (parent === '') parts.push('at the top');
   if (team.description) parts.push(team.description);
   return parts.join('; ');
+}
+
+/**
+ * Everyone the policy names for a team, with the role each is named at.
+ *
+ * A login in both lists is not merged into one answer here. The two lists
+ * disagreeing is a contradiction in the file, and {@link membershipProblems}
+ * says so rather than picking whichever came last.
+ */
+export function declaredMembership(membership: TeamMembership): Map<string, TeamRole> {
+  const declared = new Map<string, TeamRole>();
+  for (const login of membership.members ?? []) declared.set(login, 'member');
+  for (const login of membership.maintainers ?? []) declared.set(login, 'maintainer');
+  return declared;
+}
+
+/**
+ * What is wrong with a declared membership before anyone is added or removed.
+ *
+ * The two guards on authoritative removal are the point of this function. An
+ * authoritative block that names nobody empties the team, which is what a
+ * half-rendered template looks like and never what anyone means. And a run
+ * that removes the account it is running as can be the last thing that account
+ * is able to do to the team.
+ *
+ * @param membership - The declared membership.
+ * @param actor - The login the run is authenticated as, when it is known.
+ */
+export function membershipProblems(membership: TeamMembership, actor?: string): string[] {
+  const problems: string[] = [];
+  const both = (membership.maintainers ?? []).filter((login) =>
+    (membership.members ?? []).includes(login),
+  );
+
+  for (const login of both) {
+    problems.push(
+      `"${login}" is declared as both a maintainer and a member, so the role is a guess`,
+    );
+  }
+
+  if (membership.authoritative) {
+    const named = declaredMembership(membership);
+    if (named.size === 0) {
+      problems.push(
+        'an authoritative membership that names nobody would empty the team, which is not something a blank section should say',
+      );
+    }
+    if (actor !== undefined && named.size > 0 && !named.has(actor)) {
+      problems.push(
+        `it would remove "${actor}", the account this run is authenticated as, which could be the last change that account can make to this team`,
+      );
+    }
+  }
+
+  return problems;
 }
 
 /**

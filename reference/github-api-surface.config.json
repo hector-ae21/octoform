@@ -416,7 +416,12 @@
         "GET /orgs/{org}/teams",
         "POST /orgs/{org}/teams",
         "PATCH /orgs/{org}/teams/{team_slug}",
-        "DELETE /orgs/{org}/teams/{team_slug}"
+        "DELETE /orgs/{org}/teams/{team_slug}",
+        "GET /orgs/{org}/teams/{team_slug}/members",
+        "GET /orgs/{org}/teams/{team_slug}/invitations",
+        "GET /orgs/{org}/teams/{team_slug}/memberships/{username}",
+        "PUT /orgs/{org}/teams/{team_slug}/memberships/{username}",
+        "DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}"
       ]
     },
     "reviewedOperations": [

@@ -611,6 +611,21 @@
       "merge": "replace"
     },
     {
+      "shape": "TeamMembership",
+      "field": "maintainers",
+      "merge": "replace"
+    },
+    {
+      "shape": "TeamMembership",
+      "field": "members",
+      "merge": "replace"
+    },
+    {
+      "shape": "TeamPolicy",
+      "field": "membership",
+      "merge": "merge-by-key"
+    },
+    {
       "shape": "TeamPolicy",
       "field": "rename_from",
       "merge": "replace"
