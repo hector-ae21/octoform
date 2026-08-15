@@ -747,6 +747,44 @@
       ]
     },
     {
+      "id": "repository-labels",
+      "area": "collections",
+      "support": "supported",
+      "configPaths": [
+        "labels"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization",
+        "personal"
+      ],
+      "readRoutes": [
+        "GET /repos/{owner}/{repo}/labels"
+      ],
+      "writeRoutes": [
+        "DELETE /repos/{owner}/{repo}/labels/{name}",
+        "PATCH /repos/{owner}/{repo}/labels/{name}",
+        "POST /repos/{owner}/{repo}/labels"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-repo",
+        "repository-issues-read"
+      ],
+      "writePermissions": [
+        "classic-repo",
+        "repository-issues-write"
+      ],
+      "limitations": [
+        "A label the policy does not name is left alone; removing one is spelled mode: absent.",
+        "Deleting a label removes it from every issue and pull request that carries it, so it is reported as destructive.",
+        "rename_from renames an existing label rather than creating a second one, which is what keeps it on the issues it already marks."
+      ]
+    },
+    {
       "id": "repository-metadata",
       "area": "repository",
       "support": "supported",
@@ -780,6 +818,79 @@
         "repository-administration-write"
       ],
       "limitations": []
+    },
+    {
+      "id": "repository-milestones",
+      "area": "collections",
+      "support": "supported",
+      "configPaths": [
+        "milestones"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization",
+        "personal"
+      ],
+      "readRoutes": [
+        "GET /repos/{owner}/{repo}/milestones"
+      ],
+      "writeRoutes": [
+        "DELETE /repos/{owner}/{repo}/milestones/{milestone_number}",
+        "PATCH /repos/{owner}/{repo}/milestones/{milestone_number}",
+        "POST /repos/{owner}/{repo}/milestones"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-repo",
+        "repository-issues-read"
+      ],
+      "writePermissions": [
+        "classic-repo",
+        "repository-issues-write"
+      ],
+      "limitations": [
+        "Closed milestones are read as well as open ones, since GitHub does not refuse a second milestone with the same title.",
+        "A due date is compared as a calendar day; the time GitHub attaches to it is not something a policy states.",
+        "Deleting a milestone detaches it from every issue in it, so it is reported as destructive."
+      ]
+    },
+    {
+      "id": "repository-property-values",
+      "area": "collections",
+      "support": "supported",
+      "configPaths": [
+        "properties"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization"
+      ],
+      "readRoutes": [
+        "GET /repos/{owner}/{repo}/properties/values"
+      ],
+      "writeRoutes": [
+        "PATCH /repos/{owner}/{repo}/properties/values"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-repo",
+        "repository-custom-properties-read"
+      ],
+      "writePermissions": [
+        "classic-repo",
+        "repository-custom-properties-write"
+      ],
+      "limitations": [
+        "Blocked on a personal repository: custom properties are defined by an organisation.",
+        "An empty value unsets the property, since null already means stop managing it.",
+        "Every declared value is sent in one request, so they succeed or fail together."
+      ]
     },
     {
       "id": "repository-rulesets",

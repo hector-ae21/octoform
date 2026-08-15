@@ -5,6 +5,7 @@ import { graphqlRequest, valueOrUnreadable } from './graphql.js';
 import { readProtection } from '../core/branch-protection.js';
 import { readRuleset } from '../core/rulesets.js';
 import { canonicalLevel, readLevel } from '../core/access.js';
+import { dueDate, normalizeColor } from '../core/collections.js';
 import { identityKey, namesToResolve } from '../core/identity.js';
 import { CHANGED_BY_MUTATION } from '../core/plan.js';
 import type {
@@ -12,6 +13,8 @@ import type {
   CapabilityResult,
   ExistingEnvironment,
   ExistingInvitation,
+  ExistingLabel,
+  ExistingMilestone,
   ExistingRuleset,
   OwnerDiscovery,
   OwnerKind,
@@ -440,6 +443,24 @@ async function getRepoStructure(
     if (teams !== undefined) structure.teamAccess = teams;
   }
 
+  if (policy.labels?.length) {
+    asked = true;
+    const labels = await listLabels(octokit, owner, base.name);
+    if (labels !== undefined) structure.labels = labels;
+  }
+
+  if (policy.milestones?.length) {
+    asked = true;
+    const milestones = await listMilestones(octokit, owner, base.name);
+    if (milestones !== undefined) structure.milestones = milestones;
+  }
+
+  if (policy.properties) {
+    asked = true;
+    const values = await readRepositoryProperties(octokit, owner, base.name);
+    if (values !== undefined) structure.propertyValues = values;
+  }
+
   if (policy.branch_protection?.length) {
     asked = true;
     const entries = await Promise.all(
@@ -634,6 +655,109 @@ async function listRulesets(
       }),
     );
     return full;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Every label the repository has, by name. */
+async function listLabels(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, ExistingLabel> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /repos/{owner}/{repo}/labels', {
+      owner,
+      repo,
+      per_page: 100,
+    });
+    const labels: Record<string, ExistingLabel> = {};
+    for (const entry of pages as Array<{
+      name?: string;
+      color?: string;
+      description?: string | null;
+      default?: boolean;
+    }>) {
+      if (!entry.name) continue;
+      labels[entry.name] = {
+        name: entry.name,
+        color: normalizeColor(entry.color ?? ''),
+        description: entry.description ?? null,
+        default: entry.default === true,
+      };
+    }
+    return labels;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Every milestone the repository has, by title.
+ *
+ * `state: all` is the whole point of the call: the endpoint returns only open
+ * milestones by default, and GitHub does not refuse a second milestone with a
+ * title another one already has. Reading only the open ones would make a
+ * closed milestone look missing and produce a duplicate on every run.
+ */
+async function listMilestones(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, ExistingMilestone> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /repos/{owner}/{repo}/milestones', {
+      owner,
+      repo,
+      state: 'all',
+      per_page: 100,
+    });
+    const milestones: Record<string, ExistingMilestone> = {};
+    for (const entry of pages as Array<{
+      number?: number;
+      title?: string;
+      description?: string | null;
+      state?: string;
+      due_on?: string | null;
+    }>) {
+      if (!entry.title || entry.number === undefined) continue;
+      const due = dueDate(entry.due_on);
+      milestones[entry.title] = {
+        number: entry.number,
+        title: entry.title,
+        description: entry.description ?? null,
+        state: entry.state === 'closed' ? 'closed' : 'open',
+        ...(due === undefined ? {} : { due }),
+      };
+    }
+    return milestones;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Custom property values set on one repository, by property name. */
+async function readRepositoryProperties(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, string | string[]> | undefined> {
+  try {
+    const { data } = await octokit.request('GET /repos/{owner}/{repo}/properties/values', {
+      owner,
+      repo,
+    });
+    const values: Record<string, string | string[]> = {};
+    for (const entry of data as Array<{
+      property_name?: string;
+      value?: string | string[] | null;
+    }>) {
+      if (entry.property_name && entry.value !== null && entry.value !== undefined) {
+        values[entry.property_name] = entry.value;
+      }
+    }
+    return values;
   } catch {
     return undefined;
   }

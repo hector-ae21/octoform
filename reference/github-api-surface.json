@@ -16,7 +16,7 @@
   },
   "summary": {
     "total": 1338,
-    "implemented": 55,
+    "implemented": 65,
     "deprecated": 47,
     "byTransport": {
       "graphql": 274,
@@ -31,13 +31,13 @@
     },
     "byTarget": {
       "0.3.1": 37,
-      "0.5.0": 302,
-      "0.6.0": 995,
+      "0.5.0": 310,
+      "0.6.0": 987,
       "none": 4
     },
     "byImplementedIn": {
       "0.3.1": 37,
-      "0.5.0": 18
+      "0.5.0": 28
     }
   },
   "operations": [
@@ -12001,10 +12001,10 @@
       "tag": "issues",
       "summary": "List labels for a repository",
       "disposition": "observational",
-      "target": "0.6.0",
+      "target": "0.5.0",
       "rationale": "Read-only inventory, capability evidence, or audit data.",
       "rule": "rest-read",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/issues/labels#list-labels-for-a-repository"
@@ -12017,10 +12017,10 @@
       "tag": "issues",
       "summary": "Create a label",
       "disposition": "operational",
-      "target": "0.6.0",
+      "target": "0.5.0",
       "rationale": "Issue, comment, label, milestone, and assignment workflow.",
       "rule": "issues-mutation",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/issues/labels#create-a-label"
@@ -12033,10 +12033,10 @@
       "tag": "issues",
       "summary": "Delete a label",
       "disposition": "operational",
-      "target": "0.6.0",
+      "target": "0.5.0",
       "rationale": "Issue, comment, label, milestone, and assignment workflow.",
       "rule": "issues-mutation",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/issues/labels#delete-a-label"
@@ -12065,10 +12065,10 @@
       "tag": "issues",
       "summary": "Update a label",
       "disposition": "operational",
-      "target": "0.6.0",
+      "target": "0.5.0",
       "rationale": "Issue, comment, label, milestone, and assignment workflow.",
       "rule": "issues-mutation",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/issues/labels#update-a-label"
@@ -12145,10 +12145,10 @@
       "tag": "issues",
       "summary": "List milestones",
       "disposition": "observational",
-      "target": "0.6.0",
+      "target": "0.5.0",
       "rationale": "Read-only inventory, capability evidence, or audit data.",
       "rule": "rest-read",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/issues/milestones#list-milestones"
@@ -12161,10 +12161,10 @@
       "tag": "issues",
       "summary": "Create a milestone",
       "disposition": "operational",
-      "target": "0.6.0",
+      "target": "0.5.0",
       "rationale": "Issue, comment, label, milestone, and assignment workflow.",
       "rule": "issues-mutation",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/issues/milestones#create-a-milestone"
@@ -12177,10 +12177,10 @@
       "tag": "issues",
       "summary": "Delete a milestone",
       "disposition": "operational",
-      "target": "0.6.0",
+      "target": "0.5.0",
       "rationale": "Issue, comment, label, milestone, and assignment workflow.",
       "rule": "issues-mutation",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/issues/milestones#delete-a-milestone"
@@ -12209,10 +12209,10 @@
       "tag": "issues",
       "summary": "Update a milestone",
       "disposition": "operational",
-      "target": "0.6.0",
+      "target": "0.5.0",
       "rationale": "Issue, comment, label, milestone, and assignment workflow.",
       "rule": "issues-mutation",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/issues/milestones#update-a-milestone"
@@ -12516,7 +12516,7 @@
       "target": "0.5.0",
       "rationale": "Read-only inventory, capability evidence, or audit data.",
       "rule": "rest-read",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/repos/custom-properties#get-all-custom-property-values-for-a-repository"
@@ -12532,7 +12532,7 @@
       "target": "0.5.0",
       "rationale": "Durable repository state; destructive and workflow exceptions are overridden explicitly.",
       "rule": "repos-mutation",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/repos/custom-properties#create-or-update-custom-property-values-for-a-repository"

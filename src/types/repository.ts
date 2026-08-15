@@ -82,6 +82,27 @@ export interface ExistingEnvironment {
   reviewers: string[] | typeof UNREADABLE;
 }
 
+/** A label as it exists on GitHub right now. */
+export interface ExistingLabel {
+  name: string;
+  /** Six lower-case hex digits, without a leading `#`, as GitHub stores it. */
+  color: string;
+  description: string | null;
+  /** Whether GitHub created it with the repository rather than a person. */
+  default: boolean;
+}
+
+/** A milestone as it exists on GitHub right now. */
+export interface ExistingMilestone {
+  /** GitHub addresses a milestone by this, not by its title. */
+  number: number;
+  title: string;
+  description: string | null;
+  state: 'open' | 'closed';
+  /** The due date as a calendar day, with the time GitHub chose discarded. */
+  due?: string;
+}
+
 /** A repository invitation that has been sent and not yet answered. */
 export interface ExistingInvitation {
   id: number;
@@ -126,6 +147,21 @@ export interface RepoStructure {
   invitations?: Record<string, ExistingInvitation>;
   /** Teams granted access to this repository, with the level each one holds. */
   teamAccess?: Record<string, string>;
+  /** Every label the repository has, by name. */
+  labels?: Record<string, ExistingLabel>;
+  /**
+   * Every milestone the repository has, by title, open and closed alike.
+   *
+   * The listing endpoint returns only open ones unless asked otherwise, and a
+   * closed milestone read as missing would be created again on every run —
+   * GitHub does not refuse a second milestone with the same title.
+   */
+  milestones?: Record<string, ExistingMilestone>;
+  /**
+   * Custom property values that are set on the repository, by property name.
+   * A property the organisation defines but nobody has set is simply absent.
+   */
+  propertyValues?: Record<string, string | string[]>;
   /** Existence state by path for the paths named by a `files` policy. */
   files?: Record<string, boolean>;
   /** Existence state by branch for the branches named by `ensure_branches`. */
@@ -190,8 +226,8 @@ export interface RepoDetail extends RepoState {
  * What kind of operation a change represents against GitHub's own model.
  * Granting and revoking access are `attach` and `detach`: the collaborator and
  * the team both exist either way, and what changes is whether they are linked
- * to this repository. `delete` still has no producer — nothing octoform
- * manages destroys a resource outright.
+ * to this repository. `delete` is for a collection entry the policy asks to
+ * stop existing, which no other change does.
  */
 export type OperationKind = 'create' | 'update' | 'attach' | 'detach' | 'delete';
 

@@ -253,6 +253,29 @@ const ACCESS_POLICY: ObjectShape = {
   fields: { users: mapOfScalars, teams: mapOfScalars },
 };
 
+const LABEL_POLICY: ObjectShape = {
+  name: 'LabelPolicy',
+  fields: {
+    name: scalar,
+    color: scalar,
+    description: scalar,
+    rename_from: scalarList,
+    mode: enumeration('present', 'absent'),
+  },
+};
+
+const MILESTONE_POLICY: ObjectShape = {
+  name: 'MilestonePolicy',
+  fields: {
+    title: scalar,
+    description: scalar,
+    due: scalar,
+    state: enumeration('open', 'closed'),
+    rename_from: scalarList,
+    mode: enumeration('present', 'absent'),
+  },
+};
+
 const ENVIRONMENT_POLICY: ObjectShape = {
   name: 'EnvironmentPolicy',
   fields: { name: scalar, reviewers: scalarList },
@@ -277,6 +300,9 @@ const POLICY_SET: ObjectShape = {
     branch_protection: objectList(() => BRANCH_PROTECTION_POLICY),
     rulesets: objectList(() => RULESET_POLICY),
     access: object(() => ACCESS_POLICY),
+    labels: objectList(() => LABEL_POLICY),
+    milestones: objectList(() => MILESTONE_POLICY),
+    properties: freeMap,
     environments: objectList(() => ENVIRONMENT_POLICY),
     files: objectList(() => FILE_POLICY),
   },

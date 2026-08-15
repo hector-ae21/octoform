@@ -166,7 +166,7 @@
         "detach",
         "delete"
       ],
-      "description": "What kind of operation a change represents against GitHub's own model. Granting and revoking access are `attach` and `detach`: the collaborator and the team both exist either way, and what changes is whether they are linked to this repository. `delete` still has no producer — nothing octoform manages destroys a resource outright."
+      "description": "What kind of operation a change represents against GitHub's own model. Granting and revoking access are `attach` and `detach`: the collaborator and the team both exist either way, and what changes is whether they are linked to this repository. `delete` is for a collection entry the policy asks to stop existing, which no other change does."
     },
     "Risk": {
       "type": "string",
