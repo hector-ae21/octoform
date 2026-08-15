@@ -3,7 +3,13 @@ import { test } from 'node:test';
 import { planRepo } from '../src/core/plan.js';
 import { UNREADABLE } from '../src/config/sentinels.js';
 import { capability } from '../src/github/capabilities.js';
-import type { Change, PlanOptions, PolicySet, RepoDetail } from '../src/types/index.js';
+import type {
+  Change,
+  ExistingRuleset,
+  PlanOptions,
+  PolicySet,
+  RepoDetail,
+} from '../src/types/index.js';
 
 const SUPPORTED = capability('supported', 'available in this fixture', 'resource-state');
 const FORBIDDEN = capability('forbidden', 'not available in this fixture', 'permission');
@@ -16,6 +22,31 @@ const OPTIONS = { rulesetCapability: SUPPORTED };
  */
 const planned = (repo: RepoDetail, policy: PolicySet, options: PlanOptions = OPTIONS): Change[] =>
   planRepo('account', repo, policy, options);
+
+/**
+ * A ruleset as GitHub already has it. Every switch rule is read as explicitly
+ * off unless it is there, which is how the reader reports them, so a fixture
+ * that only lists what is on still compares correctly.
+ */
+const stored = (over: Partial<ExistingRuleset> = {}): ExistingRuleset => ({
+  id: 7,
+  name: 'protect',
+  target: 'branch',
+  enforcement: 'active',
+  include: [],
+  exclude: [],
+  unmodelled: [],
+  ...over,
+  rules: {
+    block_creation: false,
+    block_deletion: false,
+    block_force_push: false,
+    require_linear_history: false,
+    require_signatures: false,
+    require_license_compliance_scanning: false,
+    ...over.rules,
+  },
+});
 
 const repo = (over: Partial<RepoDetail> = {}): RepoDetail => ({
   name: 'thing',
@@ -197,15 +228,16 @@ test('a ruleset that already matches is not planned again', () => {
   const state = repo({
     structure: {
       rulesets: [
-        {
-          id: 7,
-          name: 'protect',
-          target_branches: ['v*.x'],
-          required_approvals: 1,
-          required_checks: ['CI complete'],
-          block_force_push: true,
-          block_deletion: true,
-        },
+        stored({
+          include: ['v*.x'],
+          rules: {
+            require_pull_request: true,
+            required_approvals: 1,
+            required_checks: ['CI complete'],
+            block_force_push: true,
+            block_deletion: true,
+          },
+        }),
       ],
     },
   });
@@ -216,23 +248,14 @@ test('a ruleset that differs is updated in place, carrying the id it already has
   const policy: PolicySet = {
     rulesets: [{ name: 'protect', target_branches: ['v*.x'], required_approvals: 2 }],
   };
-  const state = repo({
-    structure: {
-      rulesets: [
-        {
-          id: 7,
-          name: 'protect',
-          target_branches: ['v*.x'],
-          required_approvals: 1,
-          block_force_push: false,
-          block_deletion: false,
-        },
-      ],
-    },
+  const existing = stored({
+    include: ['v*.x'],
+    rules: { require_pull_request: true, required_approvals: 1 },
   });
+  const state = repo({ structure: { rulesets: [existing] } });
   const changes = planned(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
-  assert.deepEqual(changes[0]?.payload, { ruleset: policy.rulesets?.[0], id: 7 });
+  assert.deepEqual(changes[0]?.payload, { ruleset: policy.rulesets?.[0], id: 7, existing });
 });
 
 test('rulesets that could not be read are blocked rather than assumed missing', () => {
@@ -372,14 +395,11 @@ test('a repository that already matches its whole policy plans nothing', () => {
       environments: [{ name: 'npm', reviewers: [] }],
       files: { LICENSE: true },
       rulesets: [
-        {
+        stored({
           id: 1,
-          name: 'protect',
-          target_branches: ['main'],
-          required_approvals: 1,
-          block_force_push: true,
-          block_deletion: false,
-        },
+          include: ['main'],
+          rules: { require_pull_request: true, required_approvals: 1, block_force_push: true },
+        }),
       ],
     },
   });
@@ -598,4 +618,55 @@ test('an ordinary visibility change carries no such warning', () => {
   const [change] = planned(state, { repo: { visibility: 'private' } }, OPTIONS);
 
   assert.equal(change?.warning, undefined);
+});
+
+test('a ruleset with no target names no refs, so it is refused rather than guessed', () => {
+  const policy: PolicySet = { rulesets: [{ name: 'protect' }] };
+  const [change] = planned(repo({ structure: { rulesets: [] } }), policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /exactly one of target_branches/u);
+});
+
+test('two targets disagree with each other, and are refused the same way', () => {
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], target_tags: ['v*'] }],
+  };
+  const [change] = planned(repo({ structure: { rulesets: [] } }), policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /exactly one of target_branches/u);
+});
+
+test('an update carries the stored ruleset, so unmanaged rules can be put back', () => {
+  const existing = stored({
+    include: ['main'],
+    unmodelled: [{ type: 'something_new' }],
+  });
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], block_deletion: true }],
+  };
+  const [change] = planned(repo({ structure: { rulesets: [existing] } }), policy, OPTIONS);
+
+  assert.equal((change?.payload as { existing?: unknown })?.existing, existing);
+});
+
+test('an ensured branch is cut from the name the run will leave behind, not the old one', () => {
+  const state = repo({
+    default_branch: 'master',
+    structure: { branches: { develop: false } },
+  });
+  const policy: PolicySet = {
+    default_branch: { name: 'main', rename_from: ['master'] },
+    ensure_branches: ['develop'],
+  };
+  const change = planned(state, policy, OPTIONS).find((c) => c.key === 'ensure_branches.develop');
+
+  assert.deepEqual(change?.payload, { branch: 'develop', from: 'main' });
+});
+
+test('with no rename planned it is cut from the branch that is there', () => {
+  const state = repo({ structure: { branches: { develop: false } } });
+  const policy: PolicySet = { ensure_branches: ['develop'] };
+  const change = planned(state, policy, OPTIONS).find((c) => c.key === 'ensure_branches.develop');
+
+  assert.deepEqual(change?.payload, { branch: 'develop', from: 'main' });
 });

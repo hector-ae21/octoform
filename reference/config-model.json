@@ -237,12 +237,82 @@
     },
     {
       "shape": "RulesetPolicy",
+      "field": "allowed_merge_methods",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "branch_name_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "commit_author_email_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "commit_message_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "committer_email_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "copilot_code_review",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "exclude",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "merge_queue",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
       "field": "required_checks",
       "merge": "replace"
     },
     {
       "shape": "RulesetPolicy",
+      "field": "required_code_scanning",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "required_deployments",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "restricted_file_extensions",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "restricted_file_paths",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "tag_name_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
       "field": "target_branches",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "target_tags",
       "merge": "replace"
     }
   ],

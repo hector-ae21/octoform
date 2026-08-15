@@ -1,16 +1,15 @@
 import { isManaged } from '../config/resolve.js';
 import { UNREADABLE } from '../config/sentinels.js';
+import { describeExistingRuleset, describeRuleset, sameRuleset, targetOf } from './rulesets.js';
 import { withPrerequisites } from './dependencies.js';
 import type {
   Change,
   EnvironmentPolicy,
-  ExistingRuleset,
   OperationKind,
   PlanOptions,
   PolicySet,
   RepoDetail,
   Risk,
-  RulesetPolicy,
 } from '../types/index.js';
 
 export type { PlanOptions } from '../types/index.js';
@@ -418,6 +417,16 @@ function planEnsureBranches(repo: RepoDetail, policy: PolicySet, changes: Change
 
   const existing = repo.structure?.branches;
 
+  /**
+   * The source is the default branch as it will be once this run finishes, not
+   * as it is now. A rename is ordered before these, so branching from the
+   * observed name would ask GitHub for a ref the rename has already taken
+   * away — a failure with nothing in the plan to explain it.
+   */
+  const source = isManaged(policy.default_branch?.name)
+    ? policy.default_branch.name
+    : repo.default_branch;
+
   for (const branch of wanted) {
     const key = `ensure_branches.${branch}`;
     if (existing === undefined) {
@@ -435,8 +444,8 @@ function planEnsureBranches(repo: RepoDetail, policy: PolicySet, changes: Change
       repo: repo.name,
       key,
       from: null,
-      to: `branch from ${repo.default_branch || 'the default branch'}`,
-      payload: { branch, from: repo.default_branch },
+      to: `branch from ${source || 'the default branch'}`,
+      payload: { branch, from: source },
     });
   }
 }
@@ -466,6 +475,24 @@ function planRulesets(
 
   for (const declared of policy.rulesets) {
     const key = `rulesets.${declared.name}`;
+
+    /**
+     * Exactly one target says what a ruleset governs. Neither leaves nothing
+     * to match, and two disagree with each other; guessing either way would
+     * apply protection to refs nobody named.
+     */
+    if (targetOf(declared) === null) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: null,
+        to: declared.name,
+        blocked:
+          'declare exactly one of target_branches, target_tags or target_pushes, so the refs it governs are not a guess',
+      });
+      continue;
+    }
+
     if (existing === undefined) {
       changes.push({
         repo: repo.name,
@@ -493,9 +520,9 @@ function planRulesets(
     changes.push({
       repo: repo.name,
       key,
-      from: describeRuleset(current),
+      from: describeExistingRuleset(current),
       to: describeRuleset(declared),
-      payload: { ruleset: declared, id: current.id },
+      payload: { ruleset: declared, id: current.id, existing: current },
     });
   }
 }
@@ -599,16 +626,6 @@ function planFiles(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]):
   }
 }
 
-function describeRuleset(ruleset: RulesetPolicy | ExistingRuleset): string {
-  const parts = [ruleset.target_branches.join(', ')];
-  if (ruleset.required_approvals !== undefined)
-    parts.push(`${ruleset.required_approvals} approval(s)`);
-  if (ruleset.required_checks?.length) parts.push(`checks: ${ruleset.required_checks.join(', ')}`);
-  if (ruleset.block_force_push) parts.push('no force-push');
-  if (ruleset.block_deletion) parts.push('no deletion');
-  return parts.join('; ');
-}
-
 function describeEnvironment(environment: EnvironmentPolicy): string {
   return environment.reviewers?.length
     ? `reviewers: ${environment.reviewers.join(', ')}`
@@ -617,21 +634,6 @@ function describeEnvironment(environment: EnvironmentPolicy): string {
 
 function describeExistingEnvironment(reviewers: string[]): string {
   return reviewers.length ? `reviewers: ${reviewers.join(', ')}` : 'no required reviewers';
-}
-
-/**
- * Compares only what octoform manages. A ruleset carrying rules this tool does
- * not model is not "different" — treating it as such would make every run
- * offer to strip whatever somebody configured by hand.
- */
-function sameRuleset(current: ExistingRuleset, declared: RulesetPolicy): boolean {
-  return (
-    same(current.target_branches, declared.target_branches) &&
-    (current.required_approvals ?? 0) === (declared.required_approvals ?? 0) &&
-    same(current.required_checks ?? [], declared.required_checks ?? []) &&
-    current.block_force_push === (declared.block_force_push ?? false) &&
-    current.block_deletion === (declared.block_deletion ?? false)
-  );
 }
 
 function same(current: unknown, wanted: unknown): boolean {

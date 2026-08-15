@@ -1,6 +1,7 @@
 /** The shape of a repository as octoform observes and reconciles it. */
 
 import type { UNREADABLE } from '../config/sentinels.js';
+import type { RuleSettings, RulesetEnforcement, RulesetTarget } from './config.js';
 
 /**
  * Whether `owner` turned out to be an organisation or a personal account.
@@ -35,11 +36,20 @@ export type SettingValue = boolean | string | string[] | null | typeof UNREADABL
 export interface ExistingRuleset {
   id: number;
   name: string;
-  target_branches: string[];
-  required_approvals?: number;
-  required_checks?: string[];
-  block_force_push: boolean;
-  block_deletion: boolean;
+  target: RulesetTarget;
+  enforcement: RulesetEnforcement;
+  include: string[];
+  exclude: string[];
+  /** The rules octoform models, in the same flat shape a policy declares. */
+  rules: RuleSettings;
+  /**
+   * Rules octoform does not model, kept exactly as GitHub returned them.
+   *
+   * Updating a ruleset replaces its whole rule list, so anything not sent back
+   * is deleted. Carrying these through is the difference between "octoform
+   * does not manage that rule" and "octoform silently removed it".
+   */
+  unmodelled: unknown[];
 }
 
 /**

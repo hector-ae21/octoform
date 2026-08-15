@@ -100,15 +100,94 @@ const DEFAULT_BRANCH_POLICY: ObjectShape = {
   fields: { name: scalar, rename_from: scalarList },
 };
 
+const PATTERN_RULE: ObjectShape = {
+  name: 'PatternRule',
+  fields: {
+    operator: enumeration('starts_with', 'ends_with', 'contains', 'regex'),
+    pattern: scalar,
+    negate: scalar,
+    name: scalar,
+  },
+};
+
+const CODE_SCANNING_RULE: ObjectShape = {
+  name: 'CodeScanningRule',
+  fields: {
+    tool: scalar,
+    alerts_threshold: enumeration('none', 'errors', 'errors_and_warnings', 'all'),
+    security_alerts_threshold: enumeration(
+      'none',
+      'critical',
+      'high_or_higher',
+      'medium_or_higher',
+      'all',
+    ),
+  },
+};
+
+const MERGE_QUEUE_RULE: ObjectShape = {
+  name: 'MergeQueueRule',
+  fields: {
+    merge_method: enumeration('MERGE', 'SQUASH', 'REBASE'),
+    grouping_strategy: enumeration('ALLGREEN', 'HEADGREEN'),
+    max_entries_to_build: scalar,
+    max_entries_to_merge: scalar,
+    min_entries_to_merge: scalar,
+    min_entries_to_merge_wait_minutes: scalar,
+    check_response_timeout_minutes: scalar,
+  },
+};
+
+const COPILOT_CODE_REVIEW_RULE: ObjectShape = {
+  name: 'CopilotCodeReviewRule',
+  fields: { review_draft_pull_requests: scalar, review_on_push: scalar },
+};
+
+/** Every rule a ruleset can carry, flattened as {@link RuleSettings} declares. */
+const RULE_SETTINGS: Readonly<Record<string, Field>> = {
+  require_pull_request: scalar,
+  required_approvals: scalar,
+  dismiss_stale_reviews: scalar,
+  require_code_owner_review: scalar,
+  require_last_push_approval: scalar,
+  require_thread_resolution: scalar,
+  allowed_merge_methods: scalarList,
+  required_checks: scalarList,
+  strict_required_checks: scalar,
+  checks_not_enforced_on_create: scalar,
+  required_deployments: scalarList,
+  block_creation: scalar,
+  block_update: scalar,
+  allow_fetch_and_merge: scalar,
+  block_deletion: scalar,
+  block_force_push: scalar,
+  require_linear_history: scalar,
+  require_signatures: scalar,
+  merge_queue: object(() => MERGE_QUEUE_RULE),
+  required_code_scanning: objectList(() => CODE_SCANNING_RULE),
+  require_license_compliance_scanning: scalar,
+  copilot_code_review: object(() => COPILOT_CODE_REVIEW_RULE),
+  commit_message_pattern: object(() => PATTERN_RULE),
+  commit_author_email_pattern: object(() => PATTERN_RULE),
+  committer_email_pattern: object(() => PATTERN_RULE),
+  branch_name_pattern: object(() => PATTERN_RULE),
+  tag_name_pattern: object(() => PATTERN_RULE),
+  restricted_file_paths: scalarList,
+  restricted_file_extensions: scalarList,
+  max_file_size: scalar,
+  max_file_path_length: scalar,
+};
+
 const RULESET_POLICY: ObjectShape = {
   name: 'RulesetPolicy',
   fields: {
     name: scalar,
     target_branches: scalarList,
-    required_approvals: scalar,
-    required_checks: scalarList,
-    block_force_push: scalar,
-    block_deletion: scalar,
+    target_tags: scalarList,
+    target_pushes: scalar,
+    exclude: scalarList,
+    enforcement: enumeration('active', 'evaluate', 'disabled'),
+    ...RULE_SETTINGS,
   },
 };
 
