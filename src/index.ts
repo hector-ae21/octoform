@@ -90,6 +90,7 @@ export type {
   ClassifyRule,
   Config,
   ConfigVersion,
+  CreationPolicy,
   DefaultBranchPolicy,
   EnvironmentPolicy,
   ExcludeConfig,

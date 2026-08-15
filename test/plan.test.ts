@@ -113,12 +113,48 @@ test('an unreadable value visibility cannot explain says only what is known', ()
   assert.doesNotMatch(reason, /plan|Advanced Security/i);
 });
 
-test('a policy with no REST endpoint at all is blamed on the API, not on the configuration', () => {
+test('a setting only a mutation can change carries the node id that mutation needs', () => {
+  const state = repo({
+    nodeId: 'R_abc',
+    settings: { ...repo().settings, 'features.discussions': false },
+  });
+  const policy: PolicySet = { features: { discussions: true } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.blocked, undefined);
+  assert.deepEqual(change?.payload, { repositoryId: 'R_abc' });
+});
+
+test('without a node id there is nothing to address the mutation to, so it is blocked', () => {
   const state = repo({ settings: { ...repo().settings, 'features.discussions': false } });
   const policy: PolicySet = { features: { discussions: true } };
-  const changes = planned(state, policy, OPTIONS);
-  assert.equal(changes.length, 1);
-  assert.equal(changes[0]?.blocked, 'not applicable over the REST API');
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /GraphQL identity/u);
+});
+
+test('a creation policy is compared like any other value', () => {
+  const state = repo({
+    nodeId: 'R_abc',
+    settings: { ...repo().settings, 'repo.issue_creation': 'ALL' },
+  });
+
+  assert.deepEqual(planned(state, { repo: { issue_creation: 'ALL' } }, OPTIONS), []);
+  const [change] = planned(state, { repo: { issue_creation: 'COLLABORATORS_ONLY' } }, OPTIONS);
+  assert.deepEqual(
+    { from: change?.from, to: change?.to },
+    { from: 'ALL', to: 'COLLABORATORS_ONLY' },
+  );
+});
+
+test('a GraphQL-only setting that could not be read blocks rather than being planned over', () => {
+  const state = repo({
+    nodeId: 'R_abc',
+    settings: { ...repo().settings, 'features.sponsorships': UNREADABLE },
+  });
+  const policy: PolicySet = { features: { sponsorships: true } };
+
+  assert.match(String(planned(state, policy, OPTIONS)[0]?.blocked), /could not be read/u);
 });
 
 test('rulesets on a private repository are blocked when the owner and token cannot manage them', () => {

@@ -38,7 +38,14 @@ function mapOfObjects(of: () => ObjectShape): Field {
 
 const FEATURE_POLICY: ObjectShape = {
   name: 'FeaturePolicy',
-  fields: { issues: scalar, wiki: scalar, projects: scalar, discussions: scalar },
+  fields: {
+    issues: scalar,
+    wiki: scalar,
+    projects: scalar,
+    discussions: scalar,
+    sponsorships: scalar,
+    pull_requests: scalar,
+  },
 };
 
 const MERGE_POLICY: ObjectShape = {
@@ -78,6 +85,8 @@ const REPO_POLICY: ObjectShape = {
     topics: scalarList,
     allow_forking: scalar,
     web_commit_signoff_required: scalar,
+    issue_creation: enumeration('ALL', 'COLLABORATORS_ONLY'),
+    pull_request_creation: enumeration('ALL', 'COLLABORATORS_ONLY'),
   },
 };
 

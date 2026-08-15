@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { detectRulesetCapability, getRepoDetail } from '../src/github/client.js';
 import { UNREADABLE } from '../src/config/sentinels.js';
+import type { PolicySet } from '../src/types/index.js';
 
 function apiError(status: number, message: string): Error {
   return Object.assign(new Error(message), {
@@ -133,4 +134,84 @@ test('an unreachable immutable-releases endpoint is unreadable, not disabled', a
 
   assert.equal(detail.settings['security.immutable_releases'], UNREADABLE);
   assert.equal(detail.enforced, undefined);
+});
+
+/**
+ * A repository read where the GraphQL half is scripted, so the settings only
+ * that API exposes can be exercised without a network call.
+ */
+async function detailWithGraphql(
+  policy: PolicySet,
+  graphql: (() => unknown) | Error = () => ({
+    repository: {
+      id: 'R_abc',
+      hasSponsorshipsEnabled: true,
+      hasPullRequestsEnabled: false,
+      issueCreationPolicy: 'COLLABORATORS_ONLY',
+      pullRequestCreationPolicy: 'ALL',
+    },
+  }),
+) {
+  const octokit = {
+    request: async () => {
+      throw apiError(404, 'Not Found');
+    },
+    graphql: async () => {
+      if (graphql instanceof Error) throw graphql;
+      return graphql();
+    },
+    repos: { get: async () => ({ data: { name: 'thing' } }) },
+    // The tests intentionally provide only the Octokit surface this reader uses.
+  } as any;
+  return await getRepoDetail(
+    octokit,
+    'account',
+    {
+      name: 'thing',
+      visibility: 'public',
+      archived: false,
+      default_branch: 'main',
+      description: null,
+      homepage: null,
+      topics: [],
+    },
+    policy,
+  );
+}
+
+test('a policy managing a GraphQL-only setting reads it and the node id together', async () => {
+  const detail = await detailWithGraphql({ features: { sponsorships: false } });
+
+  assert.equal(detail.nodeId, 'R_abc');
+  assert.equal(detail.settings['features.sponsorships'], true);
+  assert.equal(detail.settings['repo.issue_creation'], 'COLLABORATORS_ONLY');
+});
+
+test('a policy managing none of them never asks GraphQL at all', async () => {
+  let asked = false;
+  const detail = await detailWithGraphql({ features: { issues: true } }, () => {
+    asked = true;
+    return {};
+  });
+
+  assert.equal(asked, false);
+  assert.equal(detail.nodeId, undefined);
+  assert.equal(detail.settings['features.sponsorships'], undefined);
+});
+
+test('discussions alone still fetches the node id, since only a mutation can write it', async () => {
+  const detail = await detailWithGraphql({ features: { discussions: true } });
+  assert.equal(detail.nodeId, 'R_abc');
+});
+
+test('a failed GraphQL read leaves its settings unreadable and no node id', async () => {
+  const detail = await detailWithGraphql(
+    { features: { sponsorships: true } },
+    Object.assign(new Error('denied'), {
+      errors: [{ type: 'FORBIDDEN', message: 'denied', path: ['repository'] }],
+    }),
+  );
+
+  assert.equal(detail.nodeId, undefined);
+  assert.equal(detail.settings['features.sponsorships'], UNREADABLE);
 });

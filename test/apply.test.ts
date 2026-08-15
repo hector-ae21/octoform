@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { applyRepoChanges } from '../src/github/apply.js';
+import { MUTATION_FIELDS, applyRepoChanges } from '../src/github/apply.js';
+import { CHANGED_BY_MUTATION } from '../src/core/plan.js';
 import type { Change } from '../src/types/index.js';
 
 /**
@@ -295,4 +296,86 @@ test('seeding a file that cannot be read locally fails that change and no other'
   const file = results.find((r) => r.key === 'files.LICENSE');
   assert.equal(file?.outcome, 'failed');
   assert.match(String(file?.error), /cannot read local file/);
+});
+
+/**
+ * A stand-in for the GraphQL half of Octokit, recording each call the same way
+ * the REST fake does.
+ */
+function fakeGraphql(result?: Error) {
+  const calls: Array<{ query: string; variables: Record<string, unknown> }> = [];
+  return {
+    calls,
+    octokit: {
+      request: async () => ({ data: {} }),
+      graphql: async (query: string, variables: Record<string, unknown>) => {
+        calls.push({ query, variables });
+        if (result) throw result;
+        return { updateRepository: { repository: { id: 'R_abc' } } };
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
+  };
+}
+
+const mutated = (key: string, to: unknown): Change =>
+  planned({ key, to, payload: { repositoryId: 'R_abc' } });
+
+test('every GraphQL-only setting travels in a single mutation', async () => {
+  const { octokit, calls } = fakeGraphql();
+  const changes = [
+    mutated('features.discussions', true),
+    mutated('features.sponsorships', false),
+    mutated('repo.issue_creation', 'COLLABORATORS_ONLY'),
+  ];
+
+  const results = await applyRepoChanges(octokit, 'owner', 'thing', changes);
+
+  assert.equal(calls.length, 1, 'one mutation for three settings');
+  assert.deepEqual(calls[0]?.variables, {
+    input: {
+      repositoryId: 'R_abc',
+      hasDiscussionsEnabled: true,
+      hasSponsorshipsEnabled: false,
+      issueCreationPolicy: 'COLLABORATORS_ONLY',
+    },
+  });
+  assert.equal(results.length, 3);
+  assert.ok(results.every((r) => r.outcome === 'applied'));
+});
+
+test('a failed mutation marks every setting it carried as failed, with the same reason', async () => {
+  const denied = Object.assign(new Error('nope'), {
+    errors: [{ type: 'FORBIDDEN', message: 'denied', path: ['updateRepository'] }],
+  });
+  const { octokit } = fakeGraphql(denied);
+
+  const results = await applyRepoChanges(octokit, 'owner', 'thing', [
+    mutated('features.discussions', true),
+    mutated('features.sponsorships', true),
+  ]);
+
+  assert.equal(results.length, 2);
+  assert.ok(results.every((r) => r.outcome === 'failed'));
+  assert.ok(results.every((r) => r.error?.includes('forbidden')));
+});
+
+test('a mutation is never retried, because an ambiguous write is resolved by observing', async () => {
+  const unavailable = Object.assign(new Error('down'), {
+    errors: [{ type: 'SERVICE_UNAVAILABLE', message: 'try later', path: ['updateRepository'] }],
+  });
+  const { octokit, calls } = fakeGraphql(unavailable);
+
+  await applyRepoChanges(octokit, 'owner', 'thing', [mutated('features.discussions', true)]);
+
+  assert.equal(calls.length, 1, 'a transient failure would be retried on a read, but not here');
+});
+
+/**
+ * The planner blocks these keys when it has no node id, and the applier is
+ * what actually sends them. Two lists that have to agree, held together here
+ * rather than by whoever remembers to edit both.
+ */
+test('every setting the planner routes to a mutation has a field to send it in', () => {
+  assert.deepEqual(new Set(Object.keys(MUTATION_FIELDS)), CHANGED_BY_MUTATION);
 });

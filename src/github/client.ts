@@ -1,6 +1,8 @@
 import { Octokit } from '@octokit/rest';
 import { UNREADABLE } from '../config/sentinels.js';
 import { capability, errorMessage, errorStatus } from './capabilities.js';
+import { graphqlRequest, valueOrUnreadable } from './graphql.js';
+import { CHANGED_BY_MUTATION } from '../core/plan.js';
 import type {
   CapabilityResult,
   ExistingEnvironment,
@@ -13,6 +15,7 @@ import type {
   RepoDetail,
   RepoState,
   RepoStructure,
+  SettingValue,
   TokenProvider,
 } from '../types/index.js';
 
@@ -306,11 +309,18 @@ export async function getRepoDetail(
       `${owner} enforces immutable releases across its repositories`;
   }
 
+  const graphql =
+    policy && needsGraphql(policy)
+      ? await readGraphqlSettings(octokit, owner, base.name)
+      : { settings: {} };
+  Object.assign(settings, graphql.settings);
+
   const structure = policy ? await getRepoStructure(octokit, owner, base, policy) : undefined;
 
   return {
     ...base,
     settings,
+    ...(graphql.nodeId ? { nodeId: graphql.nodeId } : {}),
     ...(Object.keys(enforced).length > 0 ? { enforced } : {}),
     ...(structure ? { structure } : {}),
   };
@@ -700,6 +710,87 @@ async function enabledFlag(
   } catch {
     return UNREADABLE;
   }
+}
+
+/**
+ * Settings GitHub exposes on its GraphQL API and nowhere else, with the field
+ * each one is read from.
+ *
+ * `features.discussions` is deliberately absent: the REST repository response
+ * already carries it, and reading it here as well would make a failed GraphQL
+ * request turn a value that was in hand into an unreadable one. Only its
+ * *write* needs GraphQL, which is what {@link RepoDetail.nodeId} is for.
+ */
+const GRAPHQL_ONLY_SETTINGS: ReadonlyArray<readonly [string, string]> = [
+  ['features.sponsorships', 'hasSponsorshipsEnabled'],
+  ['features.pull_requests', 'hasPullRequestsEnabled'],
+  ['repo.issue_creation', 'issueCreationPolicy'],
+  ['repo.pull_request_creation', 'pullRequestCreationPolicy'],
+];
+
+const REPOSITORY_SETTINGS_QUERY = `
+  query RepositorySettings($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
+      id
+      ${GRAPHQL_ONLY_SETTINGS.map(([, field]) => field).join('\n      ')}
+    }
+  }
+`;
+
+interface GraphqlRepositorySettings {
+  repository: ({ id: string } & Record<string, unknown>) | null;
+}
+
+/**
+ * The settings only GraphQL knows about, plus the node identity its mutation
+ * needs, in one request.
+ *
+ * Asked for only when a policy manages one of them, because most repositories
+ * declare none and the request costs the same either way. Every field narrows
+ * to `UNREADABLE` on failure, exactly as a REST read does, so the planner
+ * blocks it for the same reason and reports it the same way — which is the
+ * whole point of the normalized transport.
+ */
+async function readGraphqlSettings(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<{ nodeId?: string; settings: Record<string, SettingValue> }> {
+  const outcome = await graphqlRequest<GraphqlRepositorySettings>(
+    octokit,
+    REPOSITORY_SETTINGS_QUERY,
+    { owner, name: repo },
+  );
+
+  const settings: Record<string, SettingValue> = {};
+  for (const [key, field] of GRAPHQL_ONLY_SETTINGS) {
+    const value = valueOrUnreadable(
+      outcome,
+      `repository.${field}`,
+      (data) => data.repository?.[field],
+    );
+    settings[key] =
+      value === UNREADABLE || typeof value === 'boolean' || typeof value === 'string'
+        ? (value as SettingValue)
+        : UNREADABLE;
+  }
+
+  const id = valueOrUnreadable(outcome, 'repository.id', (data) => data.repository?.id);
+  return { ...(typeof id === 'string' ? { nodeId: id } : {}), settings };
+}
+
+/**
+ * Whether a policy manages anything that has to be changed through GraphQL,
+ * and therefore needs the repository's node identity read alongside it.
+ */
+function needsGraphql(policy: PolicySet): boolean {
+  return [...CHANGED_BY_MUTATION].some((key) => {
+    const [group = '', name = ''] = key.split('.');
+    const declared = (policy as unknown as Record<string, Record<string, unknown> | undefined>)[
+      group
+    ];
+    return declared?.[name] !== undefined && declared?.[name] !== null;
+  });
 }
 
 /**

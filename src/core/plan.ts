@@ -122,13 +122,20 @@ const REQUIRES_COMPANION: Record<string, string> = {
 };
 
 /**
- * Policies octoform can express but cannot yet carry out. Declaring one and
- * having it silently do nothing is the worst outcome available, so they are
- * reported as blocked instead of skipped in silence.
+ * Settings GitHub only changes through a GraphQL mutation, which addresses the
+ * repository by node id rather than by owner and name.
+ *
+ * The id is read alongside them. Without it there is no identity to send the
+ * mutation against, so the change is blocked rather than attempted — the same
+ * treatment an unreadable current value gets, and for the same reason.
  */
-const NOT_IMPLEMENTED: Record<string, string> = {
-  'features.discussions': 'not applicable over the REST API',
-};
+export const CHANGED_BY_MUTATION: ReadonlySet<string> = new Set([
+  'features.discussions',
+  'features.sponsorships',
+  'features.pull_requests',
+  'repo.issue_creation',
+  'repo.pull_request_creation',
+]);
 
 /**
  * Compare one repository against its resolved policy.
@@ -180,18 +187,6 @@ function planScalars(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]
       const key = `${group}.${name}`;
       const current = repo.settings[key];
 
-      const unimplemented = NOT_IMPLEMENTED[key];
-      if (unimplemented) {
-        changes.push({
-          repo: repo.name,
-          key,
-          from: current ?? null,
-          to: wanted,
-          blocked: unimplemented,
-        });
-        continue;
-      }
-
       if (current === undefined) {
         changes.push({
           repo: repo.name,
@@ -222,6 +217,22 @@ function planScalars(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]
           from: current,
           to: wanted,
           blocked: enforcement,
+        });
+        continue;
+      }
+
+      if (CHANGED_BY_MUTATION.has(key)) {
+        changes.push({
+          repo: repo.name,
+          key,
+          from: current,
+          to: wanted,
+          ...(repo.nodeId
+            ? { payload: { repositoryId: repo.nodeId } }
+            : {
+                blocked:
+                  "could not read the repository's GraphQL identity, which its mutation needs",
+              }),
         });
         continue;
       }
