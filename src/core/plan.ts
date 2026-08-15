@@ -82,6 +82,30 @@ function unreadableReason(key: string, visibility: RepoDetail['visibility']): st
 }
 
 /**
+ * A consequence this change carries that GitHub will not report.
+ *
+ * Turning the code scanning default setup on makes GitHub refuse every SARIF
+ * upload from an advanced CodeQL workflow in the same repository. Neither side
+ * fails: the setting applies, and the workflow keeps running and silently stops
+ * publishing. Since the workflows were already read, the plan can say so first.
+ *
+ * @param key - Fully qualified setting key.
+ * @param wanted - The declared value.
+ * @param repo - The observed repository, including whatever structure was read.
+ */
+function consequenceOf(key: string, wanted: unknown, repo: RepoDetail): string | undefined {
+  if (key !== 'security.code_scanning_default_setup' || wanted !== true) return undefined;
+
+  const workflows = repo.structure?.workflowsUploadingCodeScanning;
+  if (workflows === undefined) {
+    return 'workflow files could not be read, so an advanced CodeQL workflow that this would disable is unknown';
+  }
+  if (workflows.length === 0) return undefined;
+
+  return `${workflows.join(', ')} upload code scanning results, and GitHub refuses those uploads while the default setup is configured`;
+}
+
+/**
  * Policies octoform can express but cannot yet carry out. Declaring one and
  * having it silently do nothing is the worst outcome available, so they are
  * reported as blocked instead of skipped in silence.
@@ -174,7 +198,13 @@ function planScalars(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]
       }
       if (same(current, wanted)) continue;
 
-      changes.push({ repo: repo.name, key, from: current, to: wanted });
+      changes.push({
+        repo: repo.name,
+        key,
+        from: current,
+        to: wanted,
+        warning: consequenceOf(key, wanted, repo),
+      });
     }
   }
 }

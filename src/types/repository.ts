@@ -81,6 +81,17 @@ export interface RepoStructure {
    * rename and have to be named before it happens, not discovered after.
    */
   workflowsNamingDefaultBranch?: string[];
+  /**
+   * Workflow files that upload code scanning results themselves. GitHub
+   * refuses those uploads while the code scanning default setup is
+   * configured, so enabling it disables them — silently, from the
+   * repository's point of view.
+   *
+   * Read only when a policy would turn the default setup on, and `undefined`
+   * when the workflows could not be read at all, which is not the same as
+   * none existing.
+   */
+  workflowsUploadingCodeScanning?: string[];
 }
 
 /**
