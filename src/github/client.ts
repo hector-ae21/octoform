@@ -5,7 +5,7 @@ import { graphqlRequest, valueOrUnreadable } from './graphql.js';
 import { readProtection } from '../core/branch-protection.js';
 import { readRuleset } from '../core/rulesets.js';
 import { canonicalLevel, readLevel } from '../core/access.js';
-import { dueDate, normalizeColor } from '../core/collections.js';
+import { readLabel, readMilestone } from '../core/collections.js';
 import { identityKey, namesToResolve } from '../core/identity.js';
 import { CHANGED_BY_MUTATION } from '../core/plan.js';
 import type {
@@ -679,19 +679,9 @@ async function listLabels(
       per_page: 100,
     });
     const labels: Record<string, ExistingLabel> = {};
-    for (const entry of pages as Array<{
-      name?: string;
-      color?: string;
-      description?: string | null;
-      default?: boolean;
-    }>) {
-      if (!entry.name) continue;
-      labels[entry.name] = {
-        name: entry.name,
-        color: normalizeColor(entry.color ?? ''),
-        description: entry.description ?? null,
-        default: entry.default === true,
-      };
+    for (const entry of pages as Array<Parameters<typeof readLabel>[0]>) {
+      const label = readLabel(entry);
+      if (label) labels[label.name] = label;
     }
     return labels;
   } catch {
@@ -720,22 +710,9 @@ async function listMilestones(
       per_page: 100,
     });
     const milestones: Record<string, ExistingMilestone> = {};
-    for (const entry of pages as Array<{
-      number?: number;
-      title?: string;
-      description?: string | null;
-      state?: string;
-      due_on?: string | null;
-    }>) {
-      if (!entry.title || entry.number === undefined) continue;
-      const due = dueDate(entry.due_on);
-      milestones[entry.title] = {
-        number: entry.number,
-        title: entry.title,
-        description: entry.description ?? null,
-        state: entry.state === 'closed' ? 'closed' : 'open',
-        ...(due === undefined ? {} : { due }),
-      };
+    for (const entry of pages as Array<Parameters<typeof readMilestone>[0]>) {
+      const milestone = readMilestone(entry);
+      if (milestone) milestones[milestone.title] = milestone;
     }
     return milestones;
   } catch {

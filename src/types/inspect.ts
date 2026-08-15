@@ -1,7 +1,7 @@
 /** Types for the read-only `inspect` commands. */
 
 import type { OwnerScope } from './config.js';
-import type { OwnerDiscovery } from './capabilities.js';
+import type { CapabilityResult, OwnerDiscovery } from './capabilities.js';
 
 /** The envelope every `--format json` output is wrapped in. */
 export interface OutputEnvelope<T> {
@@ -25,4 +25,22 @@ export interface InspectedCapabilities {
   organizationRulesets: boolean;
   /** Declarations in this owner's configuration that do not apply to its kind. */
   notApplicable: Array<{ path: string; reason: string }>;
+  /**
+   * Evidence for one named repository, when one was asked about.
+   *
+   * Rulesets on a private repository are the case this exists for. Whether
+   * they can be managed there depends on the account's plan and on the token,
+   * and neither is something octoform is willing to assume — so the answer is
+   * an observation, reported with the evidence behind it, that anybody can
+   * reproduce against their own repository before trusting a plan.
+   */
+  repository?: InspectedRepository;
+}
+
+/** Per-repository capability evidence, gathered on request. */
+export interface InspectedRepository {
+  name: string;
+  visibility: string;
+  /** Whether rulesets can be managed here, and what said so. */
+  rulesets: CapabilityResult;
 }

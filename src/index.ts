@@ -113,6 +113,7 @@ export type {
   FilePolicy,
   InspectedCapabilities,
   InspectedOwner,
+  InspectedRepository,
   LabelPolicy,
   Managed,
   MergeQueueRule,

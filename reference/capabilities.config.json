@@ -475,7 +475,10 @@
       "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
-      "limitations": ["Private repositories require positive owner, repository, token, and API evidence; unknown remote rule types are not removed."]
+      "limitations": [
+        "Private repositories require positive owner, repository, token, and API evidence; unknown remote rule types are not removed.",
+        "That evidence can be gathered before it matters with octoform inspect capabilities --repo <name>, which probes a private repository and reports the answer with its source."
+      ]
     },
     {
       "id": "ruleset-bypass-actors",

@@ -4,7 +4,7 @@ import { graphqlRequest } from './graphql.js';
 import { blockedByPrerequisite, orderByDependency } from '../core/dependencies.js';
 import { protectionBody } from '../core/branch-protection.js';
 import { REVOKED, grantLevel, invitationLevel } from '../core/access.js';
-import { dueTimestamp, normalizeColor } from '../core/collections.js';
+import { labelBody, milestoneBody } from '../core/collections.js';
 import type { RuleContext } from '../core/rulesets.js';
 import { rulesetBody } from '../core/rulesets.js';
 import type {
@@ -364,13 +364,8 @@ export async function applyRepoChanges(
         }
 
         if (name === undefined) {
-          await octokit.request('POST /repos/{owner}/{repo}/labels', {
-            owner,
-            repo,
-            name: label.name,
-            ...(label.color === undefined ? {} : { color: normalizeColor(label.color) }),
-            ...(label.description === undefined ? {} : { description: label.description }),
-          });
+          const create: string = 'POST /repos/{owner}/{repo}/labels';
+          await octokit.request(create, { owner, repo, ...labelBody(label) });
           return;
         }
 
@@ -378,9 +373,7 @@ export async function applyRepoChanges(
           owner,
           repo,
           name,
-          ...(name === label.name ? {} : { new_name: label.name }),
-          ...(label.color === undefined ? {} : { color: normalizeColor(label.color) }),
-          ...(label.description === undefined ? {} : { description: label.description }),
+          ...labelBody(label, name),
         });
       }),
     );
@@ -403,15 +396,11 @@ export async function applyRepoChanges(
           return;
         }
 
-        const body = {
-          title: milestone.title,
-          ...(milestone.state === undefined ? {} : { state: milestone.state }),
-          ...(milestone.description === undefined ? {} : { description: milestone.description }),
-          ...(milestone.due === undefined ? {} : { due_on: dueTimestamp(milestone.due) }),
-        };
+        const body = milestoneBody(milestone);
 
         if (number === undefined) {
-          await octokit.request('POST /repos/{owner}/{repo}/milestones', { owner, repo, ...body });
+          const create: string = 'POST /repos/{owner}/{repo}/milestones';
+          await octokit.request(create, { owner, repo, ...body });
           return;
         }
         await octokit.request('PATCH /repos/{owner}/{repo}/milestones/{milestone_number}', {
