@@ -7,13 +7,16 @@ import {
   getOrganizationDetail,
   getRepoDetail,
   listRepos,
+  readOrganizationRulesets,
   readPropertyDefinitions,
   readPropertyValues,
+  resolveOwnerNames,
 } from '../github/client.js';
 import { capability } from '../github/capabilities.js';
 import { DEFAULT_CONCURRENCY, mapWithConcurrency } from '../core/concurrency.js';
 import { planRepo } from '../core/plan.js';
 import { planOrganization } from '../core/organization.js';
+import { namesToResolve } from '../core/identity.js';
 import { formatChange, groupByRepo, printable } from '../report/format.js';
 import type {
   Change,
@@ -149,9 +152,24 @@ async function readOrganization(
 ): Promise<OrganizationState> {
   const settings = await getOrganizationDetail(octokit, owner);
   const properties = policy.properties ? await readPropertyDefinitions(octokit, owner) : undefined;
+  const rulesets = policy.rulesets?.length
+    ? await readOrganizationRulesets(octokit, owner)
+    : undefined;
+  /**
+   * The names a ruleset has to send as numbers are looked up once for the
+   * whole organisation, so a team named by three rulesets costs one request
+   * and a name nobody can find becomes a blocked line rather than an
+   * exception raised part way through applying.
+   */
+  const resolved = policy.rulesets?.length
+    ? await resolveOwnerNames(octokit, owner, namesToResolve({ rulesets: policy.rulesets }, ''))
+    : undefined;
+
   return {
     ...(settings === undefined ? {} : { settings }),
     ...(properties === undefined ? {} : { properties }),
+    ...(rulesets === undefined ? {} : { rulesets }),
+    ...(resolved === undefined ? {} : { resolved }),
   };
 }
 

@@ -406,12 +406,41 @@ const PROPERTY_DEFINITION: ObjectShape = {
   },
 };
 
+const RULESET_PROPERTY_MATCH: ObjectShape = {
+  name: 'RulesetPropertyMatch',
+  fields: {
+    name: scalar,
+    values: scalarList,
+    source: enumeration('custom', 'system'),
+  },
+};
+
+const RULESET_REPOSITORIES: ObjectShape = {
+  name: 'RulesetRepositories',
+  fields: {
+    include: scalarList,
+    exclude: scalarList,
+    properties: objectList(() => RULESET_PROPERTY_MATCH),
+    exclude_properties: objectList(() => RULESET_PROPERTY_MATCH),
+    protected: scalar,
+  },
+};
+
+const ORGANIZATION_RULESET_POLICY: ObjectShape = {
+  name: 'OrganizationRulesetPolicy',
+  fields: {
+    ...RULESET_POLICY.fields,
+    repositories: object(() => RULESET_REPOSITORIES),
+  },
+};
+
 const ORGANIZATION_POLICY: ObjectShape = {
   name: 'OrganizationPolicy',
   fields: {
     profile: object(() => ORGANIZATION_PROFILE),
     members: object(() => ORGANIZATION_MEMBER_POLICY),
     properties: mapOfObjects(() => PROPERTY_DEFINITION),
+    rulesets: objectList(() => ORGANIZATION_RULESET_POLICY),
   },
 };
 

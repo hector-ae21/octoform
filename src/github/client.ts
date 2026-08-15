@@ -1233,6 +1233,53 @@ export async function readPropertyDefinitions(
 }
 
 /**
+ * Rulesets the organisation aims at its repositories.
+ *
+ * Same shape as the repository listing and the same extra request per ruleset,
+ * for the same reason: the list endpoint returns summaries with no rules and
+ * no conditions in them, and the conditions are the half that says which
+ * repositories are affected.
+ */
+export async function readOrganizationRulesets(
+  octokit: Octokit,
+  org: string,
+): Promise<ExistingRuleset[] | undefined> {
+  try {
+    const summaries = (await octokit.paginate('GET /orgs/{org}/rulesets', {
+      org,
+      per_page: 100,
+    })) as Array<{ id: number; name: string }>;
+
+    return await Promise.all(
+      summaries.map(async (summary) => {
+        const { data } = await octokit.request('GET /orgs/{org}/rulesets/{ruleset_id}', {
+          org,
+          ruleset_id: summary.id,
+        });
+        return readRuleset(data as Parameters<typeof readRuleset>[0]);
+      }),
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Look up the names an organisation ruleset has to send as numbers.
+ *
+ * The same lookup the repository read already does, exposed because an
+ * organisation ruleset belongs to no repository and so has nowhere else to
+ * borrow one from.
+ */
+export async function resolveOwnerNames(
+  octokit: Octokit,
+  owner: string,
+  names: readonly Resolvable[],
+): Promise<Resolution> {
+  return resolveIdentities(octokit, owner, names);
+}
+
+/**
  * Create or replace one custom property definition.
  *
  * The body is built by the caller from the definition that already stands, and

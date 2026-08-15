@@ -171,6 +171,106 @@
       "merge": "merge-by-key"
     },
     {
+      "shape": "OrganizationPolicy",
+      "field": "rulesets",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "allowed_merge_methods",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "branch_name_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "bypass",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "commit_author_email_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "commit_message_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "committer_email_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "copilot_code_review",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "exclude",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "merge_queue",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "repositories",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "required_checks",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "required_code_scanning",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "required_deployments",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "required_workflows",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "restricted_file_extensions",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "restricted_file_paths",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "tag_name_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "target_branches",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "target_tags",
+      "merge": "replace"
+    },
+    {
       "shape": "OwnerBlock",
       "field": "audit",
       "merge": "merge-by-key"
@@ -478,6 +578,31 @@
     {
       "shape": "RulesetPolicy",
       "field": "target_tags",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPropertyMatch",
+      "field": "values",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetRepositories",
+      "field": "exclude",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetRepositories",
+      "field": "exclude_properties",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetRepositories",
+      "field": "include",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetRepositories",
+      "field": "properties",
       "merge": "replace"
     }
   ],

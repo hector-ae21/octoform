@@ -33,6 +33,17 @@ import {
   describeDefinition,
   sameDefinition,
 } from './properties.js';
+import { bypassProblems, workflowProblems } from './identity.js';
+import type { RuleContext } from './rulesets.js';
+import { describeExistingRuleset, describeRuleset, sameRuleset, targetOf } from './rulesets.js';
+import {
+  describeExistingRepositories,
+  describeRepositories,
+  organizationRulesetProblems,
+  sameRepositories,
+  targetProblems,
+  unnamedWorkflows,
+} from './organization-rulesets.js';
 
 /** Every setting of the organisation itself, by the key a change carries. */
 export const ORGANIZATION_KEYS: readonly string[] = [
@@ -193,8 +204,103 @@ export function planOrganization(
   }
 
   planDefinitions(ownerKind, observed?.properties, policy, draft);
+  planOrganizationRulesets(owner, ownerKind, observed, policy, draft);
 
   return changes;
+}
+
+/**
+ * Rulesets the organisation aims at repositories it selects.
+ *
+ * Every one of these is sensitive. A repository ruleset reaches the repository
+ * it is on, and somebody looking at that repository can see it; an
+ * organisation ruleset reaches whatever its condition matches, which includes
+ * repositories no configuration names and nobody was reading the plan for.
+ */
+function planOrganizationRulesets(
+  owner: string,
+  ownerKind: OwnerKind,
+  observed: OrganizationState | undefined,
+  policy: OrganizationPolicy,
+  draft: Draft,
+): void {
+  const existing = observed?.rulesets;
+  const context: RuleContext = { resolution: observed?.resolved ?? new Map(), repository: '' };
+
+  for (const declared of policy.rulesets ?? []) {
+    const key = `organization.rulesets.${declared.name}`;
+    const shown = `${describeRuleset(declared, context)}; ${describeRepositories(declared.repositories ?? {})}`;
+
+    if (ownerKind === 'user') {
+      draft(key, null, shown, {
+        risk: 'sensitive',
+        blocked: `"${owner}" is a personal account, which has no rulesets of its own to aim at repositories`,
+      });
+      continue;
+    }
+
+    /**
+     * A name that did not resolve stops the whole ruleset, the same way it
+     * does on a repository: sending the rest would create a ruleset that
+     * enforces everything it was asked to and lets nobody past.
+     */
+    const target = targetOf(declared);
+    const problems = [
+      ...targetProblems(declared),
+      ...organizationRulesetProblems(declared),
+      ...(target === null
+        ? []
+        : bypassProblems(declared, context.resolution, ownerKind, target.target)),
+      /**
+       * Only the workflows that named their repository are looked up here.
+       * The ones that did not are already refused above, and asking about a
+       * repository called nothing would answer with a message about a name
+       * nobody wrote.
+       */
+      ...(unnamedWorkflows(declared).length > 0
+        ? []
+        : workflowProblems(declared, context.resolution, context.repository)),
+    ];
+    if (problems.length > 0) {
+      draft(key, null, shown, { risk: 'sensitive', blocked: problems.join('; ') });
+      continue;
+    }
+
+    if (existing === undefined) {
+      draft(key, UNREADABLE, shown, {
+        risk: 'sensitive',
+        blocked: 'could not read the existing organisation rulesets',
+      });
+      continue;
+    }
+
+    const current = existing.find((ruleset) => ruleset.name === declared.name);
+    if (!current) {
+      draft(key, null, shown, {
+        risk: 'sensitive',
+        payload: { ruleset: declared, context },
+      });
+      continue;
+    }
+
+    if (
+      sameRuleset(current, declared, context) &&
+      sameRepositories(current.repositories, declared.repositories ?? {})
+    ) {
+      continue;
+    }
+
+    draft(
+      key,
+      `${describeExistingRuleset(current, context)}; ${describeExistingRepositories(current)}`,
+      shown,
+      {
+        operation: 'update',
+        risk: 'sensitive',
+        payload: { ruleset: declared, id: current.id, existing: current, context },
+      },
+    );
+  }
 }
 
 /** How a definition change is drafted, shared with {@link planOrganization}. */
