@@ -30,6 +30,7 @@ import { plan, summarizePlan } from './commands/plan.js';
 import { apply } from './commands/apply.js';
 import { classify } from './commands/classify.js';
 import { propertiesSync } from './commands/properties.js';
+import { convertMember, inviteMember, removeMember } from './commands/members.js';
 import { formatChange, groupByRepo, printable } from './report/format.js';
 import { renderUsage } from './cli-contract.js';
 import {
@@ -79,6 +80,8 @@ interface Args {
   out?: string;
   planFile?: string;
   expiresIn?: number;
+  user?: string;
+  role?: string;
   format: 'text' | 'json';
 }
 
@@ -144,7 +147,9 @@ export function parseArgs(argv: string[]): Args {
       arg === '--repo' ||
       arg === '--type' ||
       arg === '--out' ||
-      arg === '--plan'
+      arg === '--plan' ||
+      arg === '--user' ||
+      arg === '--role'
     ) {
       const value = argv[++i];
       if (!value) throw new ConfigError(`${arg} needs a value`);
@@ -152,6 +157,8 @@ export function parseArgs(argv: string[]): Args {
       else if (arg === '--repo') args.repo = value;
       else if (arg === '--out') args.out = value;
       else if (arg === '--plan') args.planFile = value;
+      else if (arg === '--user') args.user = value;
+      else if (arg === '--role') args.role = value;
       else args.type = value;
     } else if (arg.startsWith('-')) {
       throw new ConfigError(`Unknown option: ${arg}`);
@@ -290,6 +297,50 @@ export async function main(argv: string[]): Promise<number> {
         return await each(async (scope) => ({
           status: (await propertiesSync(octokit, scope)) === 0 ? EXIT_SUCCESS : EXIT_FAILED,
         }));
+      }
+      case 'members': {
+        const action = args.subcommand;
+        if (action !== 'invite' && action !== 'remove' && action !== 'convert') {
+          console.error(
+            action
+              ? `Unknown subcommand: members ${action}\n`
+              : 'members needs a subcommand: members invite | members remove | members convert\n',
+          );
+          console.error(USAGE);
+          return EXIT_USAGE_ERROR;
+        }
+        const login = args.user;
+        if (!login) {
+          console.error('members needs --user <login>: these commands are about one person.\n');
+          console.error(USAGE);
+          return EXIT_USAGE_ERROR;
+        }
+        await enter(['admin:org']);
+        /**
+         * The account this run is authenticated as, read once so the guards
+         * can refuse a command that would take away the ability to undo it.
+         */
+        const actor = await authenticatedLogin(octokit);
+        return await each(async (scope) => {
+          if ((await detectOwnerKind(octokit, scope.owner)) !== 'org') {
+            console.error(
+              `"${printable(scope.owner)}" is a personal account, which has no members.`,
+            );
+            return { status: EXIT_USAGE_ERROR };
+          }
+          const options = {
+            yes: args.yes,
+            ...(actor === undefined ? {} : { actor }),
+            ...(args.role === undefined ? {} : { role: args.role }),
+          };
+          const status =
+            action === 'invite'
+              ? await inviteMember(octokit, scope, login, options)
+              : action === 'remove'
+                ? await removeMember(octokit, scope, login, options)
+                : await convertMember(octokit, scope, login, options);
+          return { status };
+        });
       }
       case 'inspect': {
         if (args.subcommand === 'members') {

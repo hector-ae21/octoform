@@ -171,6 +171,18 @@
       "classic-read-org",
       "organization-members-read"
     ],
+    "POST /orgs/{org}/invitations": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "DELETE /orgs/{org}/memberships/{username}": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "PUT /orgs/{org}/outside_collaborators/{username}": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
     "GET /orgs/{org}/outside_collaborators": [
       "classic-read-org",
       "organization-members-read"
@@ -641,6 +653,38 @@
         "Deleting a team is destructive: GitHub deletes its child teams with it, so a parent whose children the file declares is refused.",
         "The permission field is not modelled: GitHub documents it as closing down.",
         "The listing is what the token can see, so a secret team it cannot see reads as absent."
+      ]
+    },
+    {
+      "id": "organization-membership-commands",
+      "area": "access",
+      "support": "organization-only",
+      "configPaths": [],
+      "commands": ["members invite", "members remove", "members convert"],
+      "ownerKinds": ["organization"],
+      "readRoutes": [
+        "GET /orgs/{org}/members",
+        "GET /orgs/{org}/invitations",
+        "GET /orgs/{org}/outside_collaborators",
+        "GET /users/{username}"
+      ],
+      "writeRoutes": [
+        "POST /orgs/{org}/invitations",
+        "DELETE /orgs/{org}/memberships/{username}",
+        "PUT /orgs/{org}/outside_collaborators/{username}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-members-read"],
+      "writePermissions": ["classic-admin-org", "organization-members-write"],
+      "limitations": [
+        "Commands rather than declarations: an invitation is an act addressed to a person, and a file listing members authoritatively would remove somebody on a typo.",
+        "One person per invocation, which is also what GitHub's secondary rate limiting on the invitation endpoint asks for.",
+        "The invitation endpoint takes a user id rather than a login, so a login is looked up first and an unknown one is refused.",
+        "Removing the only owner is refused: an organization with no owners cannot be administered by anybody.",
+        "Removing or converting the account the run is authenticated as is refused, since it could not put itself back.",
+        "One endpoint removes an active member and cancels a pending invitation, and GitHub emails the person in both cases.",
+        "Membership held through an enterprise team survives removal and has to be removed there.",
+        "Converting to an outside collaborator may be restricted by enterprise administrators."
       ]
     },
     {

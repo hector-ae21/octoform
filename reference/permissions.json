@@ -20,6 +20,7 @@
       "capabilityIds": [
         "organization-custom-properties",
         "organization-member-policies",
+        "organization-membership-commands",
         "organization-profile",
         "organization-property-definitions",
         "organization-role-assignment",
@@ -154,6 +155,7 @@
       "description": "Reading the organization's teams.",
       "capabilityIds": [
         "organization-member-inventory",
+        "organization-membership-commands",
         "organization-teams",
         "team-membership"
       ]
@@ -166,6 +168,7 @@
       "access": "write",
       "description": "Creating, updating and deleting the organization's teams.",
       "capabilityIds": [
+        "organization-membership-commands",
         "organization-teams",
         "team-membership"
       ]
@@ -318,6 +321,17 @@
     }
   ],
   "operations": [
+    {
+      "route": "DELETE /orgs/{org}/memberships/{username}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-membership-commands"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
+      ]
+    },
     {
       "route": "DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}",
       "access": "write",
@@ -524,7 +538,8 @@
       "route": "GET /orgs/{org}/invitations",
       "access": "read",
       "capabilityIds": [
-        "organization-member-inventory"
+        "organization-member-inventory",
+        "organization-membership-commands"
       ],
       "permissionProfiles": [
         "classic-read-org",
@@ -535,7 +550,8 @@
       "route": "GET /orgs/{org}/members",
       "access": "read",
       "capabilityIds": [
-        "organization-member-inventory"
+        "organization-member-inventory",
+        "organization-membership-commands"
       ],
       "permissionProfiles": [
         "classic-read-org",
@@ -579,7 +595,8 @@
       "route": "GET /orgs/{org}/outside_collaborators",
       "access": "read",
       "capabilityIds": [
-        "organization-member-inventory"
+        "organization-member-inventory",
+        "organization-membership-commands"
       ],
       "permissionProfiles": [
         "classic-read-org",
@@ -955,11 +972,14 @@
       "access": "read",
       "capabilityIds": [
         "deployment-environments",
+        "organization-membership-commands",
         "owner-kind",
         "ruleset-bypass-actors"
       ],
       "permissionProfiles": [
+        "classic-admin-org",
         "classic-repo",
+        "organization-members-read",
         "repository-administration-read"
       ]
     },
@@ -1082,6 +1102,17 @@
       ]
     },
     {
+      "route": "POST /orgs/{org}/invitations",
+      "access": "write",
+      "capabilityIds": [
+        "organization-membership-commands"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
+      ]
+    },
+    {
       "route": "POST /orgs/{org}/rulesets",
       "access": "write",
       "capabilityIds": [
@@ -1192,6 +1223,17 @@
       "permissionProfiles": [
         "classic-admin-org",
         "organization-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /orgs/{org}/outside_collaborators/{username}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-membership-commands"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
       ]
     },
     {

@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { notInTheOrganization, peopleNamedBy, readInvitation } from '../src/core/members.js';
+import {
+  notInTheOrganization,
+  peopleNamedBy,
+  readInvitation,
+  removalProblems,
+} from '../src/core/members.js';
 import type { OwnerScope } from '../src/types/index.js';
 
 const scope: OwnerScope = {
@@ -122,4 +127,31 @@ test('an invitation that has not failed carries neither failure field', () => {
 
 test('a configuration that names nobody reports nobody missing', () => {
   assert.deepEqual(notInTheOrganization(peopleNamedBy({ owner: 'acme' }), new Set()), []);
+});
+
+test('the only owner cannot be removed, since nobody could administer what is left', () => {
+  const problems = removalProblems('ana', ['ana']);
+
+  assert.equal(problems.length, 1);
+  assert.match(problems[0] ?? '', /only owner/u);
+});
+
+test('an owner who is not the only one is not refused on that ground', () => {
+  assert.deepEqual(removalProblems('ana', ['ana', 'luis']), []);
+});
+
+test('the account the run is authenticated as cannot remove itself', () => {
+  const problems = removalProblems('octoform-bot', ['ana'], 'octoform-bot');
+
+  assert.match(problems.join('; '), /could not put itself back/u);
+});
+
+test('both refusals can apply to the same person at once', () => {
+  const problems = removalProblems('ana', ['ana'], 'ana');
+
+  assert.equal(problems.length, 2);
+});
+
+test('removing somebody who is neither the last owner nor the caller is allowed', () => {
+  assert.deepEqual(removalProblems('luis', ['ana', 'nuria'], 'ana'), []);
 });

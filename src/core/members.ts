@@ -108,6 +108,43 @@ export function readInvitation(raw: RawInvitation, now: Date = new Date()): Insp
   };
 }
 
+/**
+ * Why somebody must not be taken out of the organisation.
+ *
+ * Both refusals are about leaving nobody able to undo the change. An
+ * organisation with no owners cannot be administered by anyone, including the
+ * people trying to fix it; and an account that removes itself cannot put
+ * itself back, whatever it was allowed to do a moment earlier.
+ *
+ * They are checked here rather than at the request because GitHub will happily
+ * perform both. Neither is an API error — they are decisions the API leaves to
+ * whoever is calling it.
+ *
+ * @param login - The person being removed or converted.
+ * @param admins - Every organisation owner, as read.
+ * @param actor - The login this run is authenticated as, when it is known.
+ */
+export function removalProblems(
+  login: string,
+  admins: readonly string[],
+  actor?: string,
+): string[] {
+  const problems: string[] = [];
+
+  if (admins.includes(login) && admins.length === 1) {
+    problems.push(
+      `"${login}" is the only owner of this organisation, and an organisation with no owners cannot be administered by anybody`,
+    );
+  }
+  if (actor !== undefined && login === actor) {
+    problems.push(
+      `"${login}" is the account this run is authenticated as, and it could not put itself back`,
+    );
+  }
+
+  return problems;
+}
+
 /** Every layer of a resolved scope that can carry an access policy, with its path. */
 function policyLayers(scope: OwnerScope): Array<[string, PolicySet]> {
   const layers: Array<[string, PolicySet]> = [];
