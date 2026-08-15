@@ -406,7 +406,8 @@
         "PATCH /repos/{owner}/{repo}/milestones/{milestone_number}",
         "DELETE /repos/{owner}/{repo}/milestones/{milestone_number}",
         "GET /repos/{owner}/{repo}/properties/values",
-        "PATCH /repos/{owner}/{repo}/properties/values"
+        "PATCH /repos/{owner}/{repo}/properties/values",
+        "PATCH /orgs/{org}"
       ]
     },
     "reviewedOperations": [

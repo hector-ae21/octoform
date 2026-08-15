@@ -5,6 +5,7 @@ import { blockedByPrerequisite, orderByDependency } from '../core/dependencies.j
 import { protectionBody } from '../core/branch-protection.js';
 import { REVOKED, grantLevel, invitationLevel } from '../core/access.js';
 import { labelBody, milestoneBody } from '../core/collections.js';
+import { ORGANIZATION_FIELDS } from '../core/organization.js';
 import type { RuleContext } from '../core/rulesets.js';
 import { rulesetBody } from '../core/rulesets.js';
 import type {
@@ -655,4 +656,35 @@ function describeError(error: unknown): string {
   const status = (error as { status?: number }).status;
   const message = error instanceof Error ? error.message : String(error);
   return status ? `${status}: ${message}` : message;
+}
+
+/**
+ * Apply every organisation change that is not blocked, in one request.
+ *
+ * The whole of what octoform manages on an organisation lives on one object
+ * and is written through one PATCH, so the group succeeds or fails together —
+ * the same rule the repository settings body already follows, and reported the
+ * same way, since none of them happened if the request did not.
+ */
+export async function applyOrganizationChanges(
+  octokit: Octokit,
+  owner: string,
+  planned: Change[],
+): Promise<AppliedChange[]> {
+  const changes = planned.filter((change) => change.key.startsWith('organization.'));
+  if (changes.length === 0) return [];
+
+  const body: Record<string, unknown> = {};
+  for (const change of changes) {
+    const field = ORGANIZATION_FIELDS[change.key];
+    if (field) body[field] = change.to;
+  }
+
+  try {
+    await octokit.request('PATCH /orgs/{org}', { org: owner, ...body });
+    return changes.map((change) => ({ ...change, outcome: 'applied' as const }));
+  } catch (error) {
+    const message = describeError(error);
+    return changes.map((change) => ({ ...change, outcome: 'failed' as const, error: message }));
+  }
 }

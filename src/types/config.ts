@@ -563,6 +563,72 @@ export interface PolicySet {
   files?: FilePolicy[];
 }
 
+/**
+ * The level of access every organisation member has to every repository the
+ * organisation owns, before any team or collaborator grant adds to it.
+ *
+ * `none` is the only value that makes a repository's own access policy the
+ * whole story; anything else is a floor no repository can go below.
+ */
+export type BasePermission = 'none' | 'read' | 'write' | 'admin';
+
+/** Desired state for the organisation's public profile. */
+export interface OrganizationProfile {
+  /** Display name, which is not the login and does not change the login. */
+  name?: Managed<string>;
+  description?: Managed<string>;
+  company?: Managed<string>;
+  /** Website, which GitHub's API calls `blog`. */
+  website?: Managed<string>;
+  location?: Managed<string>;
+  /** Public contact address, distinct from the billing address. */
+  email?: Managed<string>;
+  twitter_username?: Managed<string>;
+}
+
+/**
+ * What organisation members may do without being asked.
+ *
+ * `members_allowed_repository_creation_type` is deliberately absent. GitHub
+ * documents it as closing down, and says that using it overrides
+ * `create_repositories` — so a file that set both would have the field on its
+ * way out silently win. The three per-visibility switches say the same thing
+ * without that hazard.
+ */
+export interface OrganizationMemberPolicy {
+  /** What every member gets on every repository, before any grant adds to it. */
+  base_permission?: Managed<BasePermission>;
+  create_repositories?: Toggle;
+  create_public_repositories?: Toggle;
+  create_private_repositories?: Toggle;
+  /** Enterprise Cloud only; GitHub ignores it elsewhere. */
+  create_internal_repositories?: Toggle;
+  /** Whether a private repository of this organisation can be forked at all. */
+  fork_private_repositories?: Toggle;
+  create_pages?: Toggle;
+  create_public_pages?: Toggle;
+  create_private_pages?: Toggle;
+  /** Require every web commit to be signed off, across the organisation. */
+  web_commit_signoff_required?: Toggle;
+  /** Whether repositories may use deploy keys at all. */
+  deploy_keys_enabled?: Toggle;
+  organization_projects?: Toggle;
+  repository_projects?: Toggle;
+}
+
+/**
+ * Desired state for the organisation itself, rather than for its repositories.
+ *
+ * The security defaults for new repositories are absent on purpose: GitHub
+ * documents every one of them as closing down on this endpoint, in favour of
+ * code security configurations, and a governance tool has no business writing
+ * a setting whose own API says to stop using it.
+ */
+export interface OrganizationPolicy {
+  profile?: OrganizationProfile;
+  members?: OrganizationMemberPolicy;
+}
+
 /** A condition used to infer a repository's type when it has none recorded. */
 export interface ClassifyRule {
   when: {
@@ -612,6 +678,7 @@ export type ConfigVersion = 1;
 
 /** Everything one GitHub owner can declare under `owners`. */
 export interface OwnerBlock {
+  organization?: OrganizationPolicy;
   classify?: ClassifyConfig;
   audit?: AuditConfig;
   defaults?: PolicySet;
@@ -664,6 +731,7 @@ export interface Config {
    * other policies; a reference cycle is reported with the full chain.
    */
   policies?: Record<string, PolicySet>;
+  organization?: OrganizationPolicy;
   classify?: ClassifyConfig;
   audit?: AuditConfig;
   defaults?: PolicySet;
@@ -686,6 +754,7 @@ export interface Config {
  */
 export interface OwnerScope {
   owner: string;
+  organization?: OrganizationPolicy;
   classify?: ClassifyConfig;
   audit?: AuditConfig;
   defaults?: PolicySet;

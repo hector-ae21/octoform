@@ -252,7 +252,12 @@ export interface Change {
   id: string;
   /** The GitHub login this change belongs to. */
   owner: string;
-  repo: string;
+  /**
+   * The repository this change belongs to, absent when it belongs to the
+   * owner itself. An organisation setting has no repository to name, and
+   * inventing one would make it sort and group as though it did.
+   */
+  repo?: string;
   /** Dotted path of the setting, e.g. "merge.delete_branch_on_merge". */
   key: string;
   operation: OperationKind;

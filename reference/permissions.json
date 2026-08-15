@@ -18,7 +18,9 @@
       "access": "write",
       "description": "Additional classic scope required before organization custom-property writes.",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "organization-member-policies",
+        "organization-profile"
       ]
     },
     {
@@ -64,13 +66,28 @@
       ]
     },
     {
+      "id": "organization-administration-read",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Administration",
+      "access": "read",
+      "description": "Reading the organization's own profile and member policies.",
+      "capabilityIds": [
+        "organization-member-policies",
+        "organization-profile"
+      ]
+    },
+    {
       "id": "organization-administration-write",
       "tokenType": "fine-grained",
       "scope": "organization",
       "name": "Administration",
       "access": "write",
-      "description": "Organization ruleset capability discovery for an organization administrator.",
-      "capabilityIds": []
+      "description": "Organization ruleset capability discovery, and writing the organization's own profile and member policies.",
+      "capabilityIds": [
+        "organization-member-policies",
+        "organization-profile"
+      ]
     },
     {
       "id": "organization-custom-properties-admin",
@@ -378,10 +395,14 @@
       "route": "GET /orgs/{org}",
       "access": "read",
       "capabilityIds": [
+        "organization-member-policies",
+        "organization-profile",
         "owner-kind"
       ],
       "permissionProfiles": [
-        "classic-repo"
+        "classic-admin-org",
+        "classic-repo",
+        "organization-administration-read"
       ]
     },
     {
@@ -701,6 +722,18 @@
       "permissionProfiles": [
         "classic-repo",
         "repository-metadata-read"
+      ]
+    },
+    {
+      "route": "PATCH /orgs/{org}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-member-policies",
+        "organization-profile"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-write"
       ]
     },
     {

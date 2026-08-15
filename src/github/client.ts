@@ -7,6 +7,7 @@ import { readRuleset } from '../core/rulesets.js';
 import { canonicalLevel, readLevel } from '../core/access.js';
 import { readLabel, readMilestone } from '../core/collections.js';
 import { identityKey, namesToResolve } from '../core/identity.js';
+import { ORGANIZATION_FIELDS } from '../core/organization.js';
 import { CHANGED_BY_MUTATION } from '../core/plan.js';
 import type {
   BranchProtectionSettings,
@@ -1312,4 +1313,38 @@ async function requestLimits(
   }
 
   return { ownerKind: 'org', plan, orgRulesets };
+}
+
+/**
+ * The organisation's own settings, keyed the way a change names them.
+ *
+ * One request answers all of them: unlike a repository, an organisation keeps
+ * everything octoform manages here on the object itself. A field GitHub did
+ * not return at all reads as `UNREADABLE` rather than as unset, so a policy
+ * cannot be planned over an answer that never came.
+ */
+export async function getOrganizationDetail(
+  octokit: Octokit,
+  owner: string,
+): Promise<Record<string, SettingValue> | undefined> {
+  let data: Record<string, unknown>;
+  try {
+    const response = await octokit.request('GET /orgs/{org}', { org: owner });
+    data = response.data as unknown as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
+
+  const settings: Record<string, SettingValue> = {};
+  for (const [key, field] of Object.entries(ORGANIZATION_FIELDS)) {
+    const value = data[field];
+    if (value === undefined) {
+      settings[key] = UNREADABLE;
+    } else if (typeof value === 'boolean' || typeof value === 'string' || value === null) {
+      settings[key] = value;
+    } else {
+      settings[key] = UNREADABLE;
+    }
+  }
+  return settings;
 }
