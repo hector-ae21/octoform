@@ -434,6 +434,19 @@ const ORGANIZATION_RULESET_POLICY: ObjectShape = {
   },
 };
 
+const TEAM_POLICY: ObjectShape = {
+  name: 'TeamPolicy',
+  fields: {
+    name: scalar,
+    description: scalar,
+    privacy: enumeration('secret', 'closed'),
+    notifications: scalar,
+    parent: scalar,
+    rename_from: scalarList,
+    mode: enumeration('present', 'absent'),
+  },
+};
+
 const ORGANIZATION_POLICY: ObjectShape = {
   name: 'OrganizationPolicy',
   fields: {
@@ -441,6 +454,7 @@ const ORGANIZATION_POLICY: ObjectShape = {
     members: object(() => ORGANIZATION_MEMBER_POLICY),
     properties: mapOfObjects(() => PROPERTY_DEFINITION),
     rulesets: objectList(() => ORGANIZATION_RULESET_POLICY),
+    teams: mapOfObjects(() => TEAM_POLICY),
   },
 };
 

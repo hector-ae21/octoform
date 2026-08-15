@@ -141,6 +141,24 @@ export interface ExistingProperty {
 }
 
 /**
+ * A team as it exists on GitHub right now.
+ *
+ * `parent` is the parent's slug rather than its id: GitHub's team endpoints
+ * accept a parent by slug, so nothing here has to be resolved to a number
+ * before it can be sent — unlike a ruleset's bypass actors.
+ */
+export interface ExistingTeam {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  privacy: 'secret' | 'closed';
+  /** Whether members are notified when the team is mentioned. */
+  notifications: boolean;
+  parent: string | null;
+}
+
+/**
  * The organisation itself as it stands, gathered before anything is planned.
  *
  * Each field is absent when it could not be read, and an absent field blocks
@@ -154,6 +172,15 @@ export interface OrganizationState {
   properties?: Record<string, ExistingProperty>;
   /** Rulesets the organisation applies to its repositories. */
   rulesets?: ExistingRuleset[];
+  /**
+   * Teams, by slug.
+   *
+   * Only the teams the token can see. GitHub's listing is what is "visible to
+   * the authenticated user", so a secret team a token cannot see is absent
+   * rather than reported — which is why a create that collides with one is
+   * reported as the failure it is instead of being retried.
+   */
+  teams?: Record<string, ExistingTeam>;
   /** The names a ruleset has to send as numbers, already looked up. */
   resolved?: Resolution;
 }

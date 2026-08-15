@@ -20,11 +20,13 @@ import { UNREADABLE } from '../config/sentinels.js';
 import type {
   Change,
   ExistingProperty,
+  ExistingTeam,
   OrganizationPolicy,
   OrganizationState,
   OwnerKind,
   PropertyDefinition,
   Risk,
+  TeamPolicy,
 } from '../types/index.js';
 import {
   asBody,
@@ -34,6 +36,8 @@ import {
   sameDefinition,
 } from './properties.js';
 import { bypassProblems, workflowProblems } from './identity.js';
+import { matchByName } from './collections.js';
+import { describeTeam, sameTeam, teamBody, teamProblems } from './teams.js';
 import type { RuleContext } from './rulesets.js';
 import { describeExistingRuleset, describeRuleset, sameRuleset, targetOf } from './rulesets.js';
 import {
@@ -159,6 +163,7 @@ export function planOrganization(
       risk?: Risk;
       operation?: Change['operation'];
       payload?: unknown;
+      prerequisites?: string[];
     } = {},
   ): void => {
     changes.push({
@@ -167,7 +172,7 @@ export function planOrganization(
       key,
       operation: extra.operation ?? (from === null || from === undefined ? 'create' : 'update'),
       risk: extra.risk ?? riskOf(key),
-      prerequisites: [],
+      prerequisites: extra.prerequisites ?? [],
       from,
       to,
       ...(extra.blocked === undefined ? {} : { blocked: extra.blocked }),
@@ -204,9 +209,108 @@ export function planOrganization(
   }
 
   planDefinitions(ownerKind, observed?.properties, policy, draft);
+  planTeams(owner, ownerKind, observed?.teams, policy, draft);
   planOrganizationRulesets(owner, ownerKind, observed, policy, draft);
 
   return changes;
+}
+
+/**
+ * Teams, which are the first thing octoform plans that refers to another thing
+ * it is planning in the same run.
+ *
+ * A child team names its parent, so a child whose parent this run is creating
+ * carries that creation as a prerequisite. The graph then does both halves:
+ * the parent is attempted first, and a child whose parent failed is blocked
+ * rather than sent to sit under a team that does not exist.
+ */
+function planTeams(
+  owner: string,
+  ownerKind: OwnerKind,
+  existing: Record<string, ExistingTeam> | undefined,
+  policy: OrganizationPolicy,
+  draft: Draft,
+): void {
+  const declared = new Map<string, TeamPolicy>();
+  for (const [slug, team] of Object.entries(policy.teams ?? {})) {
+    if (isManaged(team)) declared.set(slug, team as TeamPolicy);
+  }
+  if (declared.size === 0) return;
+
+  const problems = teamProblems(declared, existing);
+  const byName = new Map(Object.entries(existing ?? {}));
+
+  for (const [slug, team] of declared) {
+    const key = `organization.teams.${slug}`;
+    const shown = describeTeam(slug, team);
+
+    if (ownerKind === 'user') {
+      draft(key, null, shown, {
+        blocked: `"${owner}" is a personal account, which has no teams`,
+      });
+      continue;
+    }
+
+    const wrong = problems.get(slug);
+    if (wrong && wrong.length > 0) {
+      draft(key, null, shown, { blocked: wrong.join('; ') });
+      continue;
+    }
+
+    if (existing === undefined) {
+      draft(key, UNREADABLE, shown, { blocked: 'could not read the organisation teams' });
+      continue;
+    }
+
+    const found = matchByName(byName, slug, team.rename_from);
+
+    if (team.mode === 'absent') {
+      if (!found) continue;
+      draft(key, describeTeam(found.entry.slug, found.entry), null, {
+        operation: 'delete',
+        risk: 'destructive',
+        payload: { team: found.entry.slug, remove: true },
+      });
+      continue;
+    }
+
+    if (!found) {
+      /**
+       * A team created under a parent this run is also creating has to wait
+       * for it. Only a parent that is actually being created counts: one that
+       * already exists is nothing to wait for.
+       */
+      const parent = team.parent;
+      const waitingFor =
+        parent && declared.has(parent) && !byName.has(parent)
+          ? [`${owner}#organization.teams.${parent}`]
+          : [];
+      draft(key, null, shown, {
+        prerequisites: waitingFor,
+        payload: { team: slug, body: teamBody(slug, team, true) },
+      });
+      continue;
+    }
+
+    if (sameTeam(found.entry, slug, team)) continue;
+
+    draft(key, describeTeam(found.entry.slug, found.entry), shown, {
+      operation: 'update',
+      risk: teamRisk(found.entry, team),
+      payload: { team: found.entry.slug, body: teamBody(slug, team, false) },
+    });
+  }
+}
+
+/**
+ * What a team change costs.
+ *
+ * Widening a secret team to closed shows it, and everything about it, to the
+ * whole organisation. Nothing else here is more than a label: a description, a
+ * notification setting, a move between parents.
+ */
+function teamRisk(current: ExistingTeam, declared: TeamPolicy): Risk {
+  return current.privacy === 'secret' && declared.privacy === 'closed' ? 'sensitive' : 'normal';
 }
 
 /**
@@ -303,12 +407,18 @@ function planOrganizationRulesets(
   }
 }
 
-/** How a definition change is drafted, shared with {@link planOrganization}. */
+/** How a change is drafted, shared by everything {@link planOrganization} plans. */
 type Draft = (
   key: string,
   from: unknown,
   to: unknown,
-  extra?: { blocked?: string; risk?: Risk; operation?: Change['operation']; payload?: unknown },
+  extra?: {
+    blocked?: string;
+    risk?: Risk;
+    operation?: Change['operation'];
+    payload?: unknown;
+    prerequisites?: string[];
+  },
 ) => void;
 
 /**

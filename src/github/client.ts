@@ -7,6 +7,7 @@ import { readRuleset } from '../core/rulesets.js';
 import { canonicalLevel, readLevel } from '../core/access.js';
 import { readLabel, readMilestone } from '../core/collections.js';
 import { readDefinition } from '../core/properties.js';
+import { readTeam } from '../core/teams.js';
 import { identityKey, namesToResolve } from '../core/identity.js';
 import { ORGANIZATION_FIELDS } from '../core/organization.js';
 import { CHANGED_BY_MUTATION } from '../core/plan.js';
@@ -19,6 +20,7 @@ import type {
   ExistingMilestone,
   ExistingProperty,
   ExistingRuleset,
+  ExistingTeam,
   OwnerDiscovery,
   OwnerKind,
   PlanLimits,
@@ -1259,6 +1261,32 @@ export async function readOrganizationRulesets(
         return readRuleset(data as Parameters<typeof readRuleset>[0]);
       }),
     );
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Every team the token can see, by slug.
+ *
+ * GitHub's listing is what is "visible to the authenticated user", so a secret
+ * team a token cannot see is simply not here. That is why this returns nothing
+ * on failure rather than an empty map: the two answers lead to opposite
+ * behaviour, and reading a failure as "the organisation has no teams" would
+ * plan to create every one of them.
+ */
+export async function readTeams(
+  octokit: Octokit,
+  org: string,
+): Promise<Record<string, ExistingTeam> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /orgs/{org}/teams', { org, per_page: 100 });
+    const teams: Record<string, ExistingTeam> = {};
+    for (const raw of pages as Array<Parameters<typeof readTeam>[0]>) {
+      const team = readTeam(raw);
+      if (team) teams[team.slug] = team;
+    }
+    return teams;
   } catch {
     return undefined;
   }

@@ -580,6 +580,47 @@
       ]
     },
     {
+      "id": "organization-teams",
+      "area": "organization",
+      "support": "supported",
+      "configPaths": [
+        "organization.teams"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization"
+      ],
+      "readRoutes": [
+        "GET /orgs/{org}/teams"
+      ],
+      "writeRoutes": [
+        "DELETE /orgs/{org}/teams/{team_slug}",
+        "PATCH /orgs/{org}/teams/{team_slug}",
+        "POST /orgs/{org}/teams"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-admin-org",
+        "organization-members-read"
+      ],
+      "writePermissions": [
+        "classic-admin-org",
+        "organization-members-write"
+      ],
+      "limitations": [
+        "Blocked on a personal account, which has no teams.",
+        "A team is declared under the slug GitHub addresses it by; a rename says which slug it currently has, the way a label does.",
+        "A child team waits for a parent the same run is creating, and is blocked when that creation fails.",
+        "A team with a parent, or with children, cannot be secret; declaring it so is refused.",
+        "Deleting a team is destructive: GitHub deletes its child teams with it, so a parent whose children the file declares is refused.",
+        "The permission field is not modelled: GitHub documents it as closing down.",
+        "The listing is what the token can see, so a secret team it cannot see reads as absent."
+      ]
+    },
+    {
       "id": "owner-kind",
       "area": "discovery",
       "support": "supported",

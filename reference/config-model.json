@@ -176,6 +176,11 @@
       "merge": "replace"
     },
     {
+      "shape": "OrganizationPolicy",
+      "field": "teams",
+      "merge": "merge-by-key"
+    },
+    {
       "shape": "OrganizationRulesetPolicy",
       "field": "allowed_merge_methods",
       "merge": "replace"
@@ -603,6 +608,11 @@
     {
       "shape": "RulesetRepositories",
       "field": "properties",
+      "merge": "replace"
+    },
+    {
+      "shape": "TeamPolicy",
+      "field": "rename_from",
       "merge": "replace"
     }
   ],

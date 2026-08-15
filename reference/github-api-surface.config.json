@@ -412,7 +412,11 @@
         "DELETE /orgs/{org}/properties/schema/{custom_property_name}",
         "GET /orgs/{org}/rulesets/{ruleset_id}",
         "POST /orgs/{org}/rulesets",
-        "PUT /orgs/{org}/rulesets/{ruleset_id}"
+        "PUT /orgs/{org}/rulesets/{ruleset_id}",
+        "GET /orgs/{org}/teams",
+        "POST /orgs/{org}/teams",
+        "PATCH /orgs/{org}/teams/{team_slug}",
+        "DELETE /orgs/{org}/teams/{team_slug}"
       ]
     },
     "reviewedOperations": [

@@ -135,6 +135,22 @@
       "name": "Administration",
       "access": "write",
       "description": "Organization ruleset capability discovery, and writing the organization's own profile and member policies."
+    },
+    {
+      "id": "organization-members-read",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Members",
+      "access": "read",
+      "description": "Reading the organization's teams."
+    },
+    {
+      "id": "organization-members-write",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Members",
+      "access": "write",
+      "description": "Creating, updating and deleting the organization's teams."
     }
   ],
   "routePermissions": {
@@ -142,6 +158,22 @@
       "classic-repo",
       "classic-admin-org",
       "organization-administration-write"
+    ],
+    "GET /orgs/{org}/teams": [
+      "classic-admin-org",
+      "organization-members-read"
+    ],
+    "POST /orgs/{org}/teams": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "PATCH /orgs/{org}/teams/{team_slug}": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "DELETE /orgs/{org}/teams/{team_slug}": [
+      "classic-admin-org",
+      "organization-members-write"
     ],
     "GET /orgs/{org}/rulesets/{ruleset_id}": [
       "classic-repo",
@@ -511,6 +543,32 @@
       "limitations": [
         "Private repositories require positive owner, repository, token, and API evidence; unknown remote rule types are not removed.",
         "That evidence can be gathered before it matters with octoform inspect capabilities --repo <name>, which probes a private repository and reports the answer with its source."
+      ]
+    },
+    {
+      "id": "organization-teams",
+      "area": "organization",
+      "support": "supported",
+      "configPaths": ["organization.teams"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": ["GET /orgs/{org}/teams"],
+      "writeRoutes": [
+        "POST /orgs/{org}/teams",
+        "PATCH /orgs/{org}/teams/{team_slug}",
+        "DELETE /orgs/{org}/teams/{team_slug}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-members-read"],
+      "writePermissions": ["classic-admin-org", "organization-members-write"],
+      "limitations": [
+        "Blocked on a personal account, which has no teams.",
+        "A team is declared under the slug GitHub addresses it by; a rename says which slug it currently has, the way a label does.",
+        "A child team waits for a parent the same run is creating, and is blocked when that creation fails.",
+        "A team with a parent, or with children, cannot be secret; declaring it so is refused.",
+        "Deleting a team is destructive: GitHub deletes its child teams with it, so a parent whose children the file declares is refused.",
+        "The permission field is not modelled: GitHub documents it as closing down.",
+        "The listing is what the token can see, so a secret team it cannot see reads as absent."
       ]
     },
     {

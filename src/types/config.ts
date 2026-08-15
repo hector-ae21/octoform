@@ -348,6 +348,36 @@ export interface RulesetPolicy extends RuleSettings {
 }
 
 /**
+ * A desired team, declared under the slug GitHub addresses it by.
+ *
+ * The slug is the key rather than a field because it is the handle every
+ * endpoint takes and the handle another team names as its parent. `name` is
+ * what the team is called, which GitHub re-slugs when it changes — so a rename
+ * says which slug the team currently has, the same way a label does.
+ */
+export interface TeamPolicy {
+  /** Display name. Defaults to the slug it is declared under. */
+  name?: string;
+  description?: string;
+  /**
+   * `secret` is visible only to its own members and the owners; `closed` is
+   * visible to the whole organisation. A nested team cannot be secret, and
+   * neither can a team that has children.
+   */
+  privacy?: 'secret' | 'closed';
+  /** Whether members are notified when the team is mentioned. */
+  notifications?: boolean;
+  /** Slug of the team this one sits under. Empty lifts it back to the top. */
+  parent?: string;
+  /**
+   * Slugs this team may currently have, for a rename. Without it a renamed
+   * team reads as missing, and creating it again would leave two.
+   */
+  rename_from?: string[];
+  mode?: CollectionMode;
+}
+
+/**
  * A custom property a repository must carry for a ruleset to reach it.
  *
  * `source` distinguishes a property the organisation defined from one GitHub
@@ -735,6 +765,14 @@ export interface OrganizationPolicy {
    * a rule is actually a rule rather than a default.
    */
   rulesets?: OrganizationRulesetPolicy[];
+  /**
+   * Teams, by the slug GitHub addresses each one by.
+   *
+   * A map rather than a list because a team is referred to by that slug from
+   * elsewhere — a child names its parent by it — and a list would make the
+   * reference point at a position instead of at a name.
+   */
+  teams?: Record<string, Managed<TeamPolicy>>;
 }
 
 /** A condition used to infer a repository's type when it has none recorded. */
