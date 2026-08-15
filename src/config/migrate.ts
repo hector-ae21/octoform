@@ -95,6 +95,21 @@ export function migrateToMultiOwner(raw: string, sourcePath: string): MigratedCo
   return { yaml: doc.toString(), owner };
 }
 
+/**
+ * Whether a file binds policy to bare repository names at its own root.
+ *
+ * Legal beside a root `owner`, and rejected beside `owners`: once more than
+ * one account can be in scope, a bare repository name identifies nothing. A
+ * caller migrating a root file has to know whether any file it imports is in
+ * that state, because converting the root alone would strand it.
+ *
+ * @param raw - Contents of one configuration file.
+ */
+export function declaresRootRepositories(raw: string): boolean {
+  const doc = parseDocument(raw);
+  return doc.errors.length === 0 && doc.contents instanceof YAMLMap && doc.contents.has('repos');
+}
+
 function keyName(pair: Pair): string | undefined {
   const key = pair.key;
   return key instanceof Scalar && typeof key.value === 'string' ? key.value : undefined;

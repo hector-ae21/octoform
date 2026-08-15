@@ -68,3 +68,28 @@ test('migrateConfig rejects a file that is already migrated', () => {
   const path = write('already.yml', 'version: 1\nowners:\n  a: {}\n');
   assert.throws(() => silently(() => migrateConfig(path)), /already declares "owners"/);
 });
+
+test('migrateConfig refuses when an import would be stranded at the root', () => {
+  write('stranded-import.yml', 'repos:\n  svc:\n    merge:\n      allow_squash: true\n');
+  const path = write('stranded.yml', 'owner: my-account\nimports:\n  - stranded-import.yml\n');
+  const before = readFileSync(path, 'utf8');
+
+  assert.throws(
+    () => silently(() => migrateConfig(path, { write: true })),
+    (error: unknown) =>
+      error instanceof ConfigError &&
+      /stranded-import\.yml/.test(error.message) &&
+      /cannot be migrated automatically/.test(error.message),
+  );
+  assert.equal(readFileSync(path, 'utf8'), before, 'nothing may be written when it refuses');
+});
+
+test('migrateConfig still migrates when imports keep repositories out of their root', () => {
+  write('scoped-import.yml', 'types:\n  lib:\n    merge:\n      allow_squash: true\n');
+  const path = write('scoped.yml', 'owner: my-account\nimports:\n  - scoped-import.yml\n');
+
+  assert.equal(
+    silently(() => migrateConfig(path)),
+    0,
+  );
+});

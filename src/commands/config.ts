@@ -1,8 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
-import { ConfigError, loadConfig } from '../config/resolve.js';
-import { migrateToMultiOwner } from '../config/migrate.js';
+import { dirname, resolve } from 'node:path';
+import { ConfigError, loadConfig, loadConfigWithSources } from '../config/resolve.js';
+import { declaresRootRepositories, migrateToMultiOwner } from '../config/migrate.js';
 import type { MigrateOptions } from '../types/index.js';
 
 /**
@@ -35,6 +35,7 @@ export function validateConfig(path: string): number {
 export function migrateConfig(path: string, options: MigrateOptions = {}): number {
   const raw = readFileSync(path, 'utf8');
   const migrated = migrateToMultiOwner(raw, path);
+  refuseStrandedImports(path);
 
   if (!options.write) {
     console.log(migrated.yaml);
@@ -56,6 +57,33 @@ export function migrateConfig(path: string, options: MigrateOptions = {}): numbe
     console.log('(Not inside a git working tree — nothing checked before writing.)');
   }
   return 0;
+}
+
+/**
+ * Refuse a migration that the file's own imports would invalidate.
+ *
+ * Only the root file is converted, so a `repos` block at the root of an
+ * imported file stays where it is. That block is legal beside a root `owner`
+ * and rejected beside `owners`, which means converting the root alone turns a
+ * configuration that loads into one that does not. Rewriting the import
+ * instead is not this command's business — the operator did not offer that
+ * file — so the migration stops and says which file has to move first.
+ */
+function refuseStrandedImports(path: string): void {
+  const { sourceDigests } = loadConfigWithSources(path);
+  const root = resolve(path);
+  const stranded = Object.keys(sourceDigests)
+    .filter((source) => source !== root)
+    .filter((source) => declaresRootRepositories(readFileSync(source, 'utf8')));
+  if (stranded.length === 0) return;
+
+  throw new ConfigError(
+    `${path} cannot be migrated automatically. ${stranded.join(', ')} ` +
+      `${stranded.length === 1 ? 'declares' : 'declare'} "repos" at the root, and only the file ` +
+      `you named is converted. A bare repository name does not identify anything once more than ` +
+      `one account is in scope, so migrating this file alone would leave a configuration that no ` +
+      `longer loads. Move those entries under the account they belong to, then migrate again.`,
+  );
 }
 
 /**
