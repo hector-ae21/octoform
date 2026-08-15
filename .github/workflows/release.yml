@@ -240,6 +240,29 @@ jobs:
               --latest="$IS_HIGHEST"
           fi
 
+      # The generated references are checked in, so they need no build step
+      # here — but they do have to reach the Release, because the published
+      # documentation links them as this version's evidence and SHA256SUMS is
+      # what makes them verifiable. Uploading is idempotent with --clobber, so
+      # re-running the workflow on an existing tag repairs a partial upload
+      # instead of failing on it.
+      - name: Attach generated reference artifacts
+        if: needs.validate.outputs.should_publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_TAG: ${{ github.ref_name }}
+        run: |
+          gh release upload "$VERSION_TAG" --clobber \
+            reference/api.json \
+            reference/capabilities.json \
+            reference/cli.json \
+            reference/config-model.json \
+            reference/config.schema.json \
+            reference/github-api-surface.json \
+            reference/permissions.json \
+            reference/plan-artifact.schema.json \
+            reference/SHA256SUMS
+
       - name: Published summary
         if: needs.validate.outputs.should_publish == 'true'
         run: |
