@@ -4,6 +4,7 @@ import {
   authenticatedLogin,
   detectOwnerKind,
   detectRulesetCapability,
+  getOrganizationDetail,
   getRepoDetail,
   listRepos,
   readPropertyValues,
@@ -11,6 +12,7 @@ import {
 import { capability } from '../github/capabilities.js';
 import { DEFAULT_CONCURRENCY, mapWithConcurrency } from '../core/concurrency.js';
 import { planRepo } from '../core/plan.js';
+import { planOrganization } from '../core/organization.js';
 import { formatChange, groupByRepo, printable } from '../report/format.js';
 import type { Change, OwnerScope, PlanResult, PlanSelector, PlanSummary } from '../types/index.js';
 
@@ -62,6 +64,20 @@ export async function plan(
     return { changes: [], blocked: [], errors: [], scanned: 0 };
   }
 
+  /**
+   * The organisation itself is planned before its repositories, and only when
+   * a policy asks about it: reading it otherwise would spend a request to
+   * compare nothing.
+   */
+  const organizationChanges = scope.organization
+    ? planOrganization(
+        scope.owner,
+        kind,
+        kind === 'org' ? await getOrganizationDetail(octokit, scope.owner) : undefined,
+        scope.organization,
+      )
+    : [];
+
   const perRepo = await mapWithConcurrency<
     (typeof targets)[number],
     { repo: string; changes: Change[] } | { repo: string; error: string }
@@ -94,6 +110,7 @@ export async function plan(
   const changes: Change[] = [];
   const blocked: Change[] = [];
   const errors: PlanResult['errors'] = [];
+  for (const change of organizationChanges) (change.blocked ? blocked : changes).push(change);
   for (const result of perRepo) {
     if ('error' in result) {
       errors.push({ repo: result.repo, message: result.error });
@@ -113,8 +130,8 @@ export async function plan(
  * "matching" either — it counts as `failed`, distinct from both.
  */
 export function summarizePlan(result: PlanResult): PlanSummary {
-  const changedRepos = new Set(result.changes.map((c) => c.repo));
-  const blockedRepos = new Set(result.blocked.map((c) => c.repo));
+  const changedRepos = repositoriesIn(result.changes);
+  const blockedRepos = repositoriesIn(result.blocked);
   const failedRepos = new Set(result.errors.map((e) => e.repo));
   const changed = changedRepos.size;
   const blockedOnly = [...blockedRepos].filter((repo) => !changedRepos.has(repo)).length;
@@ -170,6 +187,17 @@ function report(
   console.log('Nothing was changed. This command only reports.');
 }
 
+/**
+ * The repositories a set of changes touches. A change belonging to the owner
+ * itself touches none, so it is left out rather than counted as a repository
+ * with no name.
+ */
+function repositoriesIn(changes: Change[]): Set<string> {
+  return new Set(
+    changes.map((change) => change.repo).filter((name): name is string => name !== undefined),
+  );
+}
+
 function countRepos(changes: Change[]): number {
-  return new Set(changes.map((c) => c.repo)).size;
+  return repositoriesIn(changes).size;
 }

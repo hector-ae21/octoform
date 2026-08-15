@@ -360,7 +360,48 @@ const EXCLUDE_CONFIG: ObjectShape = {
 };
 
 /** The fields an owner may declare, at the root or under `owners.<login>`. */
+const ORGANIZATION_PROFILE: ObjectShape = {
+  name: 'OrganizationProfile',
+  fields: {
+    name: scalar,
+    description: scalar,
+    company: scalar,
+    website: scalar,
+    location: scalar,
+    email: scalar,
+    twitter_username: scalar,
+  },
+};
+
+const ORGANIZATION_MEMBER_POLICY: ObjectShape = {
+  name: 'OrganizationMemberPolicy',
+  fields: {
+    base_permission: enumeration('none', 'read', 'write', 'admin'),
+    create_repositories: scalar,
+    create_public_repositories: scalar,
+    create_private_repositories: scalar,
+    create_internal_repositories: scalar,
+    fork_private_repositories: scalar,
+    create_pages: scalar,
+    create_public_pages: scalar,
+    create_private_pages: scalar,
+    web_commit_signoff_required: scalar,
+    deploy_keys_enabled: scalar,
+    organization_projects: scalar,
+    repository_projects: scalar,
+  },
+};
+
+const ORGANIZATION_POLICY: ObjectShape = {
+  name: 'OrganizationPolicy',
+  fields: {
+    profile: object(() => ORGANIZATION_PROFILE),
+    members: object(() => ORGANIZATION_MEMBER_POLICY),
+  },
+};
+
 const OWNER_FIELDS: Readonly<Record<string, Field>> = {
+  organization: object(() => ORGANIZATION_POLICY),
   classify: object(() => CLASSIFY_CONFIG),
   audit: object(() => AUDIT_CONFIG),
   defaults: object(() => POLICY_SET),

@@ -42,13 +42,15 @@ export {
   discoverOwner,
   authenticatedLogin,
   detectRulesetCapability,
+  getOrganizationDetail,
   REST_API_VERSION,
   AuthError,
 } from './github/client.js';
 export { capability } from './github/capabilities.js';
 export { planRepo } from './core/plan.js';
+export { planOrganization } from './core/organization.js';
 export { classifyRepo, pathsUsedBy } from './core/classify.js';
-export { applyRepoChanges } from './github/apply.js';
+export { applyOrganizationChanges, applyRepoChanges } from './github/apply.js';
 export { formatChange, groupByRepo, printable } from './report/format.js';
 export { audit } from './commands/audit.js';
 export { plan, summarizePlan } from './commands/plan.js';
@@ -83,6 +85,7 @@ export type {
   AccessLevel,
   AccessPolicy,
   AuditConfig,
+  BasePermission,
   BranchProtectionPolicy,
   BranchProtectionSettings,
   BranchRestrictions,
@@ -126,6 +129,9 @@ export type {
   MilestonePolicy,
   NotApplicable,
   OperationKind,
+  OrganizationMemberPolicy,
+  OrganizationPolicy,
+  OrganizationProfile,
   OutputEnvelope,
   OwnerBlock,
   OwnerDiscovery,

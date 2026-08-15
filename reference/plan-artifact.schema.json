@@ -110,7 +110,8 @@
           "description": "The GitHub login this change belongs to."
         },
         "repo": {
-          "type": "string"
+          "type": "string",
+          "description": "The repository this change belongs to, absent when it belongs to the owner itself. An organisation setting has no repository to name, and inventing one would make it sort and group as though it did."
         },
         "key": {
           "type": "string",
@@ -146,7 +147,6 @@
       "required": [
         "id",
         "owner",
-        "repo",
         "key",
         "operation",
         "risk",

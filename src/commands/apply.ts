@@ -6,7 +6,7 @@ import {
   EXIT_FAILED,
   EXIT_SUCCESS,
 } from '../cli-exit-codes.js';
-import { applyRepoChanges } from '../github/apply.js';
+import { applyOrganizationChanges, applyRepoChanges } from '../github/apply.js';
 import { plan } from './plan.js';
 import { DEFAULT_CONCURRENCY, mapWithConcurrency } from '../core/concurrency.js';
 import { formatChange, groupByRepo, printable } from '../report/format.js';
@@ -72,7 +72,23 @@ export async function apply(
   }
 
   console.log('');
-  const grouped = groupByRepo(changes);
+  /**
+   * The organisation goes first. Its base permission is a floor under every
+   * repository, so lowering it before the per-repository grants run is the
+   * order in which the run never briefly grants more than the policy asks for.
+   */
+  const organizationResults = await applyOrganizationChanges(
+    octokit,
+    scope.owner,
+    changes.filter((change) => change.repo === undefined),
+  );
+  for (const result of organizationResults) {
+    const outcome =
+      result.outcome === 'applied' ? 'done' : `FAILED — ${printable(result.error ?? '')}`;
+    console.log(`  ${printable(scope.owner)}  ${result.key}: ${outcome}`);
+  }
+
+  const grouped = groupByRepo(changes.filter((change) => change.repo !== undefined));
   const perRepo = await mapWithConcurrency(
     grouped,
     options.concurrency ?? DEFAULT_CONCURRENCY,
@@ -89,7 +105,7 @@ export async function apply(
     },
   );
 
-  let failures = 0;
+  let failures = organizationResults.filter((r) => r.outcome === 'failed').length;
   let unattempted = 0;
   for (const [index, results] of perRepo.entries()) {
     const repoName = grouped[index]?.[0] ?? '';
@@ -114,7 +130,7 @@ export async function apply(
       : undefined,
   ].filter(Boolean);
   console.log(note.length === 0 ? 'All changes applied.' : `${note.join(', and ')} — see above.`);
-  const allResults = perRepo.flat();
+  const allResults = [...organizationResults, ...perRepo.flat()];
   const status =
     failures > 0 ? EXIT_FAILED : blocked.length + unattempted > 0 ? EXIT_BLOCKED : EXIT_SUCCESS;
   return { status, summary: summarizeApply(allResults, blocked.length) };

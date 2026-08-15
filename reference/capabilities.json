@@ -428,6 +428,78 @@
       ]
     },
     {
+      "id": "organization-member-policies",
+      "area": "organization",
+      "support": "supported",
+      "configPaths": [
+        "organization.members"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization"
+      ],
+      "readRoutes": [
+        "GET /orgs/{org}"
+      ],
+      "writeRoutes": [
+        "PATCH /orgs/{org}"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-admin-org",
+        "organization-administration-read"
+      ],
+      "writePermissions": [
+        "classic-admin-org",
+        "organization-administration-write"
+      ],
+      "limitations": [
+        "The base permission and the creation switches reach every repository the organization owns, including ones no policy names, so they are reported as sensitive.",
+        "members_allowed_repository_creation_type is not modelled: GitHub documents it as closing down and says using it overrides members_can_create_repositories.",
+        "The security defaults for new repositories are not modelled: GitHub documents every one of them as closing down in favour of code security configurations.",
+        "Applied before any repository change, so a lowered base permission is never briefly wider than the policy asks for.",
+        "Every declared setting is sent in one request, so they succeed or fail together."
+      ]
+    },
+    {
+      "id": "organization-profile",
+      "area": "organization",
+      "support": "supported",
+      "configPaths": [
+        "organization.profile"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization"
+      ],
+      "readRoutes": [
+        "GET /orgs/{org}"
+      ],
+      "writeRoutes": [
+        "PATCH /orgs/{org}"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-admin-org",
+        "organization-administration-read"
+      ],
+      "writePermissions": [
+        "classic-admin-org",
+        "organization-administration-write"
+      ],
+      "limitations": [
+        "Blocked on a personal account, which has none of these settings.",
+        "The website is GitHub's blog field; the configuration does not call it that.",
+        "The billing address is not managed, since it is not a governance setting."
+      ]
+    },
+    {
       "id": "owner-kind",
       "area": "discovery",
       "support": "supported",

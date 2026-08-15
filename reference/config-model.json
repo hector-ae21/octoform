@@ -107,6 +107,11 @@
     },
     {
       "shape": "Config",
+      "field": "organization",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "Config",
       "field": "owners",
       "merge": "merge-by-key"
     },
@@ -151,6 +156,16 @@
       "merge": "replace"
     },
     {
+      "shape": "OrganizationPolicy",
+      "field": "members",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationPolicy",
+      "field": "profile",
+      "merge": "merge-by-key"
+    },
+    {
       "shape": "OwnerBlock",
       "field": "audit",
       "merge": "merge-by-key"
@@ -168,6 +183,11 @@
     {
       "shape": "OwnerBlock",
       "field": "exclude",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OwnerBlock",
+      "field": "organization",
       "merge": "merge-by-key"
     },
     {

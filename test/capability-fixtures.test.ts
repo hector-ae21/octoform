@@ -204,6 +204,12 @@ const EXERCISES: Readonly<Record<string, { policy: PolicySet; key: string }>> = 
  * rather than anything planned against one.
  */
 const NOT_PLANNED_PER_REPOSITORY: ReadonlySet<string> = new Set([
+  /**
+   * Planned against the owner rather than a repository, so there is no
+   * repository to plan them on. Their own cases live in organization.test.ts.
+   */
+  'organization-profile',
+  'organization-member-policies',
   'audit-expectations',
   'authenticated-identity',
   'owner-kind',

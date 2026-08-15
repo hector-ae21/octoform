@@ -53,13 +53,21 @@ export function display(value: unknown): string {
   return printable(String(value));
 }
 
-/** Group changes by repository in stable repository-name order. */
+/**
+ * Group changes by repository in stable repository-name order.
+ *
+ * A change with no repository belongs to the owner itself, and is grouped
+ * under a heading that cannot be mistaken for a repository name — a
+ * repository really can be called the same thing as the organisation that
+ * owns it.
+ */
 export function groupByRepo(changes: Change[]): Array<[string, Change[]]> {
   const map = new Map<string, Change[]>();
   for (const change of changes) {
-    const list = map.get(change.repo) ?? [];
+    const group = change.repo ?? `(${change.owner}: the organisation itself)`;
+    const list = map.get(group) ?? [];
     list.push(change);
-    map.set(change.repo, list);
+    map.set(group, list);
   }
   return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
 }

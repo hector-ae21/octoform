@@ -35,6 +35,9 @@
           },
           "description": "Reusable policy fragments, keyed by a name of the author's choosing, that any layer folds in through its own `policies` list. A policy may reference other policies; a reference cycle is reported with the full chain."
         },
+        "organization": {
+          "$ref": "#/definitions/OrganizationPolicy"
+        },
         "classify": {
           "$ref": "#/definitions/ClassifyConfig"
         },
@@ -72,6 +75,9 @@
     "OwnerBlock": {
       "type": "object",
       "properties": {
+        "organization": {
+          "$ref": "#/definitions/OrganizationPolicy"
+        },
         "classify": {
           "$ref": "#/definitions/ClassifyConfig"
         },
@@ -99,6 +105,175 @@
       },
       "additionalProperties": false,
       "description": "Everything one GitHub owner can declare under `owners`."
+    },
+    "OrganizationPolicy": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "$ref": "#/definitions/OrganizationProfile"
+        },
+        "members": {
+          "$ref": "#/definitions/OrganizationMemberPolicy"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired state for the organisation itself, rather than for its repositories.\n\nThe security defaults for new repositories are absent on purpose: GitHub documents every one of them as closing down on this endpoint, in favour of code security configurations, and a governance tool has no business writing a setting whose own API says to stop using it."
+    },
+    "OrganizationProfile": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Display name, which is not the login and does not change the login."
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "company": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "website": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Website, which GitHub's API calls `blog`."
+        },
+        "location": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Public contact address, distinct from the billing address."
+        },
+        "twitter_username": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired state for the organisation's public profile."
+    },
+    "OrganizationMemberPolicy": {
+      "type": "object",
+      "properties": {
+        "base_permission": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/BasePermission"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What every member gets on every repository, before any grant adds to it."
+        },
+        "create_repositories": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "create_public_repositories": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "create_private_repositories": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "create_internal_repositories": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Enterprise Cloud only; GitHub ignores it elsewhere."
+        },
+        "fork_private_repositories": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether a private repository of this organisation can be forked at all."
+        },
+        "create_pages": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "create_public_pages": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "create_private_pages": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "web_commit_signoff_required": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Require every web commit to be signed off, across the organisation."
+        },
+        "deploy_keys_enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether repositories may use deploy keys at all."
+        },
+        "organization_projects": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "repository_projects": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "What organisation members may do without being asked.\n\n`members_allowed_repository_creation_type` is deliberately absent. GitHub documents it as closing down, and says that using it overrides `create_repositories` — so a file that set both would have the field on its way out silently win. The three per-visibility switches say the same thing without that hazard."
+    },
+    "BasePermission": {
+      "type": "string",
+      "enum": [
+        "none",
+        "read",
+        "write",
+        "admin"
+      ],
+      "description": "The level of access every organisation member has to every repository the organisation owns, before any team or collaborator grant adds to it.\n\n`none` is the only value that makes a repository's own access policy the whole story; anything else is a floor no repository can go below."
     },
     "ClassifyConfig": {
       "type": "object",
