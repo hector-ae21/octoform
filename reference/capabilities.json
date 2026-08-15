@@ -269,6 +269,40 @@
       ]
     },
     {
+      "id": "immutable-releases",
+      "area": "security",
+      "support": "supported",
+      "configPaths": [
+        "security.immutable_releases"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization",
+        "personal"
+      ],
+      "readRoutes": [
+        "GET /repos/{owner}/{repo}/immutable-releases"
+      ],
+      "writeRoutes": [
+        "DELETE /repos/{owner}/{repo}/immutable-releases",
+        "PUT /repos/{owner}/{repo}/immutable-releases"
+      ],
+      "readPermissions": [
+        "classic-repo",
+        "repository-administration-read"
+      ],
+      "writePermissions": [
+        "classic-repo",
+        "repository-administration-write"
+      ],
+      "limitations": [
+        "An owner that enforces immutable releases leaves the setting readable but not writable, so a change is reported as blocked rather than attempted."
+      ]
+    },
+    {
       "id": "merge-settings",
       "area": "repository",
       "support": "supported",

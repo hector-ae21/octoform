@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { detectRulesetCapability } from '../src/github/client.js';
+import { detectRulesetCapability, getRepoDetail } from '../src/github/client.js';
+import { UNREADABLE } from '../src/config/sentinels.js';
 
 function apiError(status: number, message: string): Error {
   return Object.assign(new Error(message), {
@@ -82,4 +83,54 @@ test('every capability result carries an ISO observation timestamp', async () =>
   const { octokit } = fakeOctokit('ok');
   const result = await detectRulesetCapability(octokit, 'owner', 'repo', 'main');
   assert.ok(!Number.isNaN(Date.parse(result.observedAt)));
+});
+
+/**
+ * A repository detail read with only the routes these cases care about
+ * answered; everything else is a 404, which the reader already treats as
+ * "not available here".
+ */
+async function detailWith(answers: Record<string, unknown>) {
+  const octokit = {
+    request: async (route: string) => {
+      if (route in answers) return { data: answers[route] };
+      throw apiError(404, 'Not Found');
+    },
+    repos: { get: async () => ({ data: { name: 'thing' } }) },
+    // The tests intentionally provide only the Octokit surface this reader uses.
+  } as any;
+  return await getRepoDetail(octokit, 'account', {
+    name: 'thing',
+    visibility: 'public',
+    archived: false,
+    default_branch: 'main',
+    description: null,
+    homepage: null,
+    topics: [],
+  });
+}
+
+test('immutable releases is read as an ordinary setting', async () => {
+  const detail = await detailWith({
+    'GET /repos/{owner}/{repo}/immutable-releases': { enabled: true, enforced_by_owner: false },
+  });
+
+  assert.equal(detail.settings['security.immutable_releases'], true);
+  assert.equal(detail.enforced, undefined, 'nothing is enforced, so nothing is recorded');
+});
+
+test('an owner enforcing immutable releases is recorded alongside the value', async () => {
+  const detail = await detailWith({
+    'GET /repos/{owner}/{repo}/immutable-releases': { enabled: true, enforced_by_owner: true },
+  });
+
+  assert.equal(detail.settings['security.immutable_releases'], true);
+  assert.match(String(detail.enforced?.['security.immutable_releases']), /account/u);
+});
+
+test('an unreachable immutable-releases endpoint is unreadable, not disabled', async () => {
+  const detail = await detailWith({});
+
+  assert.equal(detail.settings['security.immutable_releases'], UNREADABLE);
+  assert.equal(detail.enforced, undefined);
 });

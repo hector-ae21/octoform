@@ -16,7 +16,7 @@
   },
   "summary": {
     "total": 1337,
-    "implemented": 37,
+    "implemented": 40,
     "deprecated": 47,
     "byTransport": {
       "graphql": 274,
@@ -30,8 +30,8 @@
       "sensitive-declarative": 295
     },
     "byTarget": {
-      "0.3.1": 37,
-      "0.5.0": 295,
+      "0.3.1": 40,
+      "0.5.0": 292,
       "0.6.0": 1001,
       "none": 4
     }
@@ -10765,10 +10765,10 @@
       "tag": "repos",
       "summary": "Disable immutable releases",
       "disposition": "declarative",
-      "target": "0.5.0",
+      "target": "0.3.1",
       "rationale": "Durable repository state; destructive and workflow exceptions are overridden explicitly.",
       "rule": "repos-mutation",
-      "status": "planned",
+      "status": "implemented-v0.3.1",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/repos/repos#disable-immutable-releases"
@@ -10781,10 +10781,10 @@
       "tag": "repos",
       "summary": "Check if immutable releases are enabled for a repository",
       "disposition": "observational",
-      "target": "0.5.0",
+      "target": "0.3.1",
       "rationale": "Read-only inventory, capability evidence, or audit data.",
       "rule": "rest-read",
-      "status": "planned",
+      "status": "implemented-v0.3.1",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/repos/repos#check-if-immutable-releases-are-enabled-for-a-repository"
@@ -10797,10 +10797,10 @@
       "tag": "repos",
       "summary": "Enable immutable releases",
       "disposition": "declarative",
-      "target": "0.5.0",
+      "target": "0.3.1",
       "rationale": "Durable repository state; destructive and workflow exceptions are overridden explicitly.",
       "rule": "repos-mutation",
-      "status": "planned",
+      "status": "implemented-v0.3.1",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/repos/repos#enable-immutable-releases"

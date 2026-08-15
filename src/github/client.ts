@@ -266,6 +266,10 @@ export async function getRepoDetail(
     'merge.allow_auto_merge': data.allow_auto_merge ?? null,
     'merge.allow_update_branch': data.allow_update_branch ?? null,
     'merge.delete_branch_on_merge': data.delete_branch_on_merge ?? null,
+    'merge.squash_title': data.squash_merge_commit_title ?? null,
+    'merge.squash_message': data.squash_merge_commit_message ?? null,
+    'merge.merge_commit_title': data.merge_commit_title ?? null,
+    'merge.merge_commit_message': data.merge_commit_message ?? null,
 
     'repo.description': data.description ?? null,
     'repo.homepage': data.homepage ?? null,
@@ -278,7 +282,7 @@ export async function getRepoDetail(
     'security.secret_scanning_push_protection': enabled('secret_scanning_push_protection'),
   };
 
-  const [alerts, codeScanning, autoFixes, privateReporting] = await Promise.all([
+  const [alerts, codeScanning, autoFixes, privateReporting, immutableReleases] = await Promise.all([
     probe(octokit, 'GET /repos/{owner}/{repo}/vulnerability-alerts', owner, base.name),
     codeScanningState(octokit, owner, base.name),
     enabledFlag(octokit, 'GET /repos/{owner}/{repo}/automated-security-fixes', owner, base.name),
@@ -288,15 +292,28 @@ export async function getRepoDetail(
       owner,
       base.name,
     ),
+    immutableReleasesState(octokit, owner, base.name),
   ]);
   settings['security.vulnerability_alerts'] = alerts;
   settings['security.code_scanning_default_setup'] = codeScanning;
   settings['security.automated_security_fixes'] = autoFixes;
   settings['security.private_vulnerability_reporting'] = privateReporting;
+  settings['security.immutable_releases'] = immutableReleases.enabled;
+
+  const enforced: Record<string, string> = {};
+  if (immutableReleases.enforcedByOwner) {
+    enforced['security.immutable_releases'] =
+      `${owner} enforces immutable releases across its repositories`;
+  }
 
   const structure = policy ? await getRepoStructure(octokit, owner, base, policy) : undefined;
 
-  return { ...base, settings, ...(structure ? { structure } : {}) };
+  return {
+    ...base,
+    settings,
+    ...(Object.keys(enforced).length > 0 ? { enforced } : {}),
+    ...(structure ? { structure } : {}),
+  };
 }
 
 /**
@@ -682,6 +699,36 @@ async function enabledFlag(
     return typeof enabled === 'boolean' ? enabled : UNREADABLE;
   } catch {
     return UNREADABLE;
+  }
+}
+
+/**
+ * Whether published releases are immutable, and whether the owner is the one
+ * deciding that.
+ *
+ * The same response answers both, so the enforcement half is free: an owner
+ * that enforces immutable releases leaves the repository able to read the
+ * setting but not to turn it off. Reporting that as a blocked change is only
+ * possible because it is read here rather than discovered from a rejected
+ * request.
+ */
+async function immutableReleasesState(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<{ enabled: boolean | typeof UNREADABLE; enforcedByOwner: boolean }> {
+  try {
+    const { data } = await octokit.request('GET /repos/{owner}/{repo}/immutable-releases', {
+      owner,
+      repo,
+    });
+    const answer = data as { enabled?: boolean; enforced_by_owner?: boolean };
+    return {
+      enabled: typeof answer.enabled === 'boolean' ? answer.enabled : UNREADABLE,
+      enforcedByOwner: answer.enforced_by_owner === true,
+    };
+  } catch {
+    return { enabled: UNREADABLE, enforcedByOwner: false };
   }
 }
 

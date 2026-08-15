@@ -23,6 +23,10 @@ const PATCH_FIELDS: Record<string, string> = {
   'merge.allow_auto_merge': 'allow_auto_merge',
   'merge.allow_update_branch': 'allow_update_branch',
   'merge.delete_branch_on_merge': 'delete_branch_on_merge',
+  'merge.squash_title': 'squash_merge_commit_title',
+  'merge.squash_message': 'squash_merge_commit_message',
+  'merge.merge_commit_title': 'merge_commit_title',
+  'merge.merge_commit_message': 'merge_commit_message',
   'repo.description': 'description',
   'repo.homepage': 'homepage',
   'repo.allow_forking': 'allow_forking',
@@ -44,6 +48,7 @@ const PUT_DELETE_TOGGLES: Record<string, string> = {
   'security.automated_security_fixes': '/repos/{owner}/{repo}/automated-security-fixes',
   'security.private_vulnerability_reporting':
     '/repos/{owner}/{repo}/private-vulnerability-reporting',
+  'security.immutable_releases': '/repos/{owner}/{repo}/immutable-releases',
 };
 
 /**
@@ -102,6 +107,16 @@ export async function applyRepoChanges(
   for (const change of changes) {
     const field = PATCH_FIELDS[change.key];
     if (field) {
+      /**
+       * A setting GitHub will not accept alone brings its companion with it.
+       * A companion that is itself a planned change sets the same field from
+       * its own branch of this loop; whichever arrives first wins, and both
+       * carry the value the configuration declared, so the two agree.
+       */
+      for (const [key, value] of Object.entries(companionsOf(change))) {
+        const companionField = PATCH_FIELDS[key];
+        if (companionField && !(companionField in patchBody)) patchBody[companionField] = value;
+      }
       patchBody[field] = change.to;
       bundled.push(change);
       continue;
@@ -334,6 +349,17 @@ function rulesetBody(policy: RulesetPolicy): Record<string, unknown> {
     },
     rules,
   };
+}
+
+/**
+ * Settings that must be sent alongside this one for GitHub to accept it, by
+ * plan key. Empty for everything except the merge message defaults, which the
+ * planner refuses outright when their companion was never declared — so a
+ * change that reaches here either needs nothing or already carries it.
+ */
+function companionsOf(change: Change): Record<string, unknown> {
+  const requires = (change.payload as { requires?: Record<string, unknown> } | undefined)?.requires;
+  return requires ?? {};
 }
 
 async function attempt(change: Change, call: () => Promise<unknown>): Promise<AppliedChange> {

@@ -159,6 +159,53 @@ test('the PUT/DELETE security toggles pick their verb from the value', async () 
   ]);
 });
 
+test('immutable releases is a PUT/DELETE toggle of its own', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  await applyRepoChanges(octokit, 'owner', 'thing', [change('security.immutable_releases', true)]);
+
+  assert.deepEqual(
+    calls.map((c) => c.route),
+    ['PUT /repos/{owner}/{repo}/immutable-releases'],
+  );
+  assert.deepEqual(calls[0]?.params, { owner: 'owner', repo: 'thing' });
+});
+
+test('a message default sends the title GitHub requires alongside it', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  const message = planned({
+    key: 'merge.squash_message',
+    to: 'BLANK',
+    payload: { requires: { 'merge.squash_title': 'PR_TITLE' } },
+  });
+
+  await applyRepoChanges(octokit, 'owner', 'thing', [message]);
+
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0]?.params, {
+    owner: 'owner',
+    repo: 'thing',
+    squash_merge_commit_message: 'BLANK',
+    squash_merge_commit_title: 'PR_TITLE',
+  });
+});
+
+test('a required companion never overwrites a change that sets the same field', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  const changes = [
+    planned({
+      key: 'merge.squash_message',
+      to: 'BLANK',
+      payload: { requires: { 'merge.squash_title': 'COMMIT_OR_PR_TITLE' } },
+    }),
+    change('merge.squash_title', 'COMMIT_OR_PR_TITLE'),
+  ];
+
+  await applyRepoChanges(octokit, 'owner', 'thing', changes);
+
+  assert.equal(calls.length, 1, 'both belong to the same repository PATCH');
+  assert.equal(calls[0]?.params.squash_merge_commit_title, 'COMMIT_OR_PR_TITLE');
+});
+
 test('renaming the default branch uses the name it is renaming from, not the target', async () => {
   const { octokit, calls } = fakeOctokit(() => {});
   const rename = planned({

@@ -13,6 +13,12 @@ import type { Field, MergeSemantics, ObjectShape, SemanticsEntry } from '../type
 
 const scalar: Field = { shape: { kind: 'scalar' }, merge: 'scalar' };
 const scalarList: Field = { shape: { kind: 'scalar-list' }, merge: 'replace' };
+
+/** A scalar restricted to a closed set of values, listed as GitHub spells them. */
+function enumeration(...values: readonly string[]): Field {
+  return { shape: { kind: 'scalar', values }, merge: 'scalar' };
+}
+
 const freeMap: Field = {
   shape: { kind: 'map', of: () => ({ kind: 'any' }) },
   merge: 'merge-by-key',
@@ -44,6 +50,10 @@ const MERGE_POLICY: ObjectShape = {
     allow_auto_merge: scalar,
     allow_update_branch: scalar,
     delete_branch_on_merge: scalar,
+    squash_title: enumeration('PR_TITLE', 'COMMIT_OR_PR_TITLE'),
+    squash_message: enumeration('PR_BODY', 'COMMIT_MESSAGES', 'BLANK'),
+    merge_commit_title: enumeration('PR_TITLE', 'MERGE_MESSAGE'),
+    merge_commit_message: enumeration('PR_BODY', 'PR_TITLE', 'BLANK'),
   },
 };
 
@@ -56,6 +66,7 @@ const SECURITY_POLICY: ObjectShape = {
     secret_scanning: scalar,
     secret_scanning_push_protection: scalar,
     code_scanning_default_setup: scalar,
+    immutable_releases: scalar,
   },
 };
 
@@ -94,7 +105,7 @@ const ENVIRONMENT_POLICY: ObjectShape = {
 
 const FILE_POLICY: ObjectShape = {
   name: 'FilePolicy',
-  fields: { path: scalar, from: scalar, mode: scalar },
+  fields: { path: scalar, from: scalar, mode: enumeration('create-if-missing') },
 };
 
 const POLICY_SET: ObjectShape = {
@@ -121,7 +132,7 @@ const REPO_ENTRY: ObjectShape = {
 
 const CLASSIFY_RULE_CONDITION: ObjectShape = {
   name: 'ClassifyRuleCondition',
-  fields: { file_exists: scalar, json: freeMap, visibility: scalar },
+  fields: { file_exists: scalar, json: freeMap, visibility: enumeration('public', 'private') },
 };
 
 const CLASSIFY_RULE: ObjectShape = {
@@ -139,7 +150,7 @@ const CLASSIFY_CONFIG: ObjectShape = {
 
 const VISIBILITY_RULE: ObjectShape = {
   name: 'VisibilityRule',
-  fields: { visibility: scalar },
+  fields: { visibility: enumeration('public', 'private') },
 };
 
 const AUDIT_CONFIG: ObjectShape = {

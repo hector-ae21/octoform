@@ -317,10 +317,84 @@
             "boolean",
             "null"
           ]
+        },
+        "squash_title": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SquashCommitTitle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "squash_message": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SquashCommitMessage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "merge_commit_title": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MergeCommitTitle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "merge_commit_message": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MergeCommitMessage"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false,
-      "description": "Desired state for pull-request merge behavior."
+      "description": "Desired state for pull-request merge behavior.\n\nEach message default is named after the `allow_` switch it belongs to, since squash merges and merge commits carry their own independent pair. GitHub refuses a request that sets a message default without also stating the matching title, so declaring one without the other is reported rather than sent — see `planScalars`."
+    },
+    "SquashCommitTitle": {
+      "type": "string",
+      "enum": [
+        "PR_TITLE",
+        "COMMIT_OR_PR_TITLE"
+      ],
+      "description": "Where the title of a squash merge commit comes from by default.\n\n`PR_TITLE` always uses the pull request's title; `COMMIT_OR_PR_TITLE` uses the single commit's title when there is exactly one, and the pull request's title otherwise."
+    },
+    "SquashCommitMessage": {
+      "type": "string",
+      "enum": [
+        "PR_BODY",
+        "COMMIT_MESSAGES",
+        "BLANK"
+      ],
+      "description": "Where the body of a squash merge commit comes from by default."
+    },
+    "MergeCommitTitle": {
+      "type": "string",
+      "enum": [
+        "PR_TITLE",
+        "MERGE_MESSAGE"
+      ],
+      "description": "Where the title of a merge commit comes from by default. `MERGE_MESSAGE` is GitHub's own \"Merge pull request #123 from branch\" wording."
+    },
+    "MergeCommitMessage": {
+      "type": "string",
+      "enum": [
+        "PR_BODY",
+        "PR_TITLE",
+        "BLANK"
+      ],
+      "description": "Where the body of a merge commit comes from by default."
     },
     "SecurityPolicy": {
       "type": "object",
@@ -360,6 +434,13 @@
             "boolean",
             "null"
           ]
+        },
+        "immutable_releases": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether published releases and their assets become immutable. An owner can enforce this across its repositories, in which case a repository cannot turn it off and octoform reports that instead of attempting it."
         }
       },
       "additionalProperties": false,

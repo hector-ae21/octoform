@@ -101,6 +101,16 @@ export interface RepoStructure {
  */
 export interface RepoDetail extends RepoState {
   settings: Record<string, SettingValue>;
+  /**
+   * Settings the owner enforces across its repositories, keyed the same way as
+   * {@link RepoDetail.settings}, with the reason a repository cannot override
+   * them.
+   *
+   * Readable but not writable, which is why this is not `UNREADABLE`: the
+   * current value is known, it simply cannot be changed from here. Knowing that
+   * up front is what turns a failed request into a reported one.
+   */
+  enforced?: Record<string, string>;
   structure?: RepoStructure;
 }
 

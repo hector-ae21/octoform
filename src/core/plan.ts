@@ -106,6 +106,22 @@ function consequenceOf(key: string, wanted: unknown, repo: RepoDetail): string |
 }
 
 /**
+ * Message defaults GitHub refuses on their own: it rejects a request that sets
+ * one without also stating the matching title, which would fail every other
+ * setting bundled into the same request along with it.
+ *
+ * Keyed by the setting that needs company, valued with the key in the same
+ * group that has to accompany it. The accompanying value is taken from the
+ * policy, never from the repository: sending the observed title instead would
+ * let a plan made before somebody edited that title quietly put the old one
+ * back — a change nobody declared and no report mentioned.
+ */
+const REQUIRES_COMPANION: Record<string, string> = {
+  'merge.squash_message': 'squash_title',
+  'merge.merge_commit_message': 'merge_commit_title',
+};
+
+/**
  * Policies octoform can express but cannot yet carry out. Declaring one and
  * having it silently do nothing is the worst outcome available, so they are
  * reported as blocked instead of skipped in silence.
@@ -197,6 +213,41 @@ function planScalars(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]
         continue;
       }
       if (same(current, wanted)) continue;
+
+      const enforcement = repo.enforced?.[key];
+      if (enforcement !== undefined) {
+        changes.push({
+          repo: repo.name,
+          key,
+          from: current,
+          to: wanted,
+          blocked: enforcement,
+        });
+        continue;
+      }
+
+      const companion = REQUIRES_COMPANION[key];
+      if (companion) {
+        const value = declared[companion];
+        if (!isManaged(value)) {
+          changes.push({
+            repo: repo.name,
+            key,
+            from: current,
+            to: wanted,
+            blocked: `GitHub rejects this unless ${group}.${companion} is declared alongside it`,
+          });
+          continue;
+        }
+        changes.push({
+          repo: repo.name,
+          key,
+          from: current,
+          to: wanted,
+          payload: { requires: { [`${group}.${companion}`]: value } },
+        });
+        continue;
+      }
 
       changes.push({
         repo: repo.name,

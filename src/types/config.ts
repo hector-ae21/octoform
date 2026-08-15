@@ -31,7 +31,36 @@ export interface FeaturePolicy {
   discussions?: Toggle;
 }
 
-/** Desired state for pull-request merge behavior. */
+/**
+ * Where the title of a squash merge commit comes from by default.
+ *
+ * `PR_TITLE` always uses the pull request's title; `COMMIT_OR_PR_TITLE` uses
+ * the single commit's title when there is exactly one, and the pull request's
+ * title otherwise.
+ */
+export type SquashCommitTitle = 'PR_TITLE' | 'COMMIT_OR_PR_TITLE';
+
+/** Where the body of a squash merge commit comes from by default. */
+export type SquashCommitMessage = 'PR_BODY' | 'COMMIT_MESSAGES' | 'BLANK';
+
+/**
+ * Where the title of a merge commit comes from by default. `MERGE_MESSAGE` is
+ * GitHub's own "Merge pull request #123 from branch" wording.
+ */
+export type MergeCommitTitle = 'PR_TITLE' | 'MERGE_MESSAGE';
+
+/** Where the body of a merge commit comes from by default. */
+export type MergeCommitMessage = 'PR_BODY' | 'PR_TITLE' | 'BLANK';
+
+/**
+ * Desired state for pull-request merge behavior.
+ *
+ * Each message default is named after the `allow_` switch it belongs to, since
+ * squash merges and merge commits carry their own independent pair. GitHub
+ * refuses a request that sets a message default without also stating the
+ * matching title, so declaring one without the other is reported rather than
+ * sent — see `planScalars`.
+ */
 export interface MergePolicy {
   allow_squash?: Toggle;
   allow_merge_commit?: Toggle;
@@ -39,6 +68,10 @@ export interface MergePolicy {
   allow_auto_merge?: Toggle;
   allow_update_branch?: Toggle;
   delete_branch_on_merge?: Toggle;
+  squash_title?: Managed<SquashCommitTitle>;
+  squash_message?: Managed<SquashCommitMessage>;
+  merge_commit_title?: Managed<MergeCommitTitle>;
+  merge_commit_message?: Managed<MergeCommitMessage>;
 }
 
 /** Desired state for repository security features. */
@@ -49,6 +82,12 @@ export interface SecurityPolicy {
   secret_scanning?: Toggle;
   secret_scanning_push_protection?: Toggle;
   code_scanning_default_setup?: Toggle;
+  /**
+   * Whether published releases and their assets become immutable. An owner can
+   * enforce this across its repositories, in which case a repository cannot
+   * turn it off and octoform reports that instead of attempting it.
+   */
+  immutable_releases?: Toggle;
 }
 
 /** Desired state for repository metadata and access settings. */

@@ -101,6 +101,8 @@ export type {
   InspectedCapabilities,
   InspectedOwner,
   Managed,
+  MergeCommitMessage,
+  MergeCommitTitle,
   MergePolicy,
   MergeSemantics,
   MigratedConfig,
@@ -139,6 +141,8 @@ export type {
   SecurityPolicy,
   SemanticsEntry,
   SettingValue,
+  SquashCommitMessage,
+  SquashCommitTitle,
   Toggle,
   TokenProvider,
 } from './types/index.js';

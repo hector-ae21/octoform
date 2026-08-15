@@ -37,6 +37,7 @@
         "default-branch-rename",
         "deployment-environments",
         "ensured-branches",
+        "immutable-releases",
         "merge-settings",
         "organization-custom-properties",
         "owner-kind",
@@ -105,6 +106,7 @@
         "automated-security-fixes",
         "code-scanning-default-setup",
         "deployment-environments",
+        "immutable-releases",
         "private-vulnerability-reporting",
         "repository-rulesets",
         "secret-scanning-settings",
@@ -123,6 +125,7 @@
         "code-scanning-default-setup",
         "default-branch-rename",
         "deployment-environments",
+        "immutable-releases",
         "merge-settings",
         "private-vulnerability-reporting",
         "repository-features",
@@ -184,6 +187,17 @@
       "access": "write",
       "capabilityIds": [
         "automated-security-fixes"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/immutable-releases",
+      "access": "write",
+      "capabilityIds": [
+        "immutable-releases"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -355,6 +369,17 @@
       "permissionProfiles": [
         "classic-repo",
         "repository-contents-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/immutable-releases",
+      "access": "read",
+      "capabilityIds": [
+        "immutable-releases"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
       ]
     },
     {
@@ -554,6 +579,17 @@
       "access": "write",
       "capabilityIds": [
         "deployment-environments"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/immutable-releases",
+      "access": "write",
+      "capabilityIds": [
+        "immutable-releases"
       ],
       "permissionProfiles": [
         "classic-repo",
