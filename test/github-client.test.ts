@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { detectPrivateRulesetCapability } from '../src/github/client.js';
+import { detectRulesetCapability } from '../src/github/client.js';
 
 function apiError(status: number, message: string): Error {
   return Object.assign(new Error(message), {
@@ -27,7 +27,9 @@ function fakeOctokit(result: 'ok' | Error) {
 test('an existing branch protection proves private rulesets are available', async () => {
   const { octokit, calls } = fakeOctokit('ok');
 
-  assert.equal(await detectPrivateRulesetCapability(octokit, 'owner', 'repo', 'main'), true);
+  const result = await detectRulesetCapability(octokit, 'owner', 'repo', 'main');
+  assert.equal(result.status, 'supported');
+  assert.equal(result.source, 'endpoint');
   assert.deepEqual(calls, [
     {
       route: 'GET /repos/{owner}/{repo}/branches/{branch}/protection',
@@ -39,7 +41,8 @@ test('an existing branch protection proves private rulesets are available', asyn
 test('an explicitly unprotected branch still proves the capability is available', async () => {
   const { octokit } = fakeOctokit(apiError(404, 'Branch not protected'));
 
-  assert.equal(await detectPrivateRulesetCapability(octokit, 'owner', 'repo', 'main'), true);
+  const result = await detectRulesetCapability(octokit, 'owner', 'repo', 'main');
+  assert.equal(result.status, 'supported');
 });
 
 test('a forbidden protection endpoint means this owner and token cannot manage private rulesets', async () => {
@@ -47,19 +50,24 @@ test('a forbidden protection endpoint means this owner and token cannot manage p
     apiError(403, 'Upgrade to GitHub Pro or make this repository public'),
   );
 
-  assert.equal(await detectPrivateRulesetCapability(octokit, 'owner', 'repo', 'main'), false);
+  const result = await detectRulesetCapability(octokit, 'owner', 'repo', 'main');
+  assert.equal(result.status, 'forbidden');
+  assert.equal(result.source, 'permission');
 });
 
-test('an opaque not-found response is not mistaken for an available capability', async () => {
+test('an opaque not-found response is reported as unknown, not guessed as unavailable', async () => {
   const { octokit } = fakeOctokit(apiError(404, 'Not Found'));
 
-  assert.equal(await detectPrivateRulesetCapability(octokit, 'owner', 'repo', 'main'), false);
+  const result = await detectRulesetCapability(octokit, 'owner', 'repo', 'main');
+  assert.equal(result.status, 'unknown');
 });
 
 test('a private repository with no default branch cannot be probed', async () => {
   const { octokit, calls } = fakeOctokit('ok');
 
-  assert.equal(await detectPrivateRulesetCapability(octokit, 'owner', 'repo', ''), false);
+  const result = await detectRulesetCapability(octokit, 'owner', 'repo', '');
+  assert.equal(result.status, 'unknown');
+  assert.equal(result.source, 'resource-state');
   assert.deepEqual(calls, []);
 });
 
@@ -67,5 +75,11 @@ test('unexpected API failures are surfaced instead of being guessed at', async (
   const failure = apiError(500, 'Internal Server Error');
   const { octokit } = fakeOctokit(failure);
 
-  await assert.rejects(detectPrivateRulesetCapability(octokit, 'owner', 'repo', 'main'), failure);
+  await assert.rejects(detectRulesetCapability(octokit, 'owner', 'repo', 'main'), failure);
+});
+
+test('every capability result carries an ISO observation timestamp', async () => {
+  const { octokit } = fakeOctokit('ok');
+  const result = await detectRulesetCapability(octokit, 'owner', 'repo', 'main');
+  assert.ok(!Number.isNaN(Date.parse(result.observedAt)));
 });

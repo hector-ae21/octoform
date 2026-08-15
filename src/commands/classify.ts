@@ -8,18 +8,10 @@ import {
   readRepoFile,
   setPropertyValues,
 } from '../github/client.js';
-import type { Config } from '../config/types.js';
+import { printable } from '../report/format.js';
+import type { ClassifyOptions, OwnerScope, Proposal } from '../types/index.js';
 
-/** Mutation control for {@link classify}. */
-export interface ClassifyOptions {
-  /** Write the proposals to the custom property. Organisations only. */
-  apply?: boolean;
-}
-
-export interface Proposal {
-  repo: string;
-  type: string;
-}
+export type { ClassifyOptions, Proposal } from '../types/index.js';
 
 /**
  * Propose a type for every repository that has none recorded.
@@ -35,10 +27,10 @@ export interface Proposal {
  */
 export async function classify(
   octokit: Octokit,
-  config: Config,
+  scope: OwnerScope,
   options: ClassifyOptions = {},
 ): Promise<number> {
-  const rules = config.classify?.rules ?? [];
+  const rules = scope.classify?.rules ?? [];
   if (rules.length === 0) {
     console.log(
       'No classify rules declared. Add classify.rules to the configuration to use this command.',
@@ -46,18 +38,18 @@ export async function classify(
     return 0;
   }
 
-  const property = config.classify?.property;
-  const kind = await detectOwnerKind(octokit, config.owner);
-  const all = await listRepos(octokit, config.owner, kind);
+  const property = scope.classify?.property;
+  const kind = await detectOwnerKind(octokit, scope.owner);
+  const all = await listRepos(octokit, scope.owner, kind);
 
   const recorded =
     property && kind === 'org'
-      ? await readPropertyValues(octokit, config.owner, property)
+      ? await readPropertyValues(octokit, scope.owner, property)
       : new Map<string, string>();
   for (const repo of all) repo.type = recorded.get(repo.name);
 
   const unclassified = all.filter(
-    (r) => !isExcluded(config, r.name) && !repoType(config, r) && !r.archived,
+    (r) => !isExcluded(scope, r.name) && !repoType(scope, r) && !r.archived,
   );
 
   if (unclassified.length === 0) {
@@ -72,7 +64,7 @@ export async function classify(
   for (const repo of unclassified) {
     const files: Record<string, string | null> = {};
     for (const path of paths) {
-      files[path] = await readRepoFile(octokit, config.owner, repo.name, path);
+      files[path] = await readRepoFile(octokit, scope.owner, repo.name, path);
     }
 
     const type = classifyRepo(rules, { visibility: repo.visibility, files });
@@ -94,13 +86,13 @@ export async function classify(
       `\nCannot record these automatically: ${
         kind === 'org'
           ? 'no classify.property is declared'
-          : `"${config.owner}" is a personal account, which has no custom properties`
+          : `"${scope.owner}" is a personal account, which has no custom properties`
       }. Copy them into the configuration as repos.<name>.type instead.`,
     );
     return 1;
   }
 
-  return write(octokit, config.owner, property, proposals);
+  return write(octokit, scope.owner, property, proposals);
 }
 
 async function write(
@@ -121,10 +113,10 @@ async function write(
   for (const [type, repos] of byType) {
     try {
       await setPropertyValues(octokit, owner, property, type, repos);
-      console.log(`  ${type}: recorded on ${repos.length} repositories`);
+      console.log(`  ${printable(type)}: recorded on ${repos.length} repositories`);
     } catch (error) {
       failures++;
-      console.log(`  ${type}: FAILED — ${(error as Error).message}`);
+      console.log(`  ${printable(type)}: FAILED — ${printable((error as Error).message)}`);
     }
   }
 
@@ -139,16 +131,17 @@ async function write(
 
 function report(proposals: Proposal[], undecided: string[]): void {
   if (proposals.length > 0) {
-    const width = Math.max(...proposals.map((p) => p.repo.length), 4);
+    const width = Math.max(...proposals.map((p) => printable(p.repo).length), 4);
     console.log(`${proposals.length} proposal(s):\n`);
     for (const proposal of proposals) {
-      console.log(`  ${proposal.repo.padEnd(width)}  ${proposal.type}`);
+      console.log(`  ${printable(proposal.repo).padEnd(width)}  ${printable(proposal.type)}`);
     }
   }
 
   if (undecided.length > 0) {
     console.log(
-      `\n${undecided.length} matched no rule and are left alone: ${undecided.join(', ')}`,
+      `\n${undecided.length} matched no rule and are left alone: ` +
+        undecided.map((name) => printable(name)).join(', '),
     );
   }
 }

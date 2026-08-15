@@ -1,40 +1,6 @@
-/** A command-line option exposed by Octoform. */
-export interface CliOptionContract {
-  id: string;
-  syntax: string;
-  description: string;
-  default?: string;
-}
+import type { CliContract } from './types/cli.js';
 
-/** A supported command or command path. */
-export interface CliCommandContract {
-  path: string[];
-  usage: string;
-  summary: string;
-  mode: 'read-only' | 'confirmed-write' | 'conditional-write' | 'write';
-  options: string[];
-  classicScopes: string[];
-  mutationClassicScopes?: string[];
-}
-
-/** Stable customer-facing command-line contract. */
-export interface CliContract {
-  schemaVersion: number;
-  executable: string;
-  summary: string;
-  commands: CliCommandContract[];
-  options: CliOptionContract[];
-  credentials: Array<{
-    names: string[];
-    sensitive: true;
-    description: string;
-  }>;
-  exitCodes: Array<{
-    code: number;
-    meaning: string;
-  }>;
-  notes: string[];
-}
+export type { CliCommandContract, CliContract, CliOptionContract } from './types/cli.js';
 
 /** Canonical metadata used by help output and generated CLI reference data. */
 export const CLI_CONTRACT: CliContract = {
@@ -44,44 +10,108 @@ export const CLI_CONTRACT: CliContract = {
   commands: [
     {
       path: ['audit'],
-      usage: 'octoform audit      [--config <path>]',
+      usage:
+        'octoform audit      [--config <path>] [--owner <login>]... [--repo <name>] [--fail-fast]',
       summary: 'Inspect repositories and report configured audit findings.',
       mode: 'read-only',
-      options: ['config', 'help'],
+      options: ['config', 'owner', 'repo', 'strict', 'fail-fast', 'help'],
       classicScopes: ['repo'],
     },
     {
       path: ['plan'],
-      usage: 'octoform plan       [--config <path>] [--repo <name>] [--type <type>]',
+      usage:
+        'octoform plan       [--config <path>] [--owner <login>]... [--repo <name>] [--type <type>] [--concurrency <n>] [--fail-fast] [--out <path>] [--expires-in <minutes>] [--format <text|json>]',
       summary: 'Compare desired and observed state without changing GitHub.',
       mode: 'read-only',
-      options: ['config', 'repo', 'type', 'help'],
+      options: [
+        'config',
+        'owner',
+        'repo',
+        'type',
+        'strict',
+        'concurrency',
+        'fail-fast',
+        'out',
+        'expires-in',
+        'format',
+        'help',
+      ],
       classicScopes: ['repo'],
     },
     {
       path: ['apply'],
-      usage: 'octoform apply      [--config <path>] [--repo <name>] [--type <type>] [--yes]',
-      summary: 'Plan again, request confirmation, and apply unblocked changes.',
+      usage:
+        'octoform apply      [--config <path>] [--owner <login>]... [--repo <name>] [--type <type>] [--yes] [--concurrency <n>] [--fail-fast] | octoform apply --plan <path> [--yes]',
+      summary:
+        'Plan again, request confirmation, and apply unblocked changes; or apply exactly a saved plan with --plan.',
       mode: 'confirmed-write',
-      options: ['config', 'repo', 'type', 'yes', 'help'],
+      options: [
+        'config',
+        'owner',
+        'repo',
+        'type',
+        'yes',
+        'strict',
+        'concurrency',
+        'fail-fast',
+        'plan',
+        'help',
+      ],
       classicScopes: ['repo'],
     },
     {
       path: ['classify'],
-      usage: 'octoform classify   [--config <path>] [--apply]',
+      usage: 'octoform classify   [--config <path>] [--owner <login>]... [--apply] [--fail-fast]',
       summary: 'Propose repository types and optionally write organization property values.',
       mode: 'conditional-write',
-      options: ['config', 'apply', 'help'],
+      options: ['config', 'owner', 'apply', 'strict', 'fail-fast', 'help'],
       classicScopes: ['repo'],
       mutationClassicScopes: ['repo', 'admin:org'],
     },
     {
       path: ['properties', 'sync'],
-      usage: 'octoform properties sync [--config <path>]',
+      usage: 'octoform properties sync [--config <path>] [--owner <login>]... [--fail-fast]',
       summary: 'Synchronize the organization property schema and declared repository values.',
       mode: 'write',
-      options: ['config', 'help'],
+      options: ['config', 'owner', 'strict', 'fail-fast', 'help'],
       classicScopes: ['repo', 'admin:org'],
+    },
+    {
+      path: ['config', 'validate'],
+      usage: 'octoform config validate [--config <path>]',
+      summary: 'Load and resolve a configuration, reporting its owners. Never contacts GitHub.',
+      mode: 'read-only',
+      options: ['config', 'help'],
+      classicScopes: [],
+    },
+    {
+      path: ['config', 'migrate'],
+      usage: 'octoform config migrate  [--config <path>] [--write]',
+      summary:
+        'Convert a legacy single-owner file to the multi-owner shape. Never contacts GitHub.',
+      mode: 'conditional-write',
+      options: ['config', 'write', 'help'],
+      classicScopes: [],
+      mutationClassicScopes: [],
+    },
+    {
+      path: ['inspect', 'config'],
+      usage:
+        'octoform inspect config       [--config <path>] [--owner <login>]... [--format <text|json>]',
+      summary:
+        'Print the fully resolved configuration for the selection, with secrets redacted. Never contacts GitHub.',
+      mode: 'read-only',
+      options: ['config', 'owner', 'format', 'help'],
+      classicScopes: [],
+    },
+    {
+      path: ['inspect', 'capabilities'],
+      usage:
+        'octoform inspect capabilities [--config <path>] [--owner <login>]... [--format <text|json>]',
+      summary: 'Print what octoform determined each selected owner supports, and the evidence why.',
+      mode: 'read-only',
+      options: ['config', 'owner', 'format', 'help'],
+      classicScopes: ['repo'],
     },
   ],
   options: [
@@ -91,13 +121,66 @@ export const CLI_CONTRACT: CliContract = {
       description: 'Configuration file',
       default: 'octoform.yml',
     },
-    { id: 'repo', syntax: '--repo <name>', description: 'Limit to one repository' },
+    {
+      id: 'owner',
+      syntax: '--owner <login>',
+      description: 'Limit to one declared owner (repeatable)',
+    },
+    {
+      id: 'repo',
+      syntax: '--repo <name>',
+      description: 'Limit to one repository; accepts "owner/name" to disambiguate',
+    },
     { id: 'type', syntax: '--type <type>', description: 'Limit to repositories of one type' },
     { id: 'yes', syntax: '--yes, -y', description: 'Apply without asking for confirmation' },
     {
       id: 'apply',
       syntax: '--apply',
       description: 'Classify: record proposals instead of only printing them',
+    },
+    {
+      id: 'strict',
+      syntax: '--strict',
+      description: 'Fail when a declaration does not apply to the owner that declared it',
+    },
+    {
+      id: 'write',
+      syntax: '--write',
+      description: 'config migrate: update the file in place instead of only printing it',
+    },
+    {
+      id: 'concurrency',
+      syntax: '--concurrency <n>',
+      description: 'Repositories planned or applied to at once',
+      default: '4',
+    },
+    {
+      id: 'fail-fast',
+      syntax: '--fail-fast',
+      description: 'Stop at the first owner that fails instead of continuing to the rest',
+    },
+    {
+      id: 'out',
+      syntax: '--out <path>',
+      description:
+        'plan: also save the plan as a signed-evidence JSON file apply --plan can consume',
+    },
+    {
+      id: 'plan',
+      syntax: '--plan <path>',
+      description: 'apply: perform exactly the saved plan instead of planning again',
+    },
+    {
+      id: 'expires-in',
+      syntax: '--expires-in <minutes>',
+      description: 'plan --out: how long the saved plan remains valid',
+      default: '60',
+    },
+    {
+      id: 'format',
+      syntax: '--format <text|json>',
+      description: 'Output format for commands that support it',
+      default: 'text',
     },
     { id: 'help', syntax: '--help, -h', description: 'Show this message' },
   ],
@@ -109,17 +192,42 @@ export const CLI_CONTRACT: CliContract = {
     },
   ],
   exitCodes: [
-    { code: 0, meaning: 'The command or help request completed successfully.' },
+    {
+      code: 0,
+      meaning: 'Success. No drift was found and nothing was blocked or failed.',
+    },
     {
       code: 1,
-      meaning: 'Configuration, authentication, capability, or GitHub API execution failed.',
+      meaning: 'audit or plan found drift, or apply was declined; nothing was applied.',
     },
-    { code: 2, meaning: 'The command line is missing or invalid.' },
+    {
+      code: 2,
+      meaning: 'The command line, or the resolved configuration, could not be understood.',
+    },
+    {
+      code: 3,
+      meaning: 'The token is missing, lacks a required scope, or was rejected by GitHub.',
+    },
+    {
+      code: 4,
+      meaning: 'At least one operation could not be planned or applied.',
+    },
+    {
+      code: 5,
+      meaning: 'At least one operation, or the run itself, failed outright.',
+    },
   ],
   notes: [
     'audit, plan, and classify without --apply are read-only.',
     'apply displays the current plan and requests confirmation unless --yes is present.',
     'Fine-grained tokens are authorized by GitHub per endpoint because they do not expose classic scope headers.',
+    'A configuration that names several owners runs each of them in turn, in the order it names them.',
+    'config validate and config migrate never contact GitHub.',
+    'By default a failed owner is reported and the rest of the selection continues; --fail-fast stops at the first one.',
+    'A run against more than one owner prints a total across every owner it reached.',
+    'apply --plan verifies actor, owner identity, source and configuration digests, and expiry before applying anything; a stale or altered plan is refused, never repaired.',
+    'Exit codes are frozen for the v0 line: their meaning never changes once published here.',
+    '--format json wraps output in a versioned envelope. Currently supported by plan, inspect config, and inspect capabilities; other commands remain text-only.',
   ],
 };
 

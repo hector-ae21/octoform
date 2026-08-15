@@ -1,17 +1,24 @@
-import { createInterface } from 'node:readline/promises';
 import type { Octokit } from '@octokit/rest';
+import { confirm } from '../cli-prompt.js';
+import {
+  EXIT_BLOCKED,
+  EXIT_CHANGES_PENDING,
+  EXIT_FAILED,
+  EXIT_SUCCESS,
+} from '../cli-exit-codes.js';
 import { applyRepoChanges } from '../github/apply.js';
 import { plan } from './plan.js';
-import { formatChange, groupByRepo } from '../report/format.js';
-import type { Config } from '../config/types.js';
+import { DEFAULT_CONCURRENCY, mapWithConcurrency } from '../core/concurrency.js';
+import { formatChange, groupByRepo, printable } from '../report/format.js';
+import type {
+  AppliedChange,
+  ApplyOptions,
+  ApplyRunResult,
+  ApplySummary,
+  OwnerScope,
+} from '../types/index.js';
 
-/** Repository selection and confirmation controls for {@link apply}. */
-export interface ApplyOptions {
-  repo?: string;
-  type?: string;
-  /** Skip the confirmation prompt. */
-  yes?: boolean;
-}
+export type { ApplyOptions, ApplyRunResult } from '../types/index.js';
 
 /**
  * Compute the same diff `plan` would, show it, ask before doing anything, and
@@ -22,12 +29,12 @@ export interface ApplyOptions {
  */
 export async function apply(
   octokit: Octokit,
-  config: Config,
+  scope: OwnerScope,
   options: ApplyOptions = {},
-): Promise<number> {
+): Promise<ApplyRunResult> {
   const { changes, blocked } = await plan(
     octokit,
-    config,
+    scope,
     { repo: options.repo, type: options.type },
     { quiet: true },
   );
@@ -38,12 +45,15 @@ export async function apply(
         ? `Nothing to apply. ${blocked.length} change(s) are blocked — run 'octoform plan' to see why.`
         : 'Nothing to apply. Every matching repository already matches the configuration.',
     );
-    return 0;
+    return {
+      status: blocked.length > 0 ? EXIT_BLOCKED : EXIT_SUCCESS,
+      summary: { applied: 0, failed: 0, blocked: blocked.length },
+    };
   }
 
   console.log(`${changes.length} change(s) to apply:\n`);
   for (const [repoName, group] of groupByRepo(changes)) {
-    console.log(`  ${repoName}`);
+    console.log(`  ${printable(repoName)}`);
     for (const change of group) console.log(`    ${formatChange(change)}`);
     console.log('');
   }
@@ -55,17 +65,38 @@ export async function apply(
 
   if (!options.yes && !(await confirm(`Apply ${changes.length} change(s)?`))) {
     console.log('Aborted. Nothing was changed.');
-    return 1;
+    return {
+      status: EXIT_CHANGES_PENDING,
+      summary: { applied: 0, failed: 0, blocked: blocked.length },
+    };
   }
 
   console.log('');
+  const grouped = groupByRepo(changes);
+  const perRepo = await mapWithConcurrency(
+    grouped,
+    options.concurrency ?? DEFAULT_CONCURRENCY,
+    async ([repoName, group]) => {
+      try {
+        return await applyRepoChanges(octokit, scope.owner, repoName, group);
+      } catch (error) {
+        return group.map((change): AppliedChange => ({
+          ...change,
+          outcome: 'failed',
+          error: (error as Error).message ?? String(error),
+        }));
+      }
+    },
+  );
+
   let failures = 0;
-  for (const [repoName, group] of groupByRepo(changes)) {
-    const results = await applyRepoChanges(octokit, config.owner, repoName, group);
+  for (const [index, results] of perRepo.entries()) {
+    const repoName = grouped[index]?.[0] ?? '';
     for (const result of results) {
       if (result.outcome === 'failed') failures++;
-      const outcome = result.outcome === 'applied' ? 'done' : `FAILED — ${result.error}`;
-      console.log(`  ${repoName}  ${result.key}: ${outcome}`);
+      const outcome =
+        result.outcome === 'applied' ? 'done' : `FAILED — ${printable(result.error ?? '')}`;
+      console.log(`  ${printable(repoName)}  ${result.key}: ${outcome}`);
     }
   }
 
@@ -73,15 +104,14 @@ export async function apply(
   console.log(
     failures === 0 ? 'All changes applied.' : `${failures} change(s) failed — see above.`,
   );
-  return failures === 0 ? 0 : 1;
+  const allResults = perRepo.flat();
+  const status = failures > 0 ? EXIT_FAILED : blocked.length > 0 ? EXIT_BLOCKED : EXIT_SUCCESS;
+  return { status, summary: summarizeApply(allResults, blocked.length) };
 }
 
-async function confirm(question: string): Promise<boolean> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  try {
-    const answer = await rl.question(`${question} [y/N] `);
-    return answer.trim().toLowerCase() === 'y';
-  } finally {
-    rl.close();
-  }
+/** Reduce an apply run's results to the counts that matter. */
+export function summarizeApply(results: AppliedChange[], blockedCount: number): ApplySummary {
+  const applied = results.filter((r) => r.outcome === 'applied').length;
+  const failed = results.filter((r) => r.outcome === 'failed').length;
+  return { applied, failed, blocked: blockedCount };
 }

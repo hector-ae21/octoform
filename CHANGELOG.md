@@ -9,6 +9,165 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-15
+
+### Added
+
+- One configuration can now describe several GitHub accounts. A root `owners`
+  mapping keyed by GitHub login replaces the need for one file per account, and
+  the root of the file holds whatever those accounts share. Each account is
+  planned and applied in the order it is declared.
+- A root `version` field states which configuration contract a file is written
+  against. Version `1` is the only accepted value. It is optional for a
+  single-owner file and required whenever `owners` is used.
+- A root `policies` mapping declares named, reusable policy fragments. Any
+  layer folds them in through its own `policies` list, before that layer's own
+  keys, and a policy may reference other policies.
+- `--strict` fails a run when a configuration declares something that does not
+  apply to the account that declared it, instead of reporting it and
+  continuing.
+- A generated `config-model.json` reference artifact publishes the precedence
+  chain and the combining rule of every collection in the configuration model.
+- `--owner <login>` narrows `audit`, `plan`, `apply`, `classify`, and
+  `properties sync` to the named account(s), repeatable, and rejects a login
+  the configuration does not declare.
+- `--repo` accepts a qualified `owner/name` to resolve a repository name
+  declared under more than one selected owner; an unqualified name that
+  matches more than one selected owner is rejected with the qualified forms.
+- A run touching more than one declared owner, or narrowed by a selector,
+  prints a scope summary of which owners are selected and which were excluded.
+- `octoform config validate` loads and reports a configuration without
+  contacting GitHub.
+- `octoform config migrate` converts a single-owner file to the multi-owner
+  shape, previewing by default; `--write` updates the file in place and
+  refuses to run against a file with uncommitted git changes.
+- `discoverOwner` resolves an owner's kind and GitHub's numeric identity for
+  it in one call, replacing the need to trust a login alone; `detectOwnerKind`
+  is now a thin projection over the same discovery, sharing its cache.
+- Capability decisions carry status, reason, source, and an observation
+  timestamp instead of a bare boolean. `detectRulesetCapability` replaces
+  `detectPrivateRulesetCapability` and reports `supported`, `forbidden`, or
+  `unknown` — an opaque `404` no longer reads the same as a confirmed denial.
+- Requests now send the pinned `X-GitHub-Api-Version` header, published as
+  `REST_API_VERSION`.
+- `requireScopes` now also returns the core rate-limit budget, read from the
+  same response rather than a dedicated request. `audit`, `plan`, `apply`,
+  `classify`, and `properties sync` print a one-line warning when it is low
+  enough to threaten the rest of the run.
+- `detectLimits` is now cached per owner for the life of the client, the same
+  way owner discovery already was.
+- Every planned change now carries a stable `id`, `owner`, `operation`
+  (`create`/`update`/`attach`/`detach`/`delete`), and `risk`
+  (`normal`/`sensitive`/`destructive`/`cost`), so a result can be correlated
+  with the operation that produced it across a run and across output formats.
+- `--concurrency <n>` bounds how many repositories `plan` and `apply` work on
+  at once per owner (default 4). Two runs against unchanged state now produce
+  operations in the same order regardless of API response timing.
+- A failure in one owner no longer aborts the rest of the selection: by
+  default the run continues to every other owner and reports each outcome
+  isolated from the others; `--fail-fast` stops at the first failure instead.
+  A run against more than one owner prints a total across every owner reached.
+- A repository whose plan cannot even be computed is now reported as a
+  distinct failure rather than silently treated as "no changes."
+- `octoform plan --out <path>` saves a versioned plan artifact:
+  actor, target owners' numeric identity, a digest of the resolved
+  configuration and of every source file that contributed to it, an
+  observation time, and an expiry (`--expires-in <minutes>`, default 60).
+- `octoform apply --plan <path>` applies exactly that saved plan instead of
+  planning again. It refuses a plan whose schema version, actor, owner
+  identity, configuration digest, source digests, or expiry no longer match,
+  each with its own distinct reason — a stale or altered plan is never
+  silently repaired or re-planned.
+- `createClient` accepts an explicit token or token-provider function, checked
+  before `GITHUB_TOKEN` and `GH_TOKEN`.
+- A configuration value shaped like a GitHub token (`ghp_…`, `github_pat_…`,
+  and other issued-token prefixes) is now rejected at load time, naming the
+  YAML path without echoing the value. Mapping keys are checked too: a token
+  pasted where a login or a repository name belongs is reported against its
+  parent, so the error never repeats it.
+- Exit codes are now a documented, frozen set of classes for the `v0` line:
+  `0` success, `1` drift found or apply declined, `2` usage/configuration
+  error, `3` authentication or permission failure, `4` an operation was
+  blocked, `5` an operation or the run itself failed.
+- `octoform inspect config` prints the fully resolved configuration for the
+  selected owners. Offline, like `config validate`.
+- `octoform inspect capabilities` prints, per selected owner, its kind,
+  numeric identity, organisation-ruleset availability, and any declaration
+  that does not apply to that owner.
+- `--format json` wraps output in a versioned envelope
+  (`{ schemaVersion, command, data }`). Supported by `plan`, `inspect config`,
+  and `inspect capabilities` in this release; other commands remain text-only.
+- `printable` renders a value that came from GitHub or from a configuration
+  file safely for a terminal, and every report now goes through it.
+
+### Changed
+
+- Unknown configuration keys are now rejected instead of ignored. The error
+  names the file, the YAML path, and the closest declared key.
+- Values of the wrong kind, such as a single value where a list is required,
+  are rejected with their YAML path.
+- Notes about declarations that do not apply to an account are now reported for
+  every command rather than only during `audit`.
+- `loadConfig` returns a resolved configuration holding one scope per owner
+  rather than a single-owner object, and `resolvePolicy`, `repoType`, and
+  `isExcluded` take one of those scopes. Configuration files are unaffected;
+  programmatic callers that read `config.owner` read `config.owners[n].owner`.
+- A blocked ruleset change on a private repository now states the specific
+  reason the capability was unavailable, instead of a single generic message.
+- `PlanOptions.rulesetsEnforcedOnPrivate: boolean` is now
+  `PlanOptions.rulesetCapability: CapabilityResult`. Only programmatic callers
+  of `planRepo` are affected.
+- `audit`'s and `apply`'s previous ad hoc `0`/`1` exit codes now follow the
+  frozen classes above. A script that only checked "zero or not" is
+  unaffected; one that branched on the exact previous number should not have.
+- `mapWithConcurrency`, `DEFAULT_CONCURRENCY`, `errorMessage`, and
+  `errorStatus` are no longer exported from the package entry point. They
+  were internal execution and error-classification helpers, never part of the
+  documented programmatic API.
+- `buildPlanArtifact` and `verifyPlanArtifact` take the authenticated actor
+  and the owners' numeric identities as data rather than a client, and
+  `verifyPlanArtifact` is now synchronous. Deciding whether a saved plan is
+  still valid no longer performs requests of its own. Only programmatic
+  callers are affected.
+
+### Security
+
+- A declared owner is now checked against GitHub's own login format when the
+  configuration loads, and rejected with the reason when it cannot be one: a
+  path separator, a control character, a leading or trailing hyphen, a length
+  over 39, or a character GitHub does not issue. Every declared owner is asked
+  of the API by login, so this turns an unusable value into one error naming
+  the file and the path instead of an opaque `404` several requests later. No
+  configuration that previously worked is affected — a login this rejects
+  could not have resolved to an account.
+- Repository names, descriptions, topics, custom-property values and API error
+  text are writable by anyone with access to the account being audited, which
+  is not always the person running octoform. Control characters in any of them
+  are now escaped before they are printed, so a crafted value can no longer
+  emit terminal escape sequences that overwrite lines already on screen, hide
+  a blocked change from the report, or imitate the confirmation prompt
+  `apply` shows before it changes anything.
+
+### Compatibility
+
+- Existing single-owner configurations keep their exact meaning and produce the
+  same plans. `owner`, `defaults`, `types`, `repos`, `classify`, `audit`, and
+  `exclude` at the root are unchanged.
+- Root-level `repos` is rejected only when combined with `owners`, where a bare
+  repository name no longer identifies one repository.
+
+### Internal
+
+- Every type and interface now lives under `src/types/`, grouped by domain
+  instead of scattered across the module that happened to use it first. Public
+  exports are unaffected; this is a source-organization change only.
+- Determinism, layering, selector narrowing, no-op stability and owner
+  isolation are now checked as properties over generated configurations and
+  generated observed state, alongside an adversarial suite covering confusable
+  logins, hostile repository names, import and policy cycles, and unreadable
+  state. Generated cases are seeded, so a failure reports the seed that
+  reproduces it.
+
 ## [0.3.2] - 2026-08-14
 
 ### Compatibility

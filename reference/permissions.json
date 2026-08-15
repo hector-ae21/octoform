@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "productVersion": "0.3.2",
+  "productVersion": "0.4.0",
   "sources": {
     "githubRestApiVersion": "2026-03-10",
     "apiSurface": "github-api-surface.json",
@@ -426,7 +426,8 @@
       "route": "GET /users/{username}",
       "access": "read",
       "capabilityIds": [
-        "deployment-environments"
+        "deployment-environments",
+        "owner-kind"
       ],
       "permissionProfiles": [
         "classic-repo",

@@ -25,8 +25,17 @@ try {
   const apiSurfaceConfig = parseJson(
     await readFile(resolve(referenceRoot, 'github-api-surface.config.json'), 'utf8'),
   );
-  const cliContract = await loadTypeScriptContract(resolve(root, 'src/cli-contract.ts'));
-  const schema = generateConfigurationSchema();
+  const cliContract = await loadTypeScriptExport(
+    resolve(root, 'src/cli-contract.ts'),
+    'CLI_CONTRACT',
+  );
+  const buildConfigModel = await loadTypeScriptExport(
+    resolve(root, 'src/config/shape.ts'),
+    'configModel',
+  );
+  const docsLine = documentationLine(packageMetadata.version);
+  const schema = generateConfigurationSchema(docsLine);
+  const planArtifactSchema = generatePlanArtifactSchema(docsLine);
   const capabilities = generateCapabilities(capabilityConfig, packageMetadata.version);
   const permissions = generatePermissions(
     capabilityConfig,
@@ -34,8 +43,11 @@ try {
     packageMetadata.version,
   );
   const cli = { ...cliContract, productVersion: packageMetadata.version };
+  const configModel = { ...buildConfigModel(), productVersion: packageMetadata.version };
   const generated = new Map([
     ['config.schema.json', json(schema)],
+    ['plan-artifact.schema.json', json(planArtifactSchema)],
+    ['config-model.json', json(configModel)],
     ['cli.json', json(cli)],
     ['capabilities.json', json(capabilities)],
     ['permissions.json', json(permissions)],
@@ -69,9 +81,24 @@ function parseArgs(args) {
   throw new Error(`Unknown argument: ${args.join(' ')}`);
 }
 
-function generateConfigurationSchema() {
+/**
+ * The documentation site publishes one immutable line per MAJOR.MINOR, so the
+ * schema URL each release points at follows the release rather than a pinned
+ * literal that has to be remembered at every version bump.
+ */
+function documentationLine(version) {
+  const [major, minor] = version.split('.');
+  return `${major}.${minor}`;
+}
+
+/** The published, immutable address of one generated schema. */
+function schemaUrl(docsLine, name) {
+  return 'https://hector-ae21.github.io/octoform-docs/' + docsLine + '/assets/' + name;
+}
+
+function generateConfigurationSchema(docsLine) {
   const generated = createGenerator({
-    path: resolve(root, 'src/config/types.ts'),
+    path: resolve(root, 'src/types/config.ts'),
     tsconfig: resolve(root, 'tsconfig.json'),
     type: 'Config',
     expose: 'export',
@@ -81,12 +108,29 @@ function generateConfigurationSchema() {
     sortProps: true,
   }).createSchema('Config');
   return {
-    $id: 'https://hector-ae21.github.io/octoform-docs/0.3/assets/config.schema.json',
+    $id: schemaUrl(docsLine, 'config.schema.json'),
     ...generated,
   };
 }
 
-async function loadTypeScriptContract(path) {
+function generatePlanArtifactSchema(docsLine) {
+  const generated = createGenerator({
+    path: resolve(root, 'src/types/plan-artifact.ts'),
+    tsconfig: resolve(root, 'tsconfig.json'),
+    type: 'PlanArtifact',
+    expose: 'export',
+    jsDoc: 'extended',
+    skipTypeCheck: false,
+    additionalProperties: false,
+    sortProps: true,
+  }).createSchema('PlanArtifact');
+  return {
+    $id: schemaUrl(docsLine, 'plan-artifact.schema.json'),
+    ...generated,
+  };
+}
+
+async function loadTypeScriptExport(path, name) {
   const source = await readFile(path, 'utf8');
   const result = ts.transpileModule(source, {
     fileName: path,
@@ -104,7 +148,7 @@ async function loadTypeScriptContract(path) {
   }
   const encoded = Buffer.from(result.outputText).toString('base64');
   const contractModule = await import(`data:text/javascript;base64,${encoded}`);
-  return contractModule.CLI_CONTRACT;
+  return contractModule[name];
 }
 
 function generateCapabilities(config, productVersion) {
@@ -224,9 +268,11 @@ async function generateChecksums(generated) {
     'api.json',
     'capabilities.json',
     'cli.json',
+    'config-model.json',
     'config.schema.json',
     'github-api-surface.json',
     'permissions.json',
+    'plan-artifact.schema.json',
   ];
   const lines = [];
   for (const name of releaseAssets.sort()) {

@@ -100,10 +100,13 @@ try {
 
 function smokeProgram(packageName, policyPath) {
   return `import assert from 'node:assert/strict';
-import { loadConfig, planRepo, resolvePolicy } from ${JSON.stringify(packageName)};
+import { capability, loadConfig, planRepo, resolvePolicy } from ${JSON.stringify(packageName)};
 
 const config = loadConfig(${JSON.stringify(policyPath)});
-assert.equal(config.owner, 'your-account');
+assert.equal(config.version, 1);
+assert.equal(config.owners.length, 1);
+const [scope] = config.owners;
+assert.equal(scope.owner, 'your-account');
 const repository = {
   name: 'example',
   visibility: 'public',
@@ -120,11 +123,14 @@ const repository = {
     'repo.topics': [],
   },
 };
-const changes = planRepo(repository, resolvePolicy(config, repository), {
-  rulesetsEnforcedOnPrivate: true,
+const changes = planRepo(scope.owner, repository, resolvePolicy(scope, repository), {
+  rulesetCapability: capability('supported', 'public repository', 'resource-state'),
 });
 assert.equal(changes.length, 1);
 assert.equal(changes[0]?.key, 'merge.delete_branch_on_merge');
+assert.equal(changes[0]?.id, 'your-account/example#merge.delete_branch_on_merge');
+assert.equal(changes[0]?.owner, 'your-account');
+assert.equal(changes[0]?.risk, 'normal');
 console.log('Installed package import, configuration, and plan succeeded.');
 `;
 }

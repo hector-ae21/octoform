@@ -1,5 +1,6 @@
 /**
- * The configuration model.
+ * The configuration model: what an author may write in a YAML file, and what
+ * `loadConfig` normalizes it into.
  *
  * Everything specific to a particular organisation lives in a YAML file, never
  * here. This module knows that a policy exists and how it is resolved; it does
@@ -98,6 +99,16 @@ export interface FilePolicy {
 /** Everything that can be declared at any level of the precedence chain. */
 export interface PolicySet {
   /**
+   * Named entries of the root `policies` block to fold in before this layer's
+   * own keys, in declaration order.
+   *
+   * A policy is a reusable fragment of ordinary policy, nothing more: it has no
+   * meaning of its own and cannot express anything a layer could not express
+   * inline. Referencing one never overrides a key the referencing layer states
+   * itself, so reading a layer top to bottom still tells the whole story.
+   */
+  policies?: string[];
+  /**
    * When false, the repository is still inventoried and audited but no policy
    * is applied to it. Distinct from `exclude`, which drops it entirely.
    */
@@ -143,8 +154,49 @@ export interface AuditConfig {
   require_type?: boolean;
 }
 
-/** A complete root configuration after imported files have been resolved. */
+/** A repository entry: a policy layer plus the type it is classified as. */
+export type RepoEntry = PolicySet & { type?: string };
+
+/** Repositories dropped from every command, by name. */
+export interface ExcludeConfig {
+  repos?: string[];
+}
+
+/**
+ * The configuration contract a file is written against.
+ *
+ * It is not the version of octoform. It changes only when the meaning of an
+ * existing key changes, which is what lets a future release read an old file
+ * correctly instead of guessing.
+ */
+export type ConfigVersion = 1;
+
+/** Everything one GitHub owner can declare under `owners`. */
+export interface OwnerBlock {
+  classify?: ClassifyConfig;
+  audit?: AuditConfig;
+  defaults?: PolicySet;
+  types?: Record<string, PolicySet>;
+  repos?: Record<string, RepoEntry>;
+  exclude?: ExcludeConfig;
+}
+
+/**
+ * A configuration file as it is written, before normalization.
+ *
+ * Two shapes are accepted. A single-owner file names its account in `owner`
+ * and declares policy at the root; a multi-owner file lists accounts under
+ * `owners` and keeps the root for what they share. Declaring both is an error:
+ * the two cannot be reconciled without deciding, on the author's behalf, which
+ * account the root-level policy was meant for.
+ */
 export interface Config {
+  /**
+   * The configuration contract version. Optional for a single-owner file so
+   * that files written before it existed keep loading; required as soon as
+   * `owners` is used, because that shape has never existed without it.
+   */
+  version?: ConfigVersion;
   /**
    * A GitHub login: an organisation or a personal account. octoform tells
    * which one it is by asking the API, not by anything declared here — an
@@ -152,7 +204,12 @@ export interface Config {
    * configuration, and forcing the author to say which invites the file to
    * be wrong about it.
    */
-  owner: string;
+  owner?: string;
+  /**
+   * Accounts to govern, keyed by GitHub login. Each entry may narrow or
+   * override what the root declares for all of them.
+   */
+  owners?: Record<string, OwnerBlock>;
   /**
    * Other configuration files to merge before this one, most general first.
    * Paths are resolved relative to the file that lists them, so an imported
@@ -162,132 +219,45 @@ export interface Config {
    * it from each real configuration.
    */
   imports?: string[];
+  /**
+   * Reusable policy fragments, keyed by a name of the author's choosing, that
+   * any layer folds in through its own `policies` list. A policy may reference
+   * other policies; a reference cycle is reported with the full chain.
+   */
+  policies?: Record<string, PolicySet>;
   classify?: ClassifyConfig;
   audit?: AuditConfig;
   defaults?: PolicySet;
   types?: Record<string, PolicySet>;
-  repos?: Record<string, PolicySet & { type?: string }>;
-  exclude?: { repos?: string[] };
+  /**
+   * Per-repository overrides. Only valid in a single-owner file: a bare
+   * repository name identifies nothing on its own once more than one account
+   * is in scope, so a multi-owner file declares these under their owner.
+   */
+  repos?: Record<string, RepoEntry>;
+  exclude?: ExcludeConfig;
 }
 
 /**
- * Whether `owner` turned out to be an organisation or a personal account.
- * Several features are organisation-only (custom properties, organisation
- * rulesets), so this changes what gets probed and how findings are worded —
- * never what the configuration is allowed to say.
- */
-export type OwnerKind = 'org' | 'user';
-
-/** A repository as octoform sees it, before any policy is applied. */
-export interface RepoState {
-  name: string;
-  visibility: 'public' | 'private' | 'internal';
-  archived: boolean;
-  default_branch: string;
-  description: string | null;
-  homepage: string | null;
-  topics: string[];
-  /** Resolved type, from the custom property or from `repos.<name>.type`. */
-  type?: string;
-}
-
-/**
- * Everything `plan` needs to compare against a policy. Some of it comes from
- * the repository object and some from endpoints of its own, so it is gathered
- * separately from the cheap inventory `audit` runs on.
- */
-/**
- * The answer could not be read at all: an endpoint this plan does not expose,
- * or a field GitHub omitted. Distinct from `null`, which is a real value for
- * a description or a homepage and means "set to nothing". Conflating the two
- * makes the planner offer to fill in a field it cannot even see.
- */
-export const UNREADABLE = Symbol('unreadable');
-
-/** An observed scalar setting or explicit unreadable sentinel. */
-export type SettingValue = boolean | string | string[] | null | typeof UNREADABLE;
-
-/**
- * A ruleset as it exists on GitHub right now, reduced to the parts octoform
- * manages. Everything else GitHub stores on a ruleset — bypass actors, rules
- * octoform does not model — is deliberately absent: `plan` must not offer to
- * remove a rule it never knew how to describe.
- */
-export interface ExistingRuleset {
-  id: number;
-  name: string;
-  target_branches: string[];
-  required_approvals?: number;
-  required_checks?: string[];
-  block_force_push: boolean;
-  block_deletion: boolean;
-}
-
-/**
- * An environment as it exists on GitHub right now, reduced to what octoform
- * compares.
+ * Everything that applies to exactly one GitHub owner, with imports folded in,
+ * policy references expanded and the shared root layered underneath.
  *
- * `reviewers` is `UNREADABLE` rather than an empty list when the
- * environment's required-reviewers rule includes a team: octoform only ever
- * resolves a declared reviewer to a *user* id (see `resolveReviewers` in
- * github/apply.ts), so it has no way to represent a team's protection — and
- * must not silently overwrite it. Reading it as "no reviewers" would make
- * `plan` propose what looks like a pure addition but would actually replace
- * the team when applied.
+ * This is what every command consumes. Neither shape of the authored file
+ * survives into it, so nothing downstream has to know which one was written.
  */
-export interface ExistingEnvironment {
-  name: string;
-  reviewers: string[] | typeof UNREADABLE;
+export interface OwnerScope {
+  owner: string;
+  classify?: ClassifyConfig;
+  audit?: AuditConfig;
+  defaults?: PolicySet;
+  types?: Record<string, PolicySet>;
+  repos?: Record<string, RepoEntry>;
+  exclude?: ExcludeConfig;
 }
 
-/**
- * State that costs an extra request each, so it is only gathered when a policy
- * actually asks about it.
- *
- * Every field distinguishes "not gathered, or could not be read" (undefined)
- * from "gathered, and there is nothing" (an empty array or map). Collapsing
- * the two would make `plan` offer to create things it simply failed to look at.
- */
-export interface RepoStructure {
-  /** Environments that exist, each with its current required reviewers. */
-  environments?: ExistingEnvironment[];
-  rulesets?: ExistingRuleset[];
-  /** Existence state by path for the paths named by a `files` policy. */
-  files?: Record<string, boolean>;
-  /** Existence state by branch for the branches named by `ensure_branches`. */
-  branches?: Record<string, boolean>;
-  /**
-   * Workflow files that mention the current default branch by name. Renaming
-   * the branch does not rewrite these, so they are the collateral damage of a
-   * rename and have to be named before it happens, not discovered after.
-   */
-  workflowsNamingDefaultBranch?: string[];
-}
-
-export interface RepoDetail extends RepoState {
-  settings: Record<string, SettingValue>;
-  structure?: RepoStructure;
-}
-
-/** One difference between what is declared and what the repository has. */
-export interface Change {
-  repo: string;
-  /** Dotted path of the setting, e.g. "merge.delete_branch_on_merge". */
-  key: string;
-  from: unknown;
-  to: unknown;
-  /** Set when the change cannot be applied; explains why, in plain words. */
-  blocked?: string;
-  /**
-   * Set when the change will be applied but has a consequence the operator
-   * should know about first. Distinct from `blocked`: this one still happens.
-   */
-  warning?: string;
-  /**
-   * What `apply` needs to carry the change out, for the changes whose `to` is
-   * a sentence meant for a human rather than a value an endpoint accepts. A
-   * ruleset reads as "v*.x, 1 approval" in the report; the API wants the
-   * policy object it came from.
-   */
-  payload?: unknown;
+/** A loaded configuration, normalized to one scope per owner. */
+export interface ResolvedConfig {
+  version: ConfigVersion;
+  /** In the order the owners were declared, which is the order they are run. */
+  owners: OwnerScope[];
 }

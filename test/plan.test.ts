@@ -1,10 +1,21 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { planRepo } from '../src/core/plan.js';
-import { UNREADABLE } from '../src/config/types.js';
-import type { PolicySet, RepoDetail } from '../src/config/types.js';
+import { UNREADABLE } from '../src/config/sentinels.js';
+import { capability } from '../src/github/capabilities.js';
+import type { Change, PlanOptions, PolicySet, RepoDetail } from '../src/types/index.js';
 
-const OPTIONS = { rulesetsEnforcedOnPrivate: true };
+const SUPPORTED = capability('supported', 'available in this fixture', 'resource-state');
+const FORBIDDEN = capability('forbidden', 'not available in this fixture', 'permission');
+const OPTIONS = { rulesetCapability: SUPPORTED };
+
+/**
+ * Every case here is about one repository under one policy, so the owner is
+ * fixed. Owner threading and operation identity are covered by the property
+ * suite instead.
+ */
+const planned = (repo: RepoDetail, policy: PolicySet, options: PlanOptions = OPTIONS): Change[] =>
+  planRepo('account', repo, policy, options);
 
 const repo = (over: Partial<RepoDetail> = {}): RepoDetail => ({
   name: 'thing',
@@ -26,13 +37,13 @@ const repo = (over: Partial<RepoDetail> = {}): RepoDetail => ({
 
 test('a policy that matches produces no change', () => {
   const policy: PolicySet = { features: { issues: true } };
-  assert.deepEqual(planRepo(repo(), policy, OPTIONS), []);
+  assert.deepEqual(planned(repo(), policy, OPTIONS), []);
 });
 
 test('an unmanaged setting is never a change, however different', () => {
   // wiki is true on the repository and simply absent from the policy.
   const policy: PolicySet = { features: { issues: true } };
-  const changes = planRepo(repo(), policy, OPTIONS);
+  const changes = planned(repo(), policy, OPTIONS);
   assert.equal(
     changes.find((c) => c.key === 'features.wiki'),
     undefined,
@@ -41,12 +52,12 @@ test('an unmanaged setting is never a change, however different', () => {
 
 test('a cancelled setting is not a change either', () => {
   const policy: PolicySet = { features: { wiki: null } };
-  assert.deepEqual(planRepo(repo(), policy, OPTIONS), []);
+  assert.deepEqual(planned(repo(), policy, OPTIONS), []);
 });
 
 test('false is planned when the repository has it on', () => {
   const policy: PolicySet = { features: { wiki: false } };
-  const changes = planRepo(repo(), policy, OPTIONS);
+  const changes = planned(repo(), policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.deepEqual(
     { key: changes[0]?.key, from: changes[0]?.from, to: changes[0]?.to },
@@ -56,29 +67,29 @@ test('false is planned when the repository has it on', () => {
 
 test('manage: false suppresses everything', () => {
   const policy: PolicySet = { manage: false, features: { wiki: false } };
-  assert.deepEqual(planRepo(repo(), policy, OPTIONS), []);
+  assert.deepEqual(planned(repo(), policy, OPTIONS), []);
 });
 
 test('an archived repository is never planned against', () => {
   const policy: PolicySet = { features: { wiki: false } };
-  assert.deepEqual(planRepo(repo({ archived: true }), policy, OPTIONS), []);
+  assert.deepEqual(planned(repo({ archived: true }), policy, OPTIONS), []);
 });
 
 test('unset and empty string are the same absence', () => {
   const policy: PolicySet = { repo: { description: '' } };
-  assert.deepEqual(planRepo(repo(), policy, OPTIONS), []);
+  assert.deepEqual(planned(repo(), policy, OPTIONS), []);
 });
 
 test('topics compare as sets, not as ordered lists', () => {
   const state = repo({ settings: { ...repo().settings, 'repo.topics': ['b', 'a'] } });
   const policy: PolicySet = { repo: { topics: ['a', 'b'] } };
-  assert.deepEqual(planRepo(state, policy, OPTIONS), []);
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
 });
 
 test('an unreadable current value is blocked, not silently applied', () => {
   const state = repo({ settings: { ...repo().settings, 'security.secret_scanning': UNREADABLE } });
   const policy: PolicySet = { security: { secret_scanning: true } };
-  const changes = planRepo(state, policy, OPTIONS);
+  const changes = planned(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.match(String(changes[0]?.blocked), /could not be read/);
 });
@@ -86,7 +97,7 @@ test('an unreadable current value is blocked, not silently applied', () => {
 test('a policy with no REST endpoint at all is blamed on the API, not on the configuration', () => {
   const state = repo({ settings: { ...repo().settings, 'features.discussions': false } });
   const policy: PolicySet = { features: { discussions: true } };
-  const changes = planRepo(state, policy, OPTIONS);
+  const changes = planned(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.equal(changes[0]?.blocked, 'not applicable over the REST API');
 });
@@ -95,19 +106,19 @@ test('rulesets on a private repository are blocked when the owner and token cann
   const policy: PolicySet = {
     rulesets: [{ name: 'protect', target_branches: ['main'] }],
   };
-  const changes = planRepo(repo({ visibility: 'private' }), policy, {
-    rulesetsEnforcedOnPrivate: false,
+  const changes = planned(repo({ visibility: 'private' }), policy, {
+    rulesetCapability: FORBIDDEN,
   });
   assert.equal(changes.length, 1);
-  assert.match(String(changes[0]?.blocked), /current owner plan and token/);
+  assert.match(String(changes[0]?.blocked), /not available in this fixture/);
 });
 
 test('a public repository is not blocked for that reason, and a missing ruleset is created', () => {
   const policy: PolicySet = {
     rulesets: [{ name: 'protect', target_branches: ['main'] }],
   };
-  const changes = planRepo(repo({ structure: { rulesets: [] } }), policy, {
-    rulesetsEnforcedOnPrivate: false,
+  const changes = planned(repo({ structure: { rulesets: [] } }), policy, {
+    rulesetCapability: FORBIDDEN,
   });
   assert.equal(changes.length, 1);
   assert.equal(changes[0]?.key, 'rulesets.protect');
@@ -143,7 +154,7 @@ test('a ruleset that already matches is not planned again', () => {
       ],
     },
   });
-  assert.deepEqual(planRepo(state, policy, OPTIONS), []);
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
 });
 
 test('a ruleset that differs is updated in place, carrying the id it already has', () => {
@@ -164,21 +175,21 @@ test('a ruleset that differs is updated in place, carrying the id it already has
       ],
     },
   });
-  const changes = planRepo(state, policy, OPTIONS);
+  const changes = planned(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.deepEqual(changes[0]?.payload, { ruleset: policy.rulesets?.[0], id: 7 });
 });
 
 test('rulesets that could not be read are blocked rather than assumed missing', () => {
   const policy: PolicySet = { rulesets: [{ name: 'protect', target_branches: ['main'] }] };
-  const changes = planRepo(repo({ structure: {} }), policy, OPTIONS);
+  const changes = planned(repo({ structure: {} }), policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.match(String(changes[0]?.blocked), /could not read/);
 });
 
 test('the default branch is renamed only from a name the configuration anticipated', () => {
   const policy: PolicySet = { default_branch: { name: 'v0.x', rename_from: ['master'] } };
-  const changes = planRepo(repo({ default_branch: 'trunk' }), policy, OPTIONS);
+  const changes = planned(repo({ default_branch: 'trunk' }), policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.match(String(changes[0]?.blocked), /not in rename_from/);
 });
@@ -189,7 +200,7 @@ test('a rename that was anticipated goes ahead and names the workflows it will b
     default_branch: 'master',
     structure: { workflowsNamingDefaultBranch: ['.github/workflows/ci.yml'] },
   });
-  const changes = planRepo(state, policy, OPTIONS);
+  const changes = planned(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.equal(changes[0]?.blocked, undefined);
   assert.match(String(changes[0]?.warning), /ci\.yml/);
@@ -198,13 +209,13 @@ test('a rename that was anticipated goes ahead and names the workflows it will b
 
 test('a default branch that already has the wanted name is not a change', () => {
   const policy: PolicySet = { default_branch: { name: 'main' } };
-  assert.deepEqual(planRepo(repo(), policy, OPTIONS), []);
+  assert.deepEqual(planned(repo(), policy, OPTIONS), []);
 });
 
 test('ensure_branches creates what is missing and leaves what is there alone', () => {
   const policy: PolicySet = { ensure_branches: ['main', 'develop'] };
   const state = repo({ structure: { branches: { main: true, develop: false } } });
-  const changes = planRepo(state, policy, OPTIONS);
+  const changes = planned(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.equal(changes[0]?.key, 'ensure_branches.develop');
   assert.deepEqual(changes[0]?.payload, { branch: 'develop', from: 'main' });
@@ -213,7 +224,7 @@ test('ensure_branches creates what is missing and leaves what is there alone', (
 test('an environment that exists with the same reviewers is not touched', () => {
   const policy: PolicySet = { environments: [{ name: 'npm', reviewers: ['alice'] }] };
   const state = repo({ structure: { environments: [{ name: 'npm', reviewers: ['alice'] }] } });
-  assert.deepEqual(planRepo(state, policy, OPTIONS), []);
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
 });
 
 test('reviewer order does not count as drift, same as topics', () => {
@@ -221,13 +232,13 @@ test('reviewer order does not count as drift, same as topics', () => {
   const state = repo({
     structure: { environments: [{ name: 'npm', reviewers: ['bob', 'alice'] }] },
   });
-  assert.deepEqual(planRepo(state, policy, OPTIONS), []);
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
 });
 
 test('a missing environment is planned with its reviewers', () => {
   const policy: PolicySet = { environments: [{ name: 'npm', reviewers: ['someone'] }] };
   const state = repo({ structure: { environments: [] } });
-  const changes = planRepo(state, policy, OPTIONS);
+  const changes = planned(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.equal(changes[0]?.key, 'environments.npm');
   assert.equal(changes[0]?.from, null);
@@ -237,7 +248,7 @@ test('a missing environment is planned with its reviewers', () => {
 test('an existing environment with different reviewers is corrected, not skipped', () => {
   const policy: PolicySet = { environments: [{ name: 'npm', reviewers: ['alice'] }] };
   const state = repo({ structure: { environments: [{ name: 'npm', reviewers: ['bob'] }] } });
-  const changes = planRepo(state, policy, OPTIONS);
+  const changes = planned(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.equal(changes[0]?.key, 'environments.npm');
   assert.match(String(changes[0]?.from), /bob/);
@@ -248,7 +259,7 @@ test('an existing environment with different reviewers is corrected, not skipped
 test('an environment guarded by a team is blocked, never read as having no reviewers', () => {
   const policy: PolicySet = { environments: [{ name: 'npm', reviewers: ['alice'] }] };
   const state = repo({ structure: { environments: [{ name: 'npm', reviewers: UNREADABLE }] } });
-  const changes = planRepo(state, policy, OPTIONS);
+  const changes = planned(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
   assert.match(String(changes[0]?.blocked), /team/);
 });
@@ -264,7 +275,7 @@ test('a file that is already there is never re-seeded', () => {
     ],
   };
   const state = repo({ structure: { files: { '.github/dependabot.yml': true } } });
-  assert.deepEqual(planRepo(state, policy, OPTIONS), []);
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
 });
 
 test('a missing file is planned, carrying the local source to copy', () => {
@@ -274,7 +285,7 @@ test('a missing file is planned, carrying the local source to copy', () => {
     mode: 'create-if-missing' as const,
   };
   const state = repo({ structure: { files: { '.github/dependabot.yml': false } } });
-  const changes = planRepo(state, { files: [file] }, OPTIONS);
+  const changes = planned(state, { files: [file] }, OPTIONS);
   assert.equal(changes.length, 1);
   assert.deepEqual(changes[0]?.payload, { file });
 });
@@ -318,5 +329,5 @@ test('a repository that already matches its whole policy plans nothing', () => {
     },
   });
 
-  assert.deepEqual(planRepo(state, policy, OPTIONS), []);
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
 });

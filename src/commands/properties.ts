@@ -5,7 +5,7 @@ import {
   readPropertyValues,
   setPropertyValues,
 } from '../github/client.js';
-import type { Config } from '../config/types.js';
+import type { OwnerScope } from '../types/index.js';
 
 /**
  * Bring the custom property that stores each repository's type into line with
@@ -22,23 +22,23 @@ import type { Config } from '../config/types.js';
  * `repos.<name>.type` in the configuration file is the only store there is,
  * and it already works without this command.
  */
-export async function propertiesSync(octokit: Octokit, config: Config): Promise<number> {
-  const property = config.classify?.property;
+export async function propertiesSync(octokit: Octokit, scope: OwnerScope): Promise<number> {
+  const property = scope.classify?.property;
   if (!property) {
     console.error('No classify.property declared in the configuration — nothing to sync.');
     return 1;
   }
 
-  const kind = await detectOwnerKind(octokit, config.owner);
+  const kind = await detectOwnerKind(octokit, scope.owner);
   if (kind !== 'org') {
     console.error(
-      `"${config.owner}" is a personal account. Custom properties are an organisation-only ` +
+      `"${scope.owner}" is a personal account. Custom properties are an organisation-only ` +
         `feature, so there is nothing to sync — declare types under repos.<name>.type instead.`,
     );
     return 1;
   }
 
-  const allowedValues = Object.keys(config.types ?? {});
+  const allowedValues = Object.keys(scope.types ?? {});
   if (allowedValues.length === 0) {
     console.error(
       'No types declared under "types" — the allowed values of the property are taken from ' +
@@ -47,11 +47,11 @@ export async function propertiesSync(octokit: Octokit, config: Config): Promise<
     return 1;
   }
 
-  console.log(`Property "${property}" on ${config.owner}`);
+  console.log(`Property "${property}" on ${scope.owner}`);
   console.log(`  allowed values: ${allowedValues.join(', ')}`);
 
   try {
-    await putPropertySchema(octokit, config.owner, property, allowedValues);
+    await putPropertySchema(octokit, scope.owner, property, allowedValues);
     console.log('  schema: up to date');
   } catch (error) {
     console.error(`  schema: FAILED — ${(error as Error).message}`);
@@ -59,7 +59,7 @@ export async function propertiesSync(octokit: Octokit, config: Config): Promise<
   }
 
   const declared = new Map<string, string>();
-  for (const [name, entry] of Object.entries(config.repos ?? {})) {
+  for (const [name, entry] of Object.entries(scope.repos ?? {})) {
     if (entry?.type) declared.set(name, entry.type);
   }
 
@@ -68,7 +68,7 @@ export async function propertiesSync(octokit: Octokit, config: Config): Promise<
     return 0;
   }
 
-  const current = await readPropertyValues(octokit, config.owner, property);
+  const current = await readPropertyValues(octokit, scope.owner, property);
   const byType = new Map<string, string[]>();
   for (const [repo, type] of declared) {
     if (current.get(repo) === type) continue;
@@ -86,7 +86,7 @@ export async function propertiesSync(octokit: Octokit, config: Config): Promise<
   let failures = 0;
   for (const [type, repos] of byType) {
     try {
-      await setPropertyValues(octokit, config.owner, property, type, repos);
+      await setPropertyValues(octokit, scope.owner, property, type, repos);
       console.log(`  ${type}: ${repos.join(', ')}`);
     } catch (error) {
       failures++;

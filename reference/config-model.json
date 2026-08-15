@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": 1,
+  "precedence": [
+    "imported files, in declaration order",
+    "root policies referenced by the layer being resolved",
+    "root defaults",
+    "owner defaults",
+    "types.<type>",
+    "repos.<name>"
+  ],
+  "semantics": [
+    {
+      "shape": "AuditConfig",
+      "field": "require_description",
+      "merge": "replace"
+    },
+    {
+      "shape": "AuditConfig",
+      "field": "require_topics",
+      "merge": "replace"
+    },
+    {
+      "shape": "ClassifyConfig",
+      "field": "rules",
+      "merge": "ordered-append"
+    },
+    {
+      "shape": "ClassifyRule",
+      "field": "when",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "ClassifyRuleCondition",
+      "field": "json",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "Config",
+      "field": "audit",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "Config",
+      "field": "classify",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "Config",
+      "field": "defaults",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "Config",
+      "field": "exclude",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "Config",
+      "field": "imports",
+      "merge": "not-layered"
+    },
+    {
+      "shape": "Config",
+      "field": "owners",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "Config",
+      "field": "policies",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "Config",
+      "field": "repos",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "Config",
+      "field": "types",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "DefaultBranchPolicy",
+      "field": "rename_from",
+      "merge": "replace"
+    },
+    {
+      "shape": "EnvironmentPolicy",
+      "field": "reviewers",
+      "merge": "replace"
+    },
+    {
+      "shape": "ExcludeConfig",
+      "field": "repos",
+      "merge": "union"
+    },
+    {
+      "shape": "OwnerBlock",
+      "field": "audit",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OwnerBlock",
+      "field": "classify",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OwnerBlock",
+      "field": "defaults",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OwnerBlock",
+      "field": "exclude",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OwnerBlock",
+      "field": "repos",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OwnerBlock",
+      "field": "types",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "default_branch",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "ensure_branches",
+      "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "environments",
+      "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "features",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "files",
+      "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "merge",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "policies",
+      "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "repo",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "rulesets",
+      "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "security",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "default_branch",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "ensure_branches",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "environments",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "features",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "files",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "merge",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "policies",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "repo",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "rulesets",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "security",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RepoPolicy",
+      "field": "topics",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "required_checks",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "target_branches",
+      "merge": "replace"
+    }
+  ],
+  "productVersion": "0.4.0"
+}

@@ -4,9 +4,16 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { after, test } from 'node:test';
 import { ConfigError, loadConfig, resolvePolicy } from '../src/config/resolve.js';
+import type { OwnerScope, ResolvedConfig } from '../src/types/index.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'octoform-imports-'));
 after(() => rmSync(dir, { recursive: true, force: true }));
+
+/** The one scope a single-owner configuration resolves to. */
+function only(config: ResolvedConfig): OwnerScope {
+  assert.equal(config.owners.length, 1);
+  return config.owners[0] as OwnerScope;
+}
 
 function write(name: string, content: string): string {
   const path = join(dir, name);
@@ -34,7 +41,7 @@ imports: [preset.yml]
 `,
   );
 
-  const config = loadConfig(path);
+  const config = only(loadConfig(path));
   assert.equal(config.owner, 'my-account');
   assert.equal(config.defaults?.features?.issues, true);
   assert.equal(config.types?.['npm-package']?.merge?.allow_squash, true);
@@ -52,7 +59,7 @@ defaults:
 `,
   );
 
-  const config = loadConfig(path);
+  const config = only(loadConfig(path));
   assert.equal(config.defaults?.features?.issues, true, 'untouched key survives the import');
   assert.equal(config.defaults?.features?.wiki, false, 'the importing file wins');
 });
@@ -62,7 +69,7 @@ test('later imports override earlier ones, most general first', () => {
   write('b.yml', `defaults:\n  features: { wiki: false }\n`);
   const path = write('main.yml', `owner: my-account\nimports: [a.yml, b.yml]\n`);
 
-  const config = loadConfig(path);
+  const config = only(loadConfig(path));
   assert.equal(config.defaults?.features?.issues, true);
   assert.equal(config.defaults?.features?.wiki, false, 'b.yml is listed after a.yml, so it wins');
 });
@@ -75,7 +82,7 @@ test('imports resolve relative to the importing file, nested arbitrarily deep', 
   );
   const path = write('main.yml', `owner: my-account\nimports: [lib/preset.yml]\n`);
 
-  const config = loadConfig(path);
+  const config = only(loadConfig(path));
   assert.equal(config.defaults?.features?.projects, false);
   assert.equal(config.types?.service?.merge?.allow_rebase, false);
 });
@@ -92,7 +99,7 @@ repos:
 `,
   );
 
-  const config = loadConfig(path);
+  const config = only(loadConfig(path));
   const policy = resolvePolicy(config, {
     name: 'some-lib',
     visibility: 'public',

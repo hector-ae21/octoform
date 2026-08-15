@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
 import { CLI_CONTRACT, renderUsage } from '../src/cli-contract.js';
+import { PRECEDENCE, collectionSemantics } from '../src/config/shape.js';
+import { CONFIG_VERSION } from '../src/config/resolve.js';
 
 type JsonSchema = {
   $id: string;
@@ -48,9 +50,11 @@ const releaseReferenceNames = [
   'api.json',
   'capabilities.json',
   'cli.json',
+  'config-model.json',
   'config.schema.json',
   'github-api-surface.json',
   'permissions.json',
+  'plan-artifact.schema.json',
 ] as const;
 
 test('the CLI manifest is the exact runtime help contract', () => {
@@ -65,21 +69,58 @@ test('the CLI manifest is the exact runtime help contract', () => {
   for (const option of CLI_CONTRACT.options) assert.match(usage, new RegExp(escape(option.syntax)));
 });
 
+/**
+ * Documentation is published one immutable line per MAJOR.MINOR, so a schema
+ * URL that stayed pinned across a release would point at the previous line's
+ * copy of itself.
+ */
+function publishedSchemaUrl(name: string): string {
+  const [major, minor] = packageMetadata.version.split('.');
+  return `https://hector-ae21.github.io/octoform-docs/${major}.${minor}/assets/${name}`;
+}
+
+test('every generated schema is published under this release documentation line', () => {
+  for (const name of ['config.schema.json', 'plan-artifact.schema.json'] as const) {
+    assert.equal(readJson<JsonSchema>(`reference/${name}`).$id, publishedSchemaUrl(name));
+  }
+});
+
 test('the configuration schema exposes the strict Config contract', () => {
   const schema = readJson<JsonSchema>('reference/config.schema.json');
   const config = schema.definitions.Config;
-  assert.equal(
-    schema.$id,
-    'https://hector-ae21.github.io/octoform-docs/0.3/assets/config.schema.json',
-  );
+  assert.equal(schema.$id, publishedSchemaUrl('config.schema.json'));
   assert.equal(schema.$schema, 'http://json-schema.org/draft-07/schema#');
   assert.equal(schema.$ref, '#/definitions/Config');
   assert.equal(config?.additionalProperties, false);
-  assert.deepEqual(config?.required, ['owner']);
+  assert.equal(config?.required, undefined, 'either owner shape is accepted at the schema level');
+  assert.ok(config?.properties?.version);
   assert.ok(config?.properties?.owner);
+  assert.ok(config?.properties?.owners);
+  assert.ok(config?.properties?.policies);
   assert.ok(config?.properties?.defaults);
   assert.ok(config?.properties?.types);
   assert.ok(config?.properties?.repos);
+});
+
+test('the published configuration model describes the shape the loader enforces', () => {
+  const model = readJson<{
+    schemaVersion: number;
+    contractVersion: number;
+    productVersion: string;
+    precedence: string[];
+    semantics: Array<{ shape: string; field: string; merge: string }>;
+  }>('reference/config-model.json');
+
+  assert.equal(model.schemaVersion, 1);
+  assert.equal(model.contractVersion, CONFIG_VERSION);
+  assert.equal(model.productVersion, packageMetadata.version);
+  assert.deepEqual(model.precedence, [...PRECEDENCE]);
+  assert.deepEqual(model.semantics, collectionSemantics());
+
+  const known = new Set(['merge-by-key', 'replace', 'union', 'ordered-append', 'not-layered']);
+  for (const entry of model.semantics) {
+    assert.ok(known.has(entry.merge), `${entry.shape}.${entry.field} declares ${entry.merge}`);
+  }
 });
 
 test('every implemented route has capabilities and permission evidence', () => {

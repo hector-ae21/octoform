@@ -135,7 +135,7 @@
       "configPaths": ["owner"],
       "commands": ["audit", "plan", "apply", "classify", "properties sync"],
       "ownerKinds": ["organization", "personal"],
-      "readRoutes": ["GET /orgs/{org}"],
+      "readRoutes": ["GET /orgs/{org}", "GET /users/{username}"],
       "writeRoutes": [],
       "readPermissions": ["classic-repo"],
       "writePermissions": [],

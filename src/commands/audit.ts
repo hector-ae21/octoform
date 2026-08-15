@@ -1,26 +1,24 @@
 import type { Octokit } from '@octokit/rest';
 import { isExcluded, repoType } from '../config/resolve.js';
 import { detectLimits, detectOwnerKind, listRepos, readPropertyValues } from '../github/client.js';
-import type { AuditConfig, Config, OwnerKind, RepoState } from '../config/types.js';
+import { printable } from '../report/format.js';
+import type { AuditConfig, Finding, OwnerKind, OwnerScope, RepoState } from '../types/index.js';
 
-export interface Finding {
-  repo: string;
-  issue: string;
-}
+export type { Finding } from '../types/index.js';
 
 /**
  * Read-only. Reports what deviates from the declared expectations and never
- * changes anything, so it is safe to run before any of the config is trusted.
+ * changes anything, so it is safe to run before any of the configuration is trusted.
  */
-export async function audit(octokit: Octokit, config: Config): Promise<number> {
-  const kind = await detectOwnerKind(octokit, config.owner);
-  const limits = await detectLimits(octokit, config.owner, kind);
-  const all = await listRepos(octokit, config.owner, kind);
+export async function audit(octokit: Octokit, scope: OwnerScope): Promise<number> {
+  const kind = await detectOwnerKind(octokit, scope.owner);
+  const limits = await detectLimits(octokit, scope.owner, kind);
+  const all = await listRepos(octokit, scope.owner, kind);
 
-  const property = config.classify?.property;
+  const property = scope.classify?.property;
   const types =
     property && kind === 'org'
-      ? await readPropertyValues(octokit, config.owner, property)
+      ? await readPropertyValues(octokit, scope.owner, property)
       : new Map<string, string>();
 
   if (property && kind === 'org' && types.size === 0) {
@@ -29,35 +27,29 @@ export async function audit(octokit: Octokit, config: Config): Promise<number> {
         `are set yet, or this plan does not expose them. Types declared in the ` +
         `configuration file are still used.\n`,
     );
-  } else if (property && kind === 'user') {
-    console.log(
-      `Note: "${config.owner}" is a personal account, so the "${property}" custom ` +
-        `property does not apply — that is an organisation-only feature. Types ` +
-        `declared under "repos" in the configuration file are used instead.\n`,
-    );
   }
 
   for (const repo of all) repo.type = types.get(repo.name);
 
-  const excluded = all.filter((r) => isExcluded(config, r.name));
-  const considered = all.filter((r) => !isExcluded(config, r.name));
+  const excluded = all.filter((r) => isExcluded(scope, r.name));
+  const considered = all.filter((r) => !isExcluded(scope, r.name));
 
   const findings: Finding[] = [];
   for (const repo of considered) {
-    findings.push(...inspect(repo, config));
+    findings.push(...inspect(repo, scope));
   }
 
-  report(config, kind, considered, excluded, findings, limits.plan, limits.orgRulesets);
+  report(scope, kind, considered, excluded, findings, limits.plan, limits.orgRulesets);
   return findings.length;
 }
 
-function inspect(repo: RepoState, config: Config): Finding[] {
-  const rules: AuditConfig = config.audit ?? {};
+function inspect(repo: RepoState, scope: OwnerScope): Finding[] {
+  const rules: AuditConfig = scope.audit ?? {};
   const found: Finding[] = [];
 
   if (repo.archived) return found;
 
-  if (rules.require_type !== false && !repoType(config, repo)) {
+  if (rules.require_type !== false && !repoType(scope, repo)) {
     found.push({ repo: repo.name, issue: 'no type recorded' });
   }
 
@@ -89,7 +81,7 @@ function matchesVisibility(repo: RepoState, visibility: string | undefined): boo
 }
 
 function report(
-  config: Config,
+  scope: OwnerScope,
   kind: OwnerKind,
   considered: RepoState[],
   excluded: RepoState[],
@@ -97,10 +89,10 @@ function report(
   plan: string | undefined,
   orgRulesets: boolean,
 ): void {
-  const width = Math.max(...considered.map((r) => r.name.length), 4);
+  const width = Math.max(...considered.map((r) => printable(r.name).length), 4);
 
   const label = kind === 'org' ? 'Organisation' : 'Personal account';
-  console.log(`${label}: ${config.owner}${plan ? ` (${plan} plan)` : ''}`);
+  console.log(`${label}: ${scope.owner}${plan ? ` (${plan} plan)` : ''}`);
   if (kind === 'org' && !orgRulesets) {
     console.log(
       'Organisation-wide rulesets are not available on this plan. Branch rules ' +
@@ -110,14 +102,16 @@ function report(
   console.log('');
 
   console.log(`${'REPO'.padEnd(width)}  ${'TYPE'.padEnd(14)}  VISIBILITY`);
-  for (const repo of [...considered].sort(sortByTypeThenName(config))) {
-    const type = repoType(config, repo) ?? '-';
+  for (const repo of [...considered].sort(sortByTypeThenName(scope))) {
+    const type = repoType(scope, repo) ?? '-';
     const archived = repo.archived ? ' (archived)' : '';
-    console.log(`${repo.name.padEnd(width)}  ${type.padEnd(14)}  ${repo.visibility}${archived}`);
+    const name = printable(repo.name).padEnd(width);
+    console.log(`${name}  ${printable(type).padEnd(14)}  ${repo.visibility}${archived}`);
   }
 
   if (excluded.length > 0) {
-    console.log(`\nExcluded (${excluded.length}): ${excluded.map((r) => r.name).join(', ')}`);
+    const names = excluded.map((r) => printable(r.name)).join(', ');
+    console.log(`\nExcluded (${excluded.length}): ${names}`);
   }
 
   console.log('');
@@ -128,14 +122,14 @@ function report(
 
   console.log(`${findings.length} finding(s):`);
   for (const finding of findings) {
-    console.log(`  ${finding.repo.padEnd(width)}  ${finding.issue}`);
+    console.log(`  ${printable(finding.repo).padEnd(width)}  ${printable(finding.issue)}`);
   }
 }
 
-function sortByTypeThenName(config: Config) {
+function sortByTypeThenName(scope: OwnerScope) {
   return (a: RepoState, b: RepoState): number => {
-    const ta = repoType(config, a) ?? '~';
-    const tb = repoType(config, b) ?? '~';
+    const ta = repoType(scope, a) ?? '~';
+    const tb = repoType(scope, b) ?? '~';
     return ta === tb ? a.name.localeCompare(b.name) : ta.localeCompare(tb);
   };
 }

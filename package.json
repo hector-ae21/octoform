@@ -1,6 +1,6 @@
 {
   "name": "@hector21/octoform",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Declarative plan/apply governance for GitHub repositories: settings, branch rules, environments and files, from one YAML file",
   "keywords": [
     "github",
@@ -47,8 +47,8 @@
     "clean:build": "node scripts/clean.mjs build",
     "clean:test": "node scripts/clean.mjs test",
     "build": "npm run clean:build && tsc",
-    "format": "prettier --write src test scripts bin .github/workflows package.json tsconfig.json tsconfig.test.json typedoc.json eslint.config.mjs .prettierrc.json",
-    "format:check": "prettier --check src test scripts bin .github/workflows package.json tsconfig.json tsconfig.test.json typedoc.json eslint.config.mjs .prettierrc.json",
+    "format": "prettier --write src test scripts bin .github/workflows .github/codeql package.json tsconfig.json tsconfig.test.json typedoc.json eslint.config.mjs .prettierrc.json",
+    "format:check": "prettier --check src test scripts bin .github/workflows .github/codeql package.json tsconfig.json tsconfig.test.json typedoc.json eslint.config.mjs .prettierrc.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src bin scripts",
     "test": "npm run verify",
