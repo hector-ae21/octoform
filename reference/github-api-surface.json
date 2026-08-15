@@ -30,10 +30,14 @@
       "sensitive-declarative": 295
     },
     "byTarget": {
-      "0.3.1": 40,
-      "0.5.0": 292,
+      "0.3.1": 37,
+      "0.5.0": 295,
       "0.6.0": 1001,
       "none": 4
+    },
+    "byImplementedIn": {
+      "0.3.1": 37,
+      "0.5.0": 3
     }
   },
   "operations": [
@@ -10765,10 +10769,10 @@
       "tag": "repos",
       "summary": "Disable immutable releases",
       "disposition": "declarative",
-      "target": "0.3.1",
+      "target": "0.5.0",
       "rationale": "Durable repository state; destructive and workflow exceptions are overridden explicitly.",
       "rule": "repos-mutation",
-      "status": "implemented-v0.3.1",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/repos/repos#disable-immutable-releases"
@@ -10781,10 +10785,10 @@
       "tag": "repos",
       "summary": "Check if immutable releases are enabled for a repository",
       "disposition": "observational",
-      "target": "0.3.1",
+      "target": "0.5.0",
       "rationale": "Read-only inventory, capability evidence, or audit data.",
       "rule": "rest-read",
-      "status": "implemented-v0.3.1",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/repos/repos#check-if-immutable-releases-are-enabled-for-a-repository"
@@ -10797,10 +10801,10 @@
       "tag": "repos",
       "summary": "Enable immutable releases",
       "disposition": "declarative",
-      "target": "0.3.1",
+      "target": "0.5.0",
       "rationale": "Durable repository state; destructive and workflow exceptions are overridden explicitly.",
       "rule": "repos-mutation",
-      "status": "implemented-v0.3.1",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/repos/repos#enable-immutable-releases"

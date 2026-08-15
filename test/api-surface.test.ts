@@ -30,6 +30,7 @@ type Register = {
     byTransport: Record<string, number>;
     byDisposition: Record<string, number>;
     byTarget: Record<string, number>;
+    byImplementedIn: Record<string, number>;
   };
   operations: RegisterOperation[];
 };
@@ -37,7 +38,7 @@ type Register = {
 type SurfaceConfig = {
   schemaVersion: number;
   rest: {
-    currentRoutes: string[];
+    implementedRoutes: Record<string, string[]>;
     reviewedOperations: string[];
   };
   graphql: {
@@ -118,17 +119,42 @@ test('the GraphQL mutation snapshot and generated register agree', () => {
   }
 });
 
-test('all v0.3.1 REST routes remain represented as implemented', () => {
-  const implemented = new Set(
+test('every implemented route is stamped with the release it actually arrived in', () => {
+  const declared = new Map<string, string>();
+  for (const [version, routes] of Object.entries(config.rest.implementedRoutes)) {
+    for (const route of routes) {
+      assert.equal(declared.has(route), false, `${route} is declared under two releases`);
+      declared.set(route, version);
+    }
+  }
+
+  const stamped = new Map(
     register.operations
-      .filter(
-        (operation) => operation.transport === 'rest' && operation.status === 'implemented-v0.3.1',
-      )
-      .map((operation) => `${operation.method} ${operation.path}`),
+      .filter((operation) => operation.status.startsWith('implemented-v'))
+      .map((operation) => [
+        `${operation.method} ${operation.path}`,
+        operation.status.slice('implemented-v'.length),
+      ]),
   );
-  assert.deepEqual(implemented, new Set(config.rest.currentRoutes));
-  assert.equal(register.summary.implemented, implemented.size);
-  assert.equal(register.summary.byTarget['0.3.1'], implemented.size);
+
+  assert.deepEqual(stamped, declared);
+  assert.equal(register.summary.implemented, declared.size);
+  for (const [version, routes] of Object.entries(config.rest.implementedRoutes)) {
+    assert.equal(register.summary.byImplementedIn[version], routes.length, version);
+  }
+});
+
+/**
+ * `byTarget` counts an implemented operation under the release it shipped in
+ * and a planned one under the release it is aimed at, so on its own it cannot
+ * separate the two once both exist for the same release.
+ */
+test('a release that both shipped and is planned for keeps the two counts apart', () => {
+  const shipped = register.summary.byImplementedIn['0.5.0'] ?? 0;
+  const targeted = register.summary.byTarget['0.5.0'] ?? 0;
+
+  assert.ok(shipped > 0, 'this release has shipped operations');
+  assert.ok(targeted > shipped, 'and still has more planned than shipped');
 });
 
 function readJson<T>(path: string): T {

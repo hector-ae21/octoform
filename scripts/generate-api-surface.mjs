@@ -81,8 +81,32 @@ async function loadOpenApi(source, localPath) {
   return parseJson(bytes.toString('utf8'));
 }
 
+/**
+ * The release each implemented route arrived in, by route.
+ *
+ * Recorded per route rather than assumed: the register is attached to every
+ * GitHub Release, so an operation claiming a release it did not ship in is a
+ * published statement that is simply false. A route listed twice would make
+ * the answer depend on iteration order, so it is rejected outright.
+ */
+function arrivalsByRoute(config) {
+  const arrivals = new Map();
+  for (const [version, routes] of Object.entries(config.rest.implementedRoutes)) {
+    if (!/^\d+\.\d+\.\d+$/.test(version)) {
+      throw new Error(`rest.implementedRoutes has a key that is not a release: ${version}`);
+    }
+    for (const route of routes) {
+      const seen = arrivals.get(route);
+      if (seen) throw new Error(`${route} is listed as implemented in both ${seen} and ${version}`);
+      arrivals.set(route, version);
+    }
+  }
+  return arrivals;
+}
+
 function buildRegister(config, openApi) {
-  const currentRoutes = new Set(config.rest.currentRoutes);
+  const arrivals = arrivalsByRoute(config);
+  const unmatched = new Set(arrivals.keys());
   const reviewedOperations = new Set(config.rest.reviewedOperations);
   if (reviewedOperations.size !== config.rest.reviewedOperations.length) {
     throw new Error('Duplicate entry in rest.reviewedOperations');
@@ -112,7 +136,7 @@ function buildRegister(config, openApi) {
       }
       validatePolicy(policy, `${method.toUpperCase()} ${path}`);
       const route = `${method.toUpperCase()} ${path}`;
-      const implemented = currentRoutes.has(route);
+      const arrivedIn = arrivals.get(route);
       const reviewedKey = restOperationKey(method, path, operation.operationId);
       if (!reviewedOperations.delete(reviewedKey)) undispositioned.push(reviewedKey);
       rest.push({
@@ -123,19 +147,19 @@ function buildRegister(config, openApi) {
         tag,
         summary: operation.summary ?? '',
         disposition: policy.disposition,
-        target: implemented ? '0.3.1' : policy.target,
+        target: arrivedIn ?? policy.target,
         rationale: policy.rationale,
         rule: policy.id,
-        status: implemented ? 'implemented-v0.3.1' : statusFor(policy.disposition),
+        status: arrivedIn ? `implemented-v${arrivedIn}` : statusFor(policy.disposition),
         deprecated: Boolean(operation.deprecated),
         githubApps: operation['x-github']?.enabledForGitHubApps ?? null,
         documentation: operation.externalDocs?.url ?? null,
       });
-      currentRoutes.delete(route);
+      unmatched.delete(route);
     }
   }
-  if (currentRoutes.size > 0) {
-    throw new Error(`Current REST routes absent from OpenAPI: ${[...currentRoutes].join(', ')}`);
+  if (unmatched.size > 0) {
+    throw new Error(`Implemented REST routes absent from OpenAPI: ${[...unmatched].join(', ')}`);
   }
   if (undispositioned.length > 0) {
     throw new Error(
@@ -250,18 +274,31 @@ function summarize(operations) {
   const byTransport = countBy(operations, (operation) => operation.transport);
   const byDisposition = countBy(operations, (operation) => operation.disposition);
   const byTarget = countBy(operations, (operation) => operation.target ?? 'none');
-  const implemented = operations.filter(
-    (operation) => operation.status === 'implemented-v0.3.1',
-  ).length;
+  /**
+   * Counted separately from `byTarget`, which an implemented operation shares
+   * with everything still aimed at the same release: without this, three
+   * operations that shipped in a release and three hundred planned for it are
+   * one indistinguishable number.
+   */
+  const done = operations.filter((operation) => implementedIn(operation) !== undefined);
+  const byImplementedIn = countBy(done, implementedIn);
   const deprecated = operations.filter((operation) => operation.deprecated).length;
   return {
     total: operations.length,
-    implemented,
+    implemented: done.length,
     deprecated,
     byTransport,
     byDisposition,
     byTarget,
+    byImplementedIn,
   };
+}
+
+/** The release an operation shipped in, or undefined while it is only planned. */
+function implementedIn(operation) {
+  return operation.status.startsWith('implemented-v')
+    ? operation.status.slice('implemented-v'.length)
+    : undefined;
 }
 
 function countBy(items, keyFor) {
