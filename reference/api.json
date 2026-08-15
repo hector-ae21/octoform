@@ -359,7 +359,15 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Reduce an apply run's results to the counts that matter."
+								"text": "Reduce an apply run's results to the counts that matter.\n\n"
+							},
+							{
+								"kind": "code",
+								"text": "`blockedCount`"
+							},
+							{
+								"kind": "text",
+								"text": " carries what planning already refused to hand over. Anything\nthis run stopped attempting, because a prerequisite failed part way through,\nis added to it: both were left alone for the same reason, and counting them\napart would suggest one of them might have been half-applied."
 							}
 						]
 					},
@@ -4134,7 +4142,7 @@
 						},
 						{
 							"id": 234,
-							"name": "changes",
+							"name": "planned",
 							"variant": "param",
 							"kind": 32768,
 							"flags": {},
@@ -7380,6 +7388,26 @@
 					"variant": "declaration",
 					"kind": 1024,
 					"flags": {},
+					"comment": {
+						"summary": [
+							{
+								"kind": "code",
+								"text": "`blocked`"
+							},
+							{
+								"kind": "text",
+								"text": " means the change was never attempted, because an operation it\ndepends on failed in this same run. Kept distinct from "
+							},
+							{
+								"kind": "code",
+								"text": "`failed`"
+							},
+							{
+								"kind": "text",
+								"text": ": nothing\nwas sent, so nothing is half-done, and the run reports the blocked class\nrather than the failed one."
+							}
+						]
+					},
 					"type": {
 						"type": "union",
 						"types": [
@@ -7390,6 +7418,10 @@
 							{
 								"type": "literal",
 								"value": "failed"
+							},
+							{
+								"type": "literal",
+								"value": "blocked"
 							}
 						]
 					}
@@ -7406,7 +7438,7 @@
 						"summary": [
 							{
 								"kind": "text",
-								"text": "Present only when outcome is 'failed'."
+								"text": "The failure, or the reason nothing was attempted."
 							}
 						]
 					},
@@ -15380,7 +15412,7 @@
 		"234": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/github/apply.ts",
-			"qualifiedName": "changes"
+			"qualifiedName": "planned"
 		},
 		"235": {
 			"packageName": "@hector21/octoform",

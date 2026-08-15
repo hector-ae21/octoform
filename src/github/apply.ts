@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import type { Octokit } from '@octokit/rest';
 import { toRefName } from './client.js';
+import { blockedByPrerequisite, orderByDependency } from '../core/dependencies.js';
 import type {
   AppliedChange,
   Change,
@@ -67,9 +68,32 @@ export async function applyRepoChanges(
   octokit: Octokit,
   owner: string,
   repo: string,
-  changes: Change[],
+  planned: Change[],
 ): Promise<AppliedChange[]> {
   const results: AppliedChange[] = [];
+  const changes = orderByDependency(planned);
+  const failed = new Set<string>();
+
+  /**
+   * Record an outcome, remembering a failure so anything depending on it can
+   * be stopped before it is sent.
+   */
+  const record = (result: AppliedChange): void => {
+    if (result.outcome !== 'applied') failed.add(result.id);
+    results.push(result);
+  };
+
+  /**
+   * Whether this change was stopped by something that already failed. The
+   * blocked result is recorded here so the caller sees one entry per planned
+   * change either way.
+   */
+  const stopped = (change: Change): boolean => {
+    const reason = blockedByPrerequisite(change, failed);
+    if (reason === undefined) return false;
+    record({ ...change, outcome: 'blocked', error: reason });
+    return true;
+  };
 
   const patchBody: Record<string, unknown> = {};
   const securityAndAnalysis: Record<string, { status: 'enabled' | 'disabled' }> = {};
@@ -142,7 +166,7 @@ export async function applyRepoChanges(
   const rename = changes.find((c) => c.key === 'default_branch.name');
   if (rename) {
     const payload = rename.payload as { from: string; to: string } | undefined;
-    results.push(
+    record(
       await attempt(rename, async () => {
         if (!payload) throw new Error('no branch to rename from');
         await octokit.request('POST /repos/{owner}/{repo}/branches/{branch}/rename', {
@@ -156,8 +180,9 @@ export async function applyRepoChanges(
   }
 
   for (const change of changes.filter((c) => c.key.startsWith('ensure_branches.'))) {
+    if (stopped(change)) continue;
     const payload = change.payload as { branch: string; from: string } | undefined;
-    results.push(
+    record(
       await attempt(change, async () => {
         if (!payload?.from) throw new Error('no source branch to create from');
         const { data } = await octokit.request('GET /repos/{owner}/{repo}/git/ref/{ref}', {
@@ -192,8 +217,9 @@ export async function applyRepoChanges(
   }
 
   for (const change of changes.filter((c) => c.key.startsWith('rulesets.'))) {
+    if (stopped(change)) continue;
     const payload = change.payload as { ruleset: RulesetPolicy; id?: number } | undefined;
-    results.push(
+    record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no ruleset to apply');
         const body = rulesetBody(payload.ruleset);
@@ -212,8 +238,9 @@ export async function applyRepoChanges(
   }
 
   for (const change of changes.filter((c) => c.key.startsWith('files.'))) {
+    if (stopped(change)) continue;
     const payload = change.payload as { file: FilePolicy } | undefined;
-    results.push(
+    record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no file to seed');
         let content: string;
