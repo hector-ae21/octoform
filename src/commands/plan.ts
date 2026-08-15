@@ -7,6 +7,7 @@ import {
   getOrganizationDetail,
   getRepoDetail,
   listRepos,
+  readPropertyDefinitions,
   readPropertyValues,
 } from '../github/client.js';
 import { capability } from '../github/capabilities.js';
@@ -14,7 +15,15 @@ import { DEFAULT_CONCURRENCY, mapWithConcurrency } from '../core/concurrency.js'
 import { planRepo } from '../core/plan.js';
 import { planOrganization } from '../core/organization.js';
 import { formatChange, groupByRepo, printable } from '../report/format.js';
-import type { Change, OwnerScope, PlanResult, PlanSelector, PlanSummary } from '../types/index.js';
+import type {
+  Change,
+  OrganizationPolicy,
+  OrganizationState,
+  OwnerScope,
+  PlanResult,
+  PlanSelector,
+  PlanSummary,
+} from '../types/index.js';
 
 export type { PlanResult } from '../types/index.js';
 
@@ -73,7 +82,9 @@ export async function plan(
     ? planOrganization(
         scope.owner,
         kind,
-        kind === 'org' ? await getOrganizationDetail(octokit, scope.owner) : undefined,
+        kind === 'org'
+          ? await readOrganization(octokit, scope.owner, scope.organization)
+          : undefined,
         scope.organization,
       )
     : [];
@@ -121,6 +132,27 @@ export async function plan(
 
   if (!opts?.quiet) report(changes, blocked, errors, targets.length);
   return { changes, blocked, errors, scanned: targets.length };
+}
+
+/**
+ * Gather the organisation, asking only about what the policy declares.
+ *
+ * The property definitions cost a request of their own, so a file that
+ * declares no property never pays for it. A file that does gets them read
+ * before anything is planned, because writing a definition replaces it and
+ * there is nothing to carry forward from a listing that was never fetched.
+ */
+async function readOrganization(
+  octokit: Octokit,
+  owner: string,
+  policy: OrganizationPolicy,
+): Promise<OrganizationState> {
+  const settings = await getOrganizationDetail(octokit, owner);
+  const properties = policy.properties ? await readPropertyDefinitions(octokit, owner) : undefined;
+  return {
+    ...(settings === undefined ? {} : { settings }),
+    ...(properties === undefined ? {} : { properties }),
+  };
 }
 
 /**

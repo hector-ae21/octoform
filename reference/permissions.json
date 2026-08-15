@@ -20,7 +20,8 @@
       "capabilityIds": [
         "organization-custom-properties",
         "organization-member-policies",
-        "organization-profile"
+        "organization-profile",
+        "organization-property-definitions"
       ]
     },
     {
@@ -97,7 +98,8 @@
       "access": "admin",
       "description": "Organization custom-property definitions.",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "organization-property-definitions"
       ]
     },
     {
@@ -108,7 +110,8 @@
       "access": "read",
       "description": "Organization repository property definitions and values.",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "organization-property-definitions"
       ]
     },
     {
@@ -119,7 +122,8 @@
       "access": "write",
       "description": "Organization repository property values.",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "repository-property-values"
       ]
     },
     {
@@ -271,6 +275,18 @@
   ],
   "operations": [
     {
+      "route": "DELETE /orgs/{org}/properties/schema/{custom_property_name}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-property-definitions"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-custom-properties-admin"
+      ]
+    },
+    {
       "route": "DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}",
       "access": "write",
       "capabilityIds": [
@@ -403,6 +419,18 @@
         "classic-admin-org",
         "classic-repo",
         "organization-administration-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/properties/schema",
+      "access": "read",
+      "capabilityIds": [
+        "organization-property-definitions"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-custom-properties-read"
       ]
     },
     {
@@ -740,7 +768,8 @@
       "route": "PATCH /orgs/{org}/properties/values",
       "access": "write",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "repository-property-values"
       ],
       "permissionProfiles": [
         "classic-admin-org",
@@ -815,6 +844,7 @@
       ],
       "permissionProfiles": [
         "classic-repo",
+        "organization-custom-properties-write",
         "repository-custom-properties-write"
       ]
     },
@@ -890,7 +920,8 @@
       "route": "PUT /orgs/{org}/properties/schema/{custom_property_name}",
       "access": "write",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "organization-property-definitions"
       ],
       "permissionProfiles": [
         "classic-admin-org",

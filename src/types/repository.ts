@@ -3,6 +3,9 @@
 import type { UNREADABLE } from '../config/sentinels.js';
 import type {
   BranchProtectionSettings,
+  PropertyEditors,
+  PropertyValue,
+  PropertyValueType,
   RuleSettings,
   RulesetEnforcement,
   RulesetTarget,
@@ -101,6 +104,44 @@ export interface ExistingMilestone {
   state: 'open' | 'closed';
   /** The due date as a calendar day, with the time GitHub chose discarded. */
   due?: string;
+}
+
+/**
+ * A custom property definition as the organisation holds it right now.
+ *
+ * Read in full even though a policy rarely states all of it, because the
+ * endpoint that writes one replaces the whole definition: the fields nobody
+ * declared are exactly the fields that need carrying forward.
+ */
+export interface ExistingProperty {
+  name: string;
+  value_type: PropertyValueType;
+  description: string | null;
+  required: boolean;
+  default_value: PropertyValue | null;
+  allowed_values: string[] | null;
+  values_editable_by: PropertyEditors | null;
+  require_explicit_values: boolean;
+  /**
+   * Where the definition comes from. An organisation can see the properties
+   * its enterprise defines and cannot change them, and nothing else in the
+   * payload distinguishes one of those from its own.
+   */
+  source_type: 'organization' | 'enterprise';
+}
+
+/**
+ * The organisation itself as it stands, gathered before anything is planned.
+ *
+ * Each field is absent when it could not be read, and an absent field blocks
+ * rather than being treated as empty: writing an organisation setting over
+ * settings nobody managed to read is the one thing worse than not writing it.
+ */
+export interface OrganizationState {
+  /** Scalar settings, keyed the way a change names them. */
+  settings?: Record<string, SettingValue>;
+  /** Custom property definitions, by name. */
+  properties?: Record<string, ExistingProperty>;
 }
 
 /** A repository invitation that has been sent and not yet answered. */

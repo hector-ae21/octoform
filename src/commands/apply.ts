@@ -6,7 +6,12 @@ import {
   EXIT_FAILED,
   EXIT_SUCCESS,
 } from '../cli-exit-codes.js';
-import { applyOrganizationChanges, applyRepoChanges } from '../github/apply.js';
+import {
+  applyOrganizationChanges,
+  applyPropertyValues,
+  applyRepoChanges,
+} from '../github/apply.js';
+import { separateValues } from '../core/properties.js';
 import { plan } from './plan.js';
 import { DEFAULT_CONCURRENCY, mapWithConcurrency } from '../core/concurrency.js';
 import { formatChange, groupByRepo, printable } from '../report/format.js';
@@ -88,7 +93,24 @@ export async function apply(
     console.log(`  ${printable(scope.owner)}  ${result.key}: ${outcome}`);
   }
 
-  const grouped = groupByRepo(changes.filter((change) => change.repo !== undefined));
+  /**
+   * Then the property values, which can travel in shared requests and so are
+   * not the repositories' to send one at a time. They go before the
+   * repositories because a value decides which organisation rules govern a
+   * repository: setting it first means the repository's own changes happen
+   * under the rules the configuration asks for rather than the previous ones.
+   */
+  const { shared, sequential } = separateValues(
+    changes.filter((change) => change.repo !== undefined),
+  );
+  const valueResults = await applyPropertyValues(octokit, scope.owner, shared);
+  for (const result of valueResults) {
+    const outcome =
+      result.outcome === 'applied' ? 'done' : `FAILED — ${printable(result.error ?? '')}`;
+    console.log(`  ${printable(result.repo ?? '')}  ${result.key}: ${outcome}`);
+  }
+
+  const grouped = groupByRepo(sequential);
   const perRepo = await mapWithConcurrency(
     grouped,
     options.concurrency ?? DEFAULT_CONCURRENCY,
@@ -105,7 +127,8 @@ export async function apply(
     },
   );
 
-  let failures = organizationResults.filter((r) => r.outcome === 'failed').length;
+  const beforeRepositories = [...organizationResults, ...valueResults];
+  let failures = beforeRepositories.filter((r) => r.outcome === 'failed').length;
   let unattempted = 0;
   for (const [index, results] of perRepo.entries()) {
     const repoName = grouped[index]?.[0] ?? '';
@@ -130,7 +153,7 @@ export async function apply(
       : undefined,
   ].filter(Boolean);
   console.log(note.length === 0 ? 'All changes applied.' : `${note.join(', and ')} — see above.`);
-  const allResults = [...organizationResults, ...perRepo.flat()];
+  const allResults = [...beforeRepositories, ...perRepo.flat()];
   const status =
     failures > 0 ? EXIT_FAILED : blocked.length + unattempted > 0 ? EXIT_BLOCKED : EXIT_SUCCESS;
   return { status, summary: summarizeApply(allResults, blocked.length) };

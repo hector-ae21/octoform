@@ -14,7 +14,7 @@ const current: Record<string, SettingValue> = {
 };
 
 const planned = (policy: OrganizationPolicy, held = current) =>
-  planOrganization('acme', 'org', held, policy);
+  planOrganization('acme', 'org', { settings: held }, policy);
 
 test('a policy that matches produces no change', () => {
   assert.deepEqual(planned({ profile: { name: 'Acme' } }), []);
@@ -57,7 +57,7 @@ test('a personal account is told it has none of these, rather than being attempt
 });
 
 test('settings that could not be read block rather than being planned over', () => {
-  const missing = planOrganization('acme', 'org', undefined, { profile: { name: 'Acme Inc' } });
+  const missing = planOrganization('acme', 'org', {}, { profile: { name: 'Acme Inc' } });
   assert.match(String(missing[0]?.blocked), /could not read the current organisation settings/u);
 
   const unreadable = planned(
@@ -101,7 +101,9 @@ test('every key a policy can declare has a field to read and write it', () => {
       repository_projects: true,
     },
   };
-  const keys = planOrganization('acme', 'org', {}, declared).map((change) => change.key);
+  const keys = planOrganization('acme', 'org', { settings: {} }, declared).map(
+    (change) => change.key,
+  );
 
   assert.deepEqual(
     keys.filter((key) => ORGANIZATION_FIELDS[key] === undefined),

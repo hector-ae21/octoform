@@ -16,7 +16,7 @@
   },
   "summary": {
     "total": 1338,
-    "implemented": 66,
+    "implemented": 68,
     "deprecated": 47,
     "byTransport": {
       "graphql": 274,
@@ -37,7 +37,7 @@
     },
     "byImplementedIn": {
       "0.3.1": 37,
-      "0.5.0": 29
+      "0.5.0": 31
     }
   },
   "operations": [
@@ -5060,7 +5060,7 @@
       "target": "0.5.0",
       "rationale": "Read-only inventory, capability evidence, or audit data.",
       "rule": "rest-read",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/orgs/custom-properties#get-all-custom-properties-for-an-organization"
@@ -5092,7 +5092,7 @@
       "target": "0.5.0",
       "rationale": "Durable organization settings, access, roles, custom properties, and rules.",
       "rule": "orgs-mutation",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": true,
       "documentation": "https://docs.github.com/rest/orgs/custom-properties#remove-a-custom-property-for-an-organization"

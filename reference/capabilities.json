@@ -500,6 +500,45 @@
       ]
     },
     {
+      "id": "organization-property-definitions",
+      "area": "organization",
+      "support": "supported",
+      "configPaths": [
+        "organization.properties"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization"
+      ],
+      "readRoutes": [
+        "GET /orgs/{org}/properties/schema"
+      ],
+      "writeRoutes": [
+        "DELETE /orgs/{org}/properties/schema/{custom_property_name}",
+        "PUT /orgs/{org}/properties/schema/{custom_property_name}"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-admin-org",
+        "organization-custom-properties-read"
+      ],
+      "writePermissions": [
+        "classic-admin-org",
+        "organization-custom-properties-admin"
+      ],
+      "limitations": [
+        "Blocked on a personal account: custom properties are an organization feature.",
+        "The write replaces the whole definition, so the current one is read first and every field the configuration does not state is carried forward.",
+        "Blocked when the definitions could not be read, since there would be nothing to carry forward.",
+        "A property the enterprise defines is visible and cannot be changed by the organization.",
+        "A definition is removed only when the configuration names it with mode: absent, and that is reported as destructive because it takes the value off every repository.",
+        "Requiring a value or dropping an allowed value is reported as sensitive; a description is not."
+      ]
+    },
+    {
       "id": "owner-kind",
       "area": "discovery",
       "support": "supported",
@@ -951,6 +990,7 @@
         "GET /repos/{owner}/{repo}/properties/values"
       ],
       "writeRoutes": [
+        "PATCH /orgs/{org}/properties/values",
         "PATCH /repos/{owner}/{repo}/properties/values"
       ],
       "writeMutations": [],
@@ -960,12 +1000,16 @@
       ],
       "writePermissions": [
         "classic-repo",
+        "organization-custom-properties-write",
         "repository-custom-properties-write"
       ],
       "limitations": [
         "Blocked on a personal repository: custom properties are defined by an organisation.",
         "An empty value unsets the property, since null already means stop managing it.",
-        "Every declared value is sent in one request, so they succeed or fail together."
+        "Every declared value is sent in one request, so they succeed or fail together.",
+        "Repositories asking for the same values are written together, up to the thirty the organization endpoint takes; a single repository uses its own endpoint, which needs only that repository's permission.",
+        "A shared request has a shared outcome: GitHub does not say which repository it refused, so every repository in a failed batch is reported failed.",
+        "A repository this run is also archiving or unarchiving keeps its values in its own sequence, because they have to wait for it."
       ]
     },
     {
