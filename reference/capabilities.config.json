@@ -65,6 +65,38 @@
       "description": "Branch creation and create-if-missing file writes."
     },
     {
+      "id": "repository-issues-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Issues",
+      "access": "read",
+      "description": "Reading the labels and milestones a repository already has."
+    },
+    {
+      "id": "repository-issues-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Issues",
+      "access": "write",
+      "description": "Creating, renaming and deleting labels and milestones."
+    },
+    {
+      "id": "repository-custom-properties-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Custom properties",
+      "access": "read",
+      "description": "Reading the custom property values set on one repository."
+    },
+    {
+      "id": "repository-custom-properties-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Custom properties",
+      "access": "write",
+      "description": "Setting and unsetting custom property values on one repository."
+    },
+    {
       "id": "organization-custom-properties-read",
       "tokenType": "fine-grained",
       "scope": "organization",
@@ -530,6 +562,68 @@
       "limitations": [
         "Blocked on a personal repository, which has no teams.",
         "A team the policy does not name keeps whatever access it has; revoking is spelled none."
+      ]
+    },
+    {
+      "id": "repository-labels",
+      "area": "collections",
+      "support": "supported",
+      "configPaths": ["labels"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/labels"],
+      "writeRoutes": [
+        "POST /repos/{owner}/{repo}/labels",
+        "PATCH /repos/{owner}/{repo}/labels/{name}",
+        "DELETE /repos/{owner}/{repo}/labels/{name}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-issues-read"],
+      "writePermissions": ["classic-repo", "repository-issues-write"],
+      "limitations": [
+        "A label the policy does not name is left alone; removing one is spelled mode: absent.",
+        "Deleting a label removes it from every issue and pull request that carries it, so it is reported as destructive.",
+        "rename_from renames an existing label rather than creating a second one, which is what keeps it on the issues it already marks."
+      ]
+    },
+    {
+      "id": "repository-milestones",
+      "area": "collections",
+      "support": "supported",
+      "configPaths": ["milestones"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/milestones"],
+      "writeRoutes": [
+        "POST /repos/{owner}/{repo}/milestones",
+        "PATCH /repos/{owner}/{repo}/milestones/{milestone_number}",
+        "DELETE /repos/{owner}/{repo}/milestones/{milestone_number}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-issues-read"],
+      "writePermissions": ["classic-repo", "repository-issues-write"],
+      "limitations": [
+        "Closed milestones are read as well as open ones, since GitHub does not refuse a second milestone with the same title.",
+        "A due date is compared as a calendar day; the time GitHub attaches to it is not something a policy states.",
+        "Deleting a milestone detaches it from every issue in it, so it is reported as destructive."
+      ]
+    },
+    {
+      "id": "repository-property-values",
+      "area": "collections",
+      "support": "supported",
+      "configPaths": ["properties"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/properties/values"],
+      "writeRoutes": ["PATCH /repos/{owner}/{repo}/properties/values"],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-custom-properties-read"],
+      "writePermissions": ["classic-repo", "repository-custom-properties-write"],
+      "limitations": [
+        "Blocked on a personal repository: custom properties are defined by an organisation.",
+        "An empty value unsets the property, since null already means stop managing it.",
+        "Every declared value is sent in one request, so they succeed or fail together."
       ]
     },
     {

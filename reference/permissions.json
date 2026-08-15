@@ -50,7 +50,10 @@
         "repository-graphql-settings",
         "repository-guarded-changes",
         "repository-inventory",
+        "repository-labels",
         "repository-metadata",
+        "repository-milestones",
+        "repository-property-values",
         "repository-rulesets",
         "repository-topics",
         "ruleset-bypass-actors",
@@ -184,6 +187,52 @@
       ]
     },
     {
+      "id": "repository-custom-properties-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Custom properties",
+      "access": "read",
+      "description": "Reading the custom property values set on one repository.",
+      "capabilityIds": [
+        "repository-property-values"
+      ]
+    },
+    {
+      "id": "repository-custom-properties-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Custom properties",
+      "access": "write",
+      "description": "Setting and unsetting custom property values on one repository.",
+      "capabilityIds": [
+        "repository-property-values"
+      ]
+    },
+    {
+      "id": "repository-issues-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Issues",
+      "access": "read",
+      "description": "Reading the labels and milestones a repository already has.",
+      "capabilityIds": [
+        "repository-labels",
+        "repository-milestones"
+      ]
+    },
+    {
+      "id": "repository-issues-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Issues",
+      "access": "write",
+      "description": "Creating, renaming and deleting labels and milestones.",
+      "capabilityIds": [
+        "repository-labels",
+        "repository-milestones"
+      ]
+    },
+    {
       "id": "repository-metadata-read",
       "tokenType": "fine-grained",
       "scope": "repository",
@@ -268,6 +317,28 @@
       "permissionProfiles": [
         "classic-repo",
         "repository-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/labels/{name}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-labels"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/milestones/{milestone_number}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-milestones"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
       ]
     },
     {
@@ -498,6 +569,28 @@
       ]
     },
     {
+      "route": "GET /repos/{owner}/{repo}/labels",
+      "access": "read",
+      "capabilityIds": [
+        "repository-labels"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/milestones",
+      "access": "read",
+      "capabilityIds": [
+        "repository-milestones"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-read"
+      ]
+    },
+    {
       "route": "GET /repos/{owner}/{repo}/private-vulnerability-reporting",
       "access": "read",
       "capabilityIds": [
@@ -506,6 +599,17 @@
       "permissionProfiles": [
         "classic-repo",
         "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/properties/values",
+      "access": "read",
+      "capabilityIds": [
+        "repository-property-values"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-custom-properties-read"
       ]
     },
     {
@@ -649,6 +753,39 @@
       ]
     },
     {
+      "route": "PATCH /repos/{owner}/{repo}/labels/{name}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-labels"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
+      ]
+    },
+    {
+      "route": "PATCH /repos/{owner}/{repo}/milestones/{milestone_number}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-milestones"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
+      ]
+    },
+    {
+      "route": "PATCH /repos/{owner}/{repo}/properties/values",
+      "access": "write",
+      "capabilityIds": [
+        "repository-property-values"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-custom-properties-write"
+      ]
+    },
+    {
       "route": "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
       "access": "write",
       "capabilityIds": [
@@ -679,6 +816,28 @@
       "permissionProfiles": [
         "classic-repo",
         "repository-contents-write"
+      ]
+    },
+    {
+      "route": "POST /repos/{owner}/{repo}/labels",
+      "access": "write",
+      "capabilityIds": [
+        "repository-labels"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
+      ]
+    },
+    {
+      "route": "POST /repos/{owner}/{repo}/milestones",
+      "access": "write",
+      "capabilityIds": [
+        "repository-milestones"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
       ]
     },
     {

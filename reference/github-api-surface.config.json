@@ -396,7 +396,17 @@
         "PATCH /repos/{owner}/{repo}/invitations/{invitation_id}",
         "DELETE /repos/{owner}/{repo}/invitations/{invitation_id}",
         "PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}",
-        "DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}"
+        "DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}",
+        "GET /repos/{owner}/{repo}/labels",
+        "POST /repos/{owner}/{repo}/labels",
+        "PATCH /repos/{owner}/{repo}/labels/{name}",
+        "DELETE /repos/{owner}/{repo}/labels/{name}",
+        "GET /repos/{owner}/{repo}/milestones",
+        "POST /repos/{owner}/{repo}/milestones",
+        "PATCH /repos/{owner}/{repo}/milestones/{milestone_number}",
+        "DELETE /repos/{owner}/{repo}/milestones/{milestone_number}",
+        "GET /repos/{owner}/{repo}/properties/values",
+        "PATCH /repos/{owner}/{repo}/properties/values"
       ]
     },
     "reviewedOperations": [

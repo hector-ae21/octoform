@@ -4,6 +4,7 @@ import { graphqlRequest } from './graphql.js';
 import { blockedByPrerequisite, orderByDependency } from '../core/dependencies.js';
 import { protectionBody } from '../core/branch-protection.js';
 import { REVOKED, grantLevel, invitationLevel } from '../core/access.js';
+import { dueTimestamp, normalizeColor } from '../core/collections.js';
 import type { RuleContext } from '../core/rulesets.js';
 import { rulesetBody } from '../core/rulesets.js';
 import type {
@@ -14,6 +15,8 @@ import type {
   EnvironmentPolicy,
   ExistingRuleset,
   FilePolicy,
+  LabelPolicy,
+  MilestonePolicy,
   RulesetPolicy,
 } from '../types/index.js';
 
@@ -341,6 +344,113 @@ export async function applyRepoChanges(
         });
       }),
     );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('labels.'))) {
+    if (stopped(change)) continue;
+    const payload = change.payload as { label: LabelPolicy; name?: string } | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no label to change');
+        const { label, name } = payload;
+
+        if (label.mode === 'absent') {
+          await octokit.request('DELETE /repos/{owner}/{repo}/labels/{name}', {
+            owner,
+            repo,
+            name: name ?? label.name,
+          });
+          return;
+        }
+
+        if (name === undefined) {
+          await octokit.request('POST /repos/{owner}/{repo}/labels', {
+            owner,
+            repo,
+            name: label.name,
+            ...(label.color === undefined ? {} : { color: normalizeColor(label.color) }),
+            ...(label.description === undefined ? {} : { description: label.description }),
+          });
+          return;
+        }
+
+        await octokit.request('PATCH /repos/{owner}/{repo}/labels/{name}', {
+          owner,
+          repo,
+          name,
+          ...(name === label.name ? {} : { new_name: label.name }),
+          ...(label.color === undefined ? {} : { color: normalizeColor(label.color) }),
+          ...(label.description === undefined ? {} : { description: label.description }),
+        });
+      }),
+    );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('milestones.'))) {
+    if (stopped(change)) continue;
+    const payload = change.payload as { milestone: MilestonePolicy; number?: number } | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no milestone to change');
+        const { milestone, number } = payload;
+
+        if (milestone.mode === 'absent') {
+          await octokit.request('DELETE /repos/{owner}/{repo}/milestones/{milestone_number}', {
+            owner,
+            repo,
+            milestone_number: number ?? 0,
+          });
+          return;
+        }
+
+        const body = {
+          title: milestone.title,
+          ...(milestone.state === undefined ? {} : { state: milestone.state }),
+          ...(milestone.description === undefined ? {} : { description: milestone.description }),
+          ...(milestone.due === undefined ? {} : { due_on: dueTimestamp(milestone.due) }),
+        };
+
+        if (number === undefined) {
+          await octokit.request('POST /repos/{owner}/{repo}/milestones', { owner, repo, ...body });
+          return;
+        }
+        await octokit.request('PATCH /repos/{owner}/{repo}/milestones/{milestone_number}', {
+          owner,
+          repo,
+          milestone_number: number,
+          ...body,
+        });
+      }),
+    );
+  }
+
+  const propertyChanges = changes.filter((c) => c.key.startsWith('properties.'));
+  if (propertyChanges.length > 0) {
+    const sending = propertyChanges.filter((change) => !stopped(change));
+    if (sending.length > 0) {
+      /**
+       * One request for every property value, because the endpoint takes a
+       * list and there is no reason to spend a request per name. They succeed
+       * or fail together, which is what the shared body means.
+       */
+      const properties = sending.map((change) => {
+        const payload = change.payload as { property: string; value: string | string[] | null };
+        return { property_name: payload.property, value: payload.value };
+      });
+      try {
+        await octokit.request('PATCH /repos/{owner}/{repo}/properties/values', {
+          owner,
+          repo,
+          properties,
+        });
+        for (const change of sending) record({ ...change, outcome: 'applied' });
+      } catch (error) {
+        const message = describeError(error);
+        for (const change of sending) {
+          record({ ...change, outcome: 'failed', error: message });
+        }
+      }
+    }
   }
 
   for (const change of changes.filter((c) => c.key.startsWith('environments.'))) {

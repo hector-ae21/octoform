@@ -436,6 +436,52 @@ export interface AccessPolicy {
   teams?: Record<string, Managed<AccessLevel>>;
 }
 
+/**
+ * Whether an entry of a collection should exist at all.
+ *
+ * `absent` is how a collection entry is removed, because leaving it out of the
+ * file means "not managed" everywhere else and cannot mean "delete" here
+ * without making an incomplete file dangerous.
+ */
+export type CollectionMode = 'present' | 'absent';
+
+/** A desired issue label. */
+export interface LabelPolicy {
+  name: string;
+  /** Six hex digits, with or without the leading `#`. */
+  color?: string;
+  description?: string;
+  /**
+   * Rename a label that currently has one of these names, instead of creating
+   * a second one. Deleting and recreating would take the label off every issue
+   * it is on, which is not a thing a rename should do.
+   */
+  rename_from?: string[];
+  mode?: CollectionMode;
+}
+
+/** A desired milestone. */
+export interface MilestonePolicy {
+  title: string;
+  description?: string;
+  /** Due date as `YYYY-MM-DD`. */
+  due?: string;
+  /** Closing a milestone retires it without detaching it from its issues. */
+  state?: 'open' | 'closed';
+  /** Rename a milestone that currently has one of these titles. */
+  rename_from?: string[];
+  mode?: CollectionMode;
+}
+
+/**
+ * A custom property value: one string, or several for a multi-select.
+ *
+ * An empty string or an empty list unsets the property, which is the same
+ * absence an empty repository description means. `null` cannot be used for it:
+ * that already means "stop managing this" everywhere in the configuration.
+ */
+export type PropertyValue = string | string[];
+
 /** Desired deployment environment and its user reviewers. */
 export interface EnvironmentPolicy {
   name: string;
@@ -480,6 +526,10 @@ export interface PolicySet {
   branch_protection?: BranchProtectionPolicy[];
   rulesets?: RulesetPolicy[];
   access?: AccessPolicy;
+  labels?: LabelPolicy[];
+  milestones?: MilestonePolicy[];
+  /** Custom property values, by property name. Organisations only. */
+  properties?: Record<string, Managed<PropertyValue>>;
   environments?: EnvironmentPolicy[];
   files?: FilePolicy[];
 }

@@ -141,6 +141,16 @@
       "merge": "union"
     },
     {
+      "shape": "LabelPolicy",
+      "field": "rename_from",
+      "merge": "replace"
+    },
+    {
+      "shape": "MilestonePolicy",
+      "field": "rename_from",
+      "merge": "replace"
+    },
+    {
       "shape": "OwnerBlock",
       "field": "audit",
       "merge": "merge-by-key"
@@ -207,13 +217,28 @@
     },
     {
       "shape": "PolicySet",
+      "field": "labels",
+      "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
       "field": "merge",
       "merge": "merge-by-key"
     },
     {
       "shape": "PolicySet",
+      "field": "milestones",
+      "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
       "field": "policies",
       "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "properties",
+      "merge": "merge-by-key"
     },
     {
       "shape": "PolicySet",
@@ -267,13 +292,28 @@
     },
     {
       "shape": "RepoEntry",
+      "field": "labels",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
       "field": "merge",
       "merge": "merge-by-key"
     },
     {
       "shape": "RepoEntry",
+      "field": "milestones",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
       "field": "policies",
       "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "properties",
+      "merge": "merge-by-key"
     },
     {
       "shape": "RepoEntry",

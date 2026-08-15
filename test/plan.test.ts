@@ -951,3 +951,142 @@ test('a cancelled access entry is not a change', () => {
 
   assert.deepEqual(planned(state, { access: { users: { hector: null } } }, OPTIONS), []);
 });
+
+test('a label nobody declared is left alone, and a declared one is corrected', () => {
+  const state = repo({
+    structure: {
+      labels: {
+        bug: { name: 'bug', color: 'ffffff', description: null, default: true },
+        stray: { name: 'stray', color: '000000', description: null, default: false },
+      },
+    },
+  });
+  const policy: PolicySet = { labels: [{ name: 'bug', color: '#D73A4A' }] };
+  const changes = planned(state, policy, OPTIONS);
+
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0]?.key, 'labels.bug');
+  assert.equal(changes[0]?.operation, 'update');
+  assert.deepEqual(changes[0]?.payload, { label: policy.labels?.[0], name: 'bug' });
+});
+
+test('a renamed label is renamed, not recreated under the new name', () => {
+  const state = repo({
+    structure: {
+      labels: { defect: { name: 'defect', color: 'd73a4a', description: null, default: false } },
+    },
+  });
+  const policy: PolicySet = { labels: [{ name: 'bug', rename_from: ['defect'] }] };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.deepEqual(change?.payload, { label: policy.labels?.[0], name: 'defect' });
+  assert.match(String(change?.warning), /keeps it on every issue/u);
+});
+
+test('deleting a label is a delete, is destructive, and says what it costs', () => {
+  const state = repo({
+    structure: {
+      labels: { wontfix: { name: 'wontfix', color: 'ffffff', description: null, default: true } },
+    },
+  });
+  const policy: PolicySet = { labels: [{ name: 'wontfix', mode: 'absent' }] };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.operation, 'delete');
+  assert.equal(change?.risk, 'destructive');
+  assert.equal(change?.to, null);
+  assert.match(String(change?.warning), /every issue and pull request/u);
+  assert.match(String(change?.warning), /GitHub creates with a new repository/u);
+});
+
+test('a label already absent is not a change', () => {
+  const state = repo({ structure: { labels: {} } });
+
+  assert.deepEqual(planned(state, { labels: [{ name: 'gone', mode: 'absent' }] }, OPTIONS), []);
+});
+
+test('a closed milestone is seen, so it is not created a second time', () => {
+  const state = repo({
+    structure: {
+      milestones: {
+        'v0.9': { number: 1, title: 'v0.9', description: null, state: 'closed' },
+      },
+    },
+  });
+  const policy: PolicySet = { milestones: [{ title: 'v0.9', state: 'closed' }] };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('a milestone is addressed by the number GitHub keeps, not by its title', () => {
+  const state = repo({
+    structure: {
+      milestones: { 'v1.0': { number: 7, title: 'v1.0', description: null, state: 'open' } },
+    },
+  });
+  const policy: PolicySet = { milestones: [{ title: 'v1.0', state: 'closed' }] };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.deepEqual(change?.payload, { milestone: policy.milestones?.[0], number: 7 });
+});
+
+test('deleting a milestone offers closing it as the alternative', () => {
+  const state = repo({
+    structure: {
+      milestones: { 'v0.1': { number: 2, title: 'v0.1', description: null, state: 'closed' } },
+    },
+  });
+  const [change] = planned(state, { milestones: [{ title: 'v0.1', mode: 'absent' }] }, OPTIONS);
+
+  assert.equal(change?.operation, 'delete');
+  assert.equal(change?.risk, 'destructive');
+  assert.match(String(change?.warning), /closing it instead retires it/u);
+});
+
+test('a property value is sensitive, since it can decide what governs the repository', () => {
+  const state = repo({ structure: { propertyValues: { team: 'core' } } });
+  const [change] = planned(state, { properties: { team: 'platform' } }, OPTIONS);
+
+  assert.equal(change?.risk, 'sensitive');
+  assert.deepEqual({ from: change?.from, to: change?.to }, { from: 'core', to: 'platform' });
+  assert.deepEqual(change?.payload, { property: 'team', value: 'platform' });
+});
+
+test('an empty property value unsets it rather than writing an empty string', () => {
+  const state = repo({ structure: { propertyValues: { team: 'core' } } });
+  const [change] = planned(state, { properties: { team: '' } }, OPTIONS);
+
+  assert.equal(change?.to, null);
+  assert.deepEqual(change?.payload, { property: 'team', value: null });
+});
+
+test('a property a personal account cannot have is blocked, not attempted', () => {
+  const state = repo({ structure: { propertyValues: {} } });
+  const [change] = planned(
+    state,
+    { properties: { team: 'platform' } },
+    {
+      rulesetCapability: SUPPORTED,
+      ownerKind: 'user',
+    },
+  );
+
+  assert.match(String(change?.blocked), /defined by an organisation/u);
+});
+
+test('collections that could not be read block rather than being planned over', () => {
+  const state = repo({ structure: {} });
+
+  assert.match(
+    String(planned(state, { labels: [{ name: 'bug' }] }, OPTIONS)[0]?.blocked),
+    /could not read the existing labels/u,
+  );
+  assert.match(
+    String(planned(state, { milestones: [{ title: 'v1' }] }, OPTIONS)[0]?.blocked),
+    /could not read the existing milestones/u,
+  );
+  assert.match(
+    String(planned(state, { properties: { team: 'a' } }, OPTIONS)[0]?.blocked),
+    /could not read the current custom property values/u,
+  );
+});

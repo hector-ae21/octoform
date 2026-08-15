@@ -2,6 +2,16 @@ import { isManaged } from '../config/resolve.js';
 import { UNREADABLE } from '../config/sentinels.js';
 import { REVOKED, canonicalLevel, isBuiltIn, sameLevel } from './access.js';
 import { describeProtection, sameProtection } from './branch-protection.js';
+import {
+  describeLabel,
+  describeMilestone,
+  describePropertyValue,
+  isCleared,
+  matchByName,
+  sameLabel,
+  sameMilestone,
+  samePropertyValue,
+} from './collections.js';
 import { bypassProblems, workflowProblems } from './identity.js';
 import type { RuleContext } from './rulesets.js';
 import {
@@ -44,24 +54,34 @@ const RISK_BY_PREFIX: ReadonlyArray<readonly [string, Risk]> = [
   ['repo.archived', 'sensitive'],
   ['repo.name', 'sensitive'],
   ['access.', 'sensitive'],
+  /** A property value can decide which organisation rules govern a repository. */
+  ['properties.', 'sensitive'],
 ];
 
+/** Collections whose entries a policy can ask to be removed entirely. */
+const REMOVABLE_PREFIXES: readonly string[] = ['labels.', 'milestones.'];
+
 /**
- * Revoking access is the one change whose risk depends on its value rather
- * than on its key: granting somebody `read` and taking away their `admin` are
- * the same setting, and only one of them can lock a person out of work they
- * were in the middle of.
+ * Taking something away is the one thing whose risk depends on the value
+ * rather than the key. Granting somebody `read` and taking away their `admin`
+ * are the same setting; so are giving a label a colour and deleting it off
+ * every issue that carries it.
  */
 function riskFor(draft: ChangeDraft): Risk {
-  if (draft.key.startsWith('access.') && draft.to === REVOKED) return 'destructive';
+  if (removes(draft)) return 'destructive';
   return RISK_BY_PREFIX.find(([prefix]) => draft.key.startsWith(prefix))?.[1] ?? 'normal';
 }
 
+function removes(draft: ChangeDraft): boolean {
+  if (draft.key.startsWith('access.')) return draft.to === REVOKED;
+  return REMOVABLE_PREFIXES.some((prefix) => draft.key.startsWith(prefix)) && draft.to === null;
+}
+
 /**
- * `create` when nothing existed to compare against, `update` otherwise, and
- * `attach`/`detach` for access — where the person and the team exist either
- * way and what changes is whether they are linked to this repository. `delete`
- * still has no producer.
+ * `create` when nothing existed to compare against and `update` otherwise;
+ * `attach`/`detach` for access, where the person and the team exist either way
+ * and what changes is whether they are linked to this repository; and `delete`
+ * for a collection entry that stops existing at all.
  *
  * "Nothing existed" covers both a value that is explicitly unset and one the
  * observation never returned at all. The two are kept apart everywhere it
@@ -70,6 +90,7 @@ function riskFor(draft: ChangeDraft): Risk {
  */
 function operationFor(draft: ChangeDraft): OperationKind {
   if (draft.key.startsWith('access.')) return draft.to === REVOKED ? 'detach' : 'attach';
+  if (removes(draft)) return 'delete';
   return draft.from === null || draft.from === undefined ? 'create' : 'update';
 }
 
@@ -210,6 +231,9 @@ export function planRepo(
   planRulesets(owner, repo, policy, options, drafts);
   refuseOverlappingProtection(repo, policy, drafts);
   planAccess(repo, policy, options, drafts);
+  planLabels(repo, policy, drafts);
+  planMilestones(repo, policy, drafts);
+  planProperties(repo, policy, options, drafts);
   planEnvironments(repo, policy, drafts);
   planFiles(repo, policy, drafts);
 
@@ -863,6 +887,207 @@ function planTeamAccess(
       from: held ?? null,
       to: wanted === REVOKED ? wanted : canonicalLevel(wanted),
       payload: { slug, level: wanted },
+    });
+  }
+}
+
+/**
+ * Labels the policy names, and only those.
+ *
+ * Deleting a label takes it off every issue and pull request it was on, and
+ * nothing gives it back, so it happens only where the file says `absent`. That
+ * is also why a declared label with no match is checked against `rename_from`
+ * first: creating a new one and leaving the old is untidy, but recreating a
+ * renamed label under its new name would silently lose every issue it marked.
+ */
+function planLabels(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]): void {
+  if (!policy.labels?.length) return;
+
+  const existing = repo.structure?.labels;
+
+  for (const declared of policy.labels) {
+    const key = `labels.${declared.name}`;
+
+    if (existing === undefined) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: UNREADABLE,
+        to: describeLabel(declared),
+        blocked: 'could not read the existing labels',
+      });
+      continue;
+    }
+
+    const found = matchByName(
+      new Map(Object.entries(existing)),
+      declared.name,
+      declared.rename_from,
+    );
+
+    if (declared.mode === 'absent') {
+      if (!found || found.renamedFrom !== undefined) continue;
+      changes.push({
+        repo: repo.name,
+        key,
+        from: describeLabel(found.entry),
+        to: null,
+        payload: { label: declared, name: found.entry.name },
+        warning: `deleting a label removes it from every issue and pull request that carries it${found.entry.default ? ', and this is one GitHub creates with a new repository' : ''}`,
+      });
+      continue;
+    }
+
+    if (!found) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: null,
+        to: describeLabel(declared),
+        payload: { label: declared },
+      });
+      continue;
+    }
+
+    if (found.renamedFrom === undefined && sameLabel(found.entry, declared)) continue;
+
+    changes.push({
+      repo: repo.name,
+      key,
+      from: describeLabel(found.entry),
+      to: describeLabel(declared),
+      payload: { label: declared, name: found.entry.name },
+      ...(found.renamedFrom === undefined
+        ? {}
+        : { warning: `renaming "${found.renamedFrom}" keeps it on every issue it already marks` }),
+    });
+  }
+}
+
+/**
+ * Milestones the policy names, matched by title.
+ *
+ * GitHub addresses a milestone by number and enforces nothing about titles, so
+ * two with the same title can exist side by side. Reading the closed ones as
+ * well as the open ones is what keeps this from producing them: the listing
+ * endpoint returns only open milestones unless told otherwise, and a retired
+ * milestone read as missing would be created again on every run.
+ */
+function planMilestones(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]): void {
+  if (!policy.milestones?.length) return;
+
+  const existing = repo.structure?.milestones;
+
+  for (const declared of policy.milestones) {
+    const key = `milestones.${declared.title}`;
+
+    if (existing === undefined) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: UNREADABLE,
+        to: describeMilestone(declared),
+        blocked: 'could not read the existing milestones',
+      });
+      continue;
+    }
+
+    const found = matchByName(
+      new Map(Object.entries(existing)),
+      declared.title,
+      declared.rename_from,
+    );
+
+    if (declared.mode === 'absent') {
+      if (!found || found.renamedFrom !== undefined) continue;
+      changes.push({
+        repo: repo.name,
+        key,
+        from: describeMilestone(found.entry),
+        to: null,
+        payload: { milestone: declared, number: found.entry.number },
+        warning:
+          'deleting a milestone detaches it from every issue in it; closing it instead retires it and keeps the record',
+      });
+      continue;
+    }
+
+    if (!found) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: null,
+        to: describeMilestone(declared),
+        payload: { milestone: declared },
+      });
+      continue;
+    }
+
+    if (found.renamedFrom === undefined && sameMilestone(found.entry, declared)) continue;
+
+    changes.push({
+      repo: repo.name,
+      key,
+      from: describeMilestone(found.entry),
+      to: describeMilestone(declared),
+      payload: { milestone: declared, number: found.entry.number },
+    });
+  }
+}
+
+/**
+ * Custom property values, which exist only on an organisation's repositories.
+ *
+ * A value that drives anything else — octoform's own repository types, an
+ * organisation ruleset that targets by property — changes what governs the
+ * repository, which is why these are not filed as plain metadata.
+ */
+function planProperties(
+  repo: RepoDetail,
+  policy: PolicySet,
+  options: PlanOptions,
+  changes: ChangeDraft[],
+): void {
+  if (!policy.properties) return;
+
+  const existing = repo.structure?.propertyValues;
+
+  for (const [name, wanted] of Object.entries(policy.properties)) {
+    if (!isManaged(wanted)) continue;
+    const key = `properties.${name}`;
+
+    if (options.ownerKind === 'user') {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: null,
+        to: describePropertyValue(wanted),
+        blocked:
+          'custom properties are defined by an organisation, and a personal account has none to set',
+      });
+      continue;
+    }
+
+    if (existing === undefined) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: UNREADABLE,
+        to: describePropertyValue(wanted),
+        blocked: 'could not read the current custom property values',
+      });
+      continue;
+    }
+
+    const current = existing[name];
+    if (samePropertyValue(current, wanted)) continue;
+
+    changes.push({
+      repo: repo.name,
+      key,
+      from: describePropertyValue(current),
+      to: describePropertyValue(isCleared(wanted) ? undefined : wanted),
+      payload: { property: name, value: isCleared(wanted) ? null : wanted },
     });
   }
 }

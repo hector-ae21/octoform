@@ -241,6 +241,25 @@
         "access": {
           "$ref": "#/definitions/AccessPolicy"
         },
+        "labels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LabelPolicy"
+          }
+        },
+        "milestones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MilestonePolicy"
+          }
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CPropertyValue%3E"
+          },
+          "description": "Custom property values, by property name. Organisations only."
+        },
         "environments": {
           "type": "array",
           "items": {
@@ -1154,6 +1173,110 @@
       "type": "string",
       "description": "A permission level on a repository.\n\nThe five built-in levels are `read`, `triage`, `write`, `maintain` and `admin`. GitHub's own endpoints disagree about two of their names — the grant endpoints take `pull` and `push`, invitations take `read` and `write`, and a collaborator reads back as whichever the API of the day prefers — so both spellings are accepted here and translated at the boundary.\n\nThe set is open because an organisation can define custom repository roles, which are granted by name. Anything octoform does not recognise as built-in is passed through as one of those.\n\n`none` is octoform's own word, not GitHub's: it revokes the grant. It has to be written, because a login simply left out of the policy is left alone."
     },
+    "LabelPolicy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string",
+          "description": "Six hex digits, with or without the leading `#`."
+        },
+        "description": {
+          "type": "string"
+        },
+        "rename_from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Rename a label that currently has one of these names, instead of creating a second one. Deleting and recreating would take the label off every issue it is on, which is not a thing a rename should do."
+        },
+        "mode": {
+          "$ref": "#/definitions/CollectionMode"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A desired issue label."
+    },
+    "CollectionMode": {
+      "type": "string",
+      "enum": [
+        "present",
+        "absent"
+      ],
+      "description": "Whether an entry of a collection should exist at all.\n\n`absent` is how a collection entry is removed, because leaving it out of the file means \"not managed\" everywhere else and cannot mean \"delete\" here without making an incomplete file dangerous."
+    },
+    "MilestonePolicy": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "due": {
+          "type": "string",
+          "description": "Due date as `YYYY-MM-DD`."
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "description": "Closing a milestone retires it without detaching it from its issues."
+        },
+        "rename_from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Rename a milestone that currently has one of these titles."
+        },
+        "mode": {
+          "$ref": "#/definitions/CollectionMode"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "additionalProperties": false,
+      "description": "A desired milestone."
+    },
+    "Managed<PropertyValue>": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/PropertyValue"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "not": {}
+        }
+      ],
+      "description": "A managed setting is tri-state:\n\n  true       enforce it on   false      enforce it off   undefined  not managed at all, leave whatever the repository has\n\n`null` is accepted as an explicit \"stop managing this\", which is how a repository-level entry cancels a policy it would otherwise inherit from its type or from the defaults. Both collapse to `undefined` once resolved."
+    },
+    "PropertyValue": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "A custom property value: one string, or several for a multi-select.\n\nAn empty string or an empty list unsets the property, which is the same absence an empty repository description means. `null` cannot be used for it: that already means \"stop managing this\" everywhere in the configuration."
+    },
     "EnvironmentPolicy": {
       "type": "object",
       "properties": {
@@ -1254,6 +1377,25 @@
         },
         "access": {
           "$ref": "#/definitions/AccessPolicy"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LabelPolicy"
+          }
+        },
+        "milestones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MilestonePolicy"
+          }
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CPropertyValue%3E"
+          },
+          "description": "Custom property values, by property name. Organisations only."
         },
         "environments": {
           "type": "array",
