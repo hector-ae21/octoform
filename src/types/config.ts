@@ -403,6 +403,39 @@ export interface BranchProtectionPolicy extends BranchProtectionSettings {
   branch: string;
 }
 
+/**
+ * A permission level on a repository.
+ *
+ * The five built-in levels are `read`, `triage`, `write`, `maintain` and
+ * `admin`. GitHub's own endpoints disagree about two of their names — the
+ * grant endpoints take `pull` and `push`, invitations take `read` and `write`,
+ * and a collaborator reads back as whichever the API of the day prefers — so
+ * both spellings are accepted here and translated at the boundary.
+ *
+ * The set is open because an organisation can define custom repository roles,
+ * which are granted by name. Anything octoform does not recognise as built-in
+ * is passed through as one of those.
+ *
+ * `none` is octoform's own word, not GitHub's: it revokes the grant. It has to
+ * be written, because a login simply left out of the policy is left alone.
+ */
+export type AccessLevel = string;
+
+/**
+ * Who may work on a repository, and at what level.
+ *
+ * Only the logins and slugs named here are managed. Somebody who was given
+ * access by hand and never written down is not a difference to correct — this
+ * is not the place to discover them — which is why revoking has to be spelled
+ * `none` rather than expressed by deletion from the file.
+ */
+export interface AccessPolicy {
+  /** GitHub logins, each with the level to grant them directly. */
+  users?: Record<string, Managed<AccessLevel>>;
+  /** Team slugs, each with the level to grant them. Organisations only. */
+  teams?: Record<string, Managed<AccessLevel>>;
+}
+
 /** Desired deployment environment and its user reviewers. */
 export interface EnvironmentPolicy {
   name: string;
@@ -446,6 +479,7 @@ export interface PolicySet {
   ensure_branches?: string[];
   branch_protection?: BranchProtectionPolicy[];
   rulesets?: RulesetPolicy[];
+  access?: AccessPolicy;
   environments?: EnvironmentPolicy[];
   files?: FilePolicy[];
 }

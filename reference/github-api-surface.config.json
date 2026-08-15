@@ -387,7 +387,16 @@
         "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
         "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
         "GET /orgs/{org}/teams/{team_slug}",
-        "GET /apps/{app_slug}"
+        "GET /apps/{app_slug}",
+        "GET /repos/{owner}/{repo}/collaborators",
+        "GET /repos/{owner}/{repo}/invitations",
+        "GET /repos/{owner}/{repo}/teams",
+        "PUT /repos/{owner}/{repo}/collaborators/{username}",
+        "DELETE /repos/{owner}/{repo}/collaborators/{username}",
+        "PATCH /repos/{owner}/{repo}/invitations/{invitation_id}",
+        "DELETE /repos/{owner}/{repo}/invitations/{invitation_id}",
+        "PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}",
+        "DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}"
       ]
     },
     "reviewedOperations": [

@@ -82,6 +82,13 @@ export interface ExistingEnvironment {
   reviewers: string[] | typeof UNREADABLE;
 }
 
+/** A repository invitation that has been sent and not yet answered. */
+export interface ExistingInvitation {
+  id: number;
+  /** The level the invitation offers, in octoform's canonical spelling. */
+  level: string;
+}
+
 /**
  * State that costs an extra request each, so it is only gathered when a policy
  * actually asks about it.
@@ -100,6 +107,25 @@ export interface RepoStructure {
    * from the whole map being absent because a read failed.
    */
   branchProtection?: Record<string, BranchProtectionSettings | null>;
+  /**
+   * Direct collaborators by login, with the level each one holds.
+   *
+   * Direct only. The unfiltered listing also returns everyone who reaches the
+   * repository through a team or the organisation's base permission, and
+   * reconciling against that would offer to revoke grants that were never made
+   * here — GitHub would accept the request and nothing would change.
+   */
+  collaborators?: Record<string, string>;
+  /**
+   * Invitations still waiting to be accepted, by login.
+   *
+   * Adding a collaborator who is not one yet creates an invitation rather than
+   * access. Without reading these, every run would see the same missing
+   * collaborator and send the same invitation again.
+   */
+  invitations?: Record<string, ExistingInvitation>;
+  /** Teams granted access to this repository, with the level each one holds. */
+  teamAccess?: Record<string, string>;
   /** Existence state by path for the paths named by a `files` policy. */
   files?: Record<string, boolean>;
   /** Existence state by branch for the branches named by `ensure_branches`. */
@@ -162,9 +188,10 @@ export interface RepoDetail extends RepoState {
 
 /**
  * What kind of operation a change represents against GitHub's own model.
- * `attach`/`detach`/`delete` have no producer yet — nothing octoform manages
- * today removes or unlinks a resource — but the type states them so a future
- * resource family does not have to widen a type every consumer already reads.
+ * Granting and revoking access are `attach` and `detach`: the collaborator and
+ * the team both exist either way, and what changes is whether they are linked
+ * to this repository. `delete` still has no producer — nothing octoform
+ * manages destroys a resource outright.
  */
 export type OperationKind = 'create' | 'update' | 'attach' | 'detach' | 'delete';
 
@@ -172,8 +199,8 @@ export type OperationKind = 'create' | 'update' | 'attach' | 'detach' | 'delete'
  * How much scrutiny a change deserves before it is applied, matching the
  * confirmation levels in the security model: normal metadata, a setting that
  * affects access or merge safety, an irreversible removal, or one with a
- * billing consequence. Nothing octoform manages today is `destructive` or
- * `cost` — those arrive with resource families that can actually produce them.
+ * billing consequence. Revoking a grant is the first `destructive` change
+ * octoform produces; nothing it manages today has a `cost`.
  */
 export type Risk = 'normal' | 'sensitive' | 'destructive' | 'cost';
 
@@ -196,10 +223,8 @@ export interface Change {
   risk: Risk;
   /**
    * Other operations' {@link Change.id} values this one cannot be applied
-   * before. Empty today: within one repository's settings nothing octoform
-   * plans depends on anything else it plans. Real prerequisites arrive with
-   * the cross-resource dependency graph, once a second resource family gives
-   * them something to point at.
+   * before, so that a change whose prerequisite failed is not attempted
+   * against state its prerequisite was supposed to have produced.
    */
   prerequisites: string[];
   from: unknown;

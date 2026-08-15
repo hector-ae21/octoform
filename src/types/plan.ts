@@ -13,6 +13,13 @@ export interface PlanOptions {
    * decides whether such a policy is a change or a blocked one.
    */
   ownerKind: OwnerKind;
+  /**
+   * The login octoform is authenticated as, when it could be read.
+   *
+   * Needed so a policy cannot revoke the running account's own admin access
+   * and lock the next run out of the repository it was managing.
+   */
+  actor?: string;
 }
 
 /** A repository whose plan could not even be computed. */

@@ -238,6 +238,9 @@
             "$ref": "#/definitions/RulesetPolicy"
           }
         },
+        "access": {
+          "$ref": "#/definitions/AccessPolicy"
+        },
         "environments": {
           "type": "array",
           "items": {
@@ -1112,6 +1115,45 @@
       ],
       "description": "When an actor may bypass a ruleset.\n\n`pull_request` only lets the actor past on a pull request, and GitHub accepts it on branch rulesets only. `exempt` skips the rules entirely and writes no bypass entry to the audit log, so it is the one mode that leaves no trace of having been used."
     },
+    "AccessPolicy": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CAccessLevel%3E"
+          },
+          "description": "GitHub logins, each with the level to grant them directly."
+        },
+        "teams": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CAccessLevel%3E"
+          },
+          "description": "Team slugs, each with the level to grant them. Organisations only."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Who may work on a repository, and at what level.\n\nOnly the logins and slugs named here are managed. Somebody who was given access by hand and never written down is not a difference to correct — this is not the place to discover them — which is why revoking has to be spelled `none` rather than expressed by deletion from the file."
+    },
+    "Managed<AccessLevel>": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AccessLevel"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "not": {}
+        }
+      ],
+      "description": "A managed setting is tri-state:\n\n  true       enforce it on   false      enforce it off   undefined  not managed at all, leave whatever the repository has\n\n`null` is accepted as an explicit \"stop managing this\", which is how a repository-level entry cancels a policy it would otherwise inherit from its type or from the defaults. Both collapse to `undefined` once resolved."
+    },
+    "AccessLevel": {
+      "type": "string",
+      "description": "A permission level on a repository.\n\nThe five built-in levels are `read`, `triage`, `write`, `maintain` and `admin`. GitHub's own endpoints disagree about two of their names — the grant endpoints take `pull` and `push`, invitations take `read` and `write`, and a collaborator reads back as whichever the API of the day prefers — so both spellings are accepted here and translated at the boundary.\n\nThe set is open because an organisation can define custom repository roles, which are granted by name. Anything octoform does not recognise as built-in is passed through as one of those.\n\n`none` is octoform's own word, not GitHub's: it revokes the grant. It has to be written, because a login simply left out of the policy is left alone."
+    },
     "EnvironmentPolicy": {
       "type": "object",
       "properties": {
@@ -1209,6 +1251,9 @@
           "items": {
             "$ref": "#/definitions/RulesetPolicy"
           }
+        },
+        "access": {
+          "$ref": "#/definitions/AccessPolicy"
         },
         "environments": {
           "type": "array",
