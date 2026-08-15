@@ -9,8 +9,80 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+Octoform now governs the account above the repositories as well as the
+repositories themselves, and finishes the repository surface it had started.
+Two exported shapes moved, which is why this is a minor bump rather than a
+patch: see **Changed**.
+
 ### Added
 
+#### The organization itself
+
+- An `organization` block, planned and applied like any other change rather
+  than through a command of its own. Its profile, and what members may do
+  without being asked: the base permission, what they may create, forking,
+  Pages, web commit sign-off, deploy keys and projects.
+- The base permission and the creation switches are reported as `sensitive`,
+  because they reach every repository the organization owns including ones no
+  policy names, and the organization is applied before any repository so a
+  lowered floor is never briefly wider than the file asks for.
+- Custom property definitions under `organization.properties`. The write
+  endpoint replaces rather than patches, so the current definition is read
+  first and every field the configuration is silent about is carried forward;
+  definitions that could not be read block rather than being written over.
+- Organization rulesets under `organization.rulesets`: the same rules a
+  repository can carry, aimed at repositories selected by name or by custom
+  property value. Every one is `sensitive`, since it reaches whatever its
+  condition matches.
+- Teams under `organization.teams`, keyed by the slug GitHub addresses each one
+  by, with nesting. A child team waits for a parent the same run is creating,
+  and is blocked rather than attempted when that creation fails.
+- Team membership under `organization.teams.<slug>.membership`: additive unless
+  the block says `authoritative`, and a pending invitation counts as somebody
+  already asked, so nobody is invited twice.
+- Organization role assignment under `organization.roles`, granting and
+  revoking a role for users and teams.
+- `octoform inspect members`: owners, members, outside collaborators, waiting
+  and failed invitations, and which people the configuration names are in no
+  part of the organization.
+- `octoform members invite`, `members remove` and `members convert`: one login
+  per invocation, each saying what it will do and asking first. Membership is
+  deliberately not declarative — an invitation is an act addressed to a person,
+  and an authoritative list would remove somebody the first time a name was
+  mistyped.
+
+#### The repository surface, completed
+
+- Every repository ruleset rule type, target and condition, modelled as one
+  table that reading, writing and comparison are all derived from.
+- Ruleset bypass actors — users, teams, apps, repository roles, deploy keys and
+  organization admins — resolved by name while reading, so an unknown name is a
+  blocked line in the plan rather than an exception thrown mid-apply.
+- Classic branch protection under `branch_protection`. A branch governed by
+  both protection and a ruleset blocks on both sides: GitHub applies both and
+  the stricter wins per rule, so neither block describes what is enforced.
+- `access.users` and `access.teams`, with pending invitations read so a grant
+  to somebody who is not a collaborator yet is not re-sent on every run.
+  Revocation is spelled `none`, so deleting a line cannot silently remove
+  access.
+- Labels, milestones and repository custom property values, with `rename_from`
+  and `mode: absent`.
+- `repo.visibility`, `repo.archived`, `repo.template` and repository rename.
+  Unarchiving is sent first and everything waits for it; archiving is sent last
+  and only if everything else succeeded.
+- The four repository settings only GraphQL exposes: `features.sponsorships`,
+  `features.pull_requests`, `repo.issue_creation` and
+  `repo.pull_request_creation`. `features.discussions` is now changeable
+  instead of permanently blocked.
+- Merge message defaults and `security.immutable_releases`.
+- A warning when `security.code_scanning_default_setup` would disable a
+  workflow that uploads code scanning results, which GitHub refuses without
+  either side reporting a failure.
+- A resource dependency graph: apply order comes from the graph rather than
+  from the order the steps happen to be written in, and a dependent whose
+  prerequisite failed is blocked rather than attempted.
+- `octoform inspect capabilities --repo <name>`, reporting whether rulesets can
+  be managed on one repository and what said so.
 - A GraphQL transport, normalized against the REST one. A GraphQL response can
   carry data and errors together under HTTP `200`, so a request reports what
   arrived alongside what failed instead of letting a partial observation read
@@ -20,7 +92,47 @@ a zero major means. Security fixes are always a patch bump. See
   sentinel a REST read produces — so the planner blocks it for the same reason
   and cannot tell which transport observed it. Reads are retried only while
   every failure is transient and nothing arrived; a mutation is never retried.
-  Internal in this release: no command uses it yet.
+
+### Changed
+
+- `Change.repo` is now optional. An organization setting has no repository to
+  name, and inventing one would make it group and count as though it did.
+  Programmatic callers that read `change.repo` as a string have to handle its
+  absence.
+- `planOrganization`, `setPropertyValues` and `putPropertySchema` take
+  different arguments. The first now receives the organization as it stands
+  rather than only its settings; the other two take a list of repositories and
+  a body built by the caller, because a definition has to be read before it is
+  written.
+- `classify --apply` and `properties sync` send thirty repositories per
+  request. Neither did, and exceeding that limit is the ordinary case for an
+  organization large enough to want either command.
+
+### Fixed
+
+- `properties sync` no longer clears the fields it says nothing about. It sent
+  the allowed values alone, which on a property that already existed reset its
+  description, its default value and who may edit it — every run, silently.
+- Two different lists of objects of the same length no longer compare as
+  identical when a ruleset is compared. They were rendered with `String`,
+  which turns every object into the same text, so a rule that had changed could
+  read as unchanged.
+- Updating a ruleset no longer deletes the rules octoform does not model, or
+  the ones the policy does not mention. The update replaces the whole rule
+  list, and what was not sent back was being removed with nothing in the plan
+  to say so.
+- An undeclared ruleset key is no longer treated as a demand for GitHub's
+  default, which made every run offer to strip approvals and protections
+  nobody had asked about.
+- A seeded file is read as bytes. Round-tripping through UTF-8 replaced every
+  byte that was not valid text, corrupting anything that is not text.
+- A seeded file's existence is checked on the branch it would be created on
+  rather than on the default branch, which seeded a second copy.
+- The topics, PUT/DELETE toggle, code scanning and branch rename steps record
+  their failures, so anything depending on them is blocked instead of
+  attempted.
+- `config migrate` moves a `repos` block at an imported file's root under the
+  account the root file declares, instead of refusing the whole migration.
 
 ## [0.4.1] - 2026-08-15
 

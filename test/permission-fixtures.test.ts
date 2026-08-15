@@ -7,12 +7,12 @@
  * says which profiles a route needs. The generator already refuses a profile
  * that does not exist and a route no capability uses.
  *
- * What it does not refuse is the two disagreeing, and disagreement here has a
+ * What it does not look at are the seams between them, and a gap there has a
  * particular cost: an operator grants exactly what one half asked for and the
  * run fails on a request the other half described. So the cases below are
- * about the seams — an explicit route entry that contradicts the capability
- * using it, a profile nobody needs, a write with no write permission, and a
- * route filed under the wrong half of a capability.
+ * about those — a route filed under the wrong half of a capability, an entry
+ * for a route nobody calls, a profile nothing needs, and a write documented as
+ * needing no permission at all.
  */
 
 import assert from 'node:assert/strict';
