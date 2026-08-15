@@ -166,6 +166,11 @@
       "merge": "merge-by-key"
     },
     {
+      "shape": "OrganizationPolicy",
+      "field": "properties",
+      "merge": "merge-by-key"
+    },
+    {
       "shape": "OwnerBlock",
       "field": "audit",
       "merge": "merge-by-key"
@@ -274,6 +279,11 @@
       "shape": "PolicySet",
       "field": "security",
       "merge": "merge-by-key"
+    },
+    {
+      "shape": "PropertyDefinition",
+      "field": "allowed_values",
+      "merge": "replace"
     },
     {
       "shape": "RepoEntry",

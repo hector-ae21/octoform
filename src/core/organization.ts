@@ -8,11 +8,31 @@
  * they are planned and reported like any other change rather than applied by a
  * command of their own: a setting with that reach should never be the one
  * thing nobody saw a diff for.
+ *
+ * Custom property definitions belong here for the same reason and travel by a
+ * different endpoint, so they are planned alongside the settings and applied
+ * one at a time. See `core/properties.ts` for why a definition is read before
+ * it is written.
  */
 
 import { isManaged } from '../config/resolve.js';
 import { UNREADABLE } from '../config/sentinels.js';
-import type { Change, OrganizationPolicy, OwnerKind, Risk, SettingValue } from '../types/index.js';
+import type {
+  Change,
+  ExistingProperty,
+  OrganizationPolicy,
+  OrganizationState,
+  OwnerKind,
+  PropertyDefinition,
+  Risk,
+} from '../types/index.js';
+import {
+  asBody,
+  definitionBody,
+  definitionProblems,
+  describeDefinition,
+  sameDefinition,
+} from './properties.js';
 
 /** Every setting of the organisation itself, by the key a change carries. */
 export const ORGANIZATION_KEYS: readonly string[] = [
@@ -107,29 +127,40 @@ export function declaredOrganization(policy: OrganizationPolicy): Map<string, un
  *
  * @param owner - The organisation login.
  * @param ownerKind - What the login turned out to be.
- * @param current - Observed settings, keyed the way a change names them.
+ * @param observed - The organisation as it stands, or nothing if unread.
  * @param policy - The declared organisation policy.
  */
 export function planOrganization(
   owner: string,
   ownerKind: OwnerKind,
-  current: Record<string, SettingValue> | undefined,
+  observed: OrganizationState | undefined,
   policy: OrganizationPolicy | undefined,
 ): Change[] {
   if (!policy) return [];
 
   const changes: Change[] = [];
-  const draft = (key: string, from: unknown, to: unknown, blocked?: string): void => {
+  const draft = (
+    key: string,
+    from: unknown,
+    to: unknown,
+    extra: {
+      blocked?: string;
+      risk?: Risk;
+      operation?: Change['operation'];
+      payload?: unknown;
+    } = {},
+  ): void => {
     changes.push({
       id: `${owner}#${key}`,
       owner,
       key,
-      operation: from === null || from === undefined ? 'create' : 'update',
-      risk: riskOf(key),
+      operation: extra.operation ?? (from === null || from === undefined ? 'create' : 'update'),
+      risk: extra.risk ?? riskOf(key),
       prerequisites: [],
       from,
       to,
-      ...(blocked === undefined ? {} : { blocked }),
+      ...(extra.blocked === undefined ? {} : { blocked: extra.blocked }),
+      ...(extra.payload === undefined ? {} : { payload: extra.payload }),
     });
   };
 
@@ -137,22 +168,23 @@ export function planOrganization(
     if (!isManaged(wanted)) continue;
 
     if (ownerKind === 'user') {
-      draft(
-        key,
-        null,
-        wanted,
-        `"${owner}" is a personal account, which has none of the organisation settings`,
-      );
+      draft(key, null, wanted, {
+        blocked: `"${owner}" is a personal account, which has none of the organisation settings`,
+      });
       continue;
     }
 
-    const held = current?.[key];
+    const held = observed?.settings?.[key];
     if (held === undefined) {
-      draft(key, UNREADABLE, wanted, 'could not read the current organisation settings');
+      draft(key, UNREADABLE, wanted, {
+        blocked: 'could not read the current organisation settings',
+      });
       continue;
     }
     if (held === UNREADABLE) {
-      draft(key, held, wanted, 'current value could not be read, so the change was not attempted');
+      draft(key, held, wanted, {
+        blocked: 'current value could not be read, so the change was not attempted',
+      });
       continue;
     }
     if (same(held, wanted)) continue;
@@ -160,7 +192,124 @@ export function planOrganization(
     draft(key, held, wanted);
   }
 
+  planDefinitions(ownerKind, observed?.properties, policy, draft);
+
   return changes;
+}
+
+/** How a definition change is drafted, shared with {@link planOrganization}. */
+type Draft = (
+  key: string,
+  from: unknown,
+  to: unknown,
+  extra?: { blocked?: string; risk?: Risk; operation?: Change['operation']; payload?: unknown },
+) => void;
+
+/**
+ * Custom property definitions, which are the organisation's half of a feature
+ * whose other half is a field on every repository.
+ *
+ * Unreadable definitions block every one of them rather than only the ones
+ * that look different, and for a reason particular to this endpoint: it
+ * replaces. Writing a definition without the one that stands is not an
+ * uninformed change to one field, it is an uninformed change to all of them.
+ */
+function planDefinitions(
+  ownerKind: OwnerKind,
+  existing: Record<string, ExistingProperty> | undefined,
+  policy: OrganizationPolicy,
+  draft: Draft,
+): void {
+  for (const [name, declared] of Object.entries(policy.properties ?? {})) {
+    if (!isManaged(declared)) continue;
+    const key = `organization.properties.${name}`;
+    const wanted = declared as PropertyDefinition;
+    const removing = wanted.mode === 'absent';
+
+    if (ownerKind === 'user') {
+      draft(key, null, describeDefinition(wanted), {
+        blocked: 'custom properties are an organisation feature, and a personal account has none',
+      });
+      continue;
+    }
+
+    if (existing === undefined) {
+      draft(key, UNREADABLE, describeDefinition(wanted), {
+        blocked:
+          'could not read the current custom property definitions, and writing one replaces every field of it',
+      });
+      continue;
+    }
+
+    const current = existing[name];
+
+    if (removing) {
+      if (current === undefined) continue;
+      draft(key, describeDefinition(current), null, {
+        operation: 'delete',
+        risk: 'destructive',
+        payload: { property: name, remove: true },
+      });
+      continue;
+    }
+
+    const problems = definitionProblems(wanted);
+    if (problems.length > 0) {
+      draft(
+        key,
+        current === undefined ? null : describeDefinition(current),
+        describeDefinition(wanted),
+        {
+          blocked: problems.join('; '),
+        },
+      );
+      continue;
+    }
+
+    if (current?.source_type === 'enterprise') {
+      draft(key, describeDefinition(current), describeDefinition(wanted), {
+        blocked: 'defined by the enterprise, so the organisation cannot change it',
+      });
+      continue;
+    }
+
+    if (current !== undefined && sameDefinition(current, wanted)) continue;
+
+    const body = definitionBody(wanted, current);
+    draft(
+      key,
+      current === undefined ? null : describeDefinition(asBody(current)),
+      describeDefinition(body),
+      {
+        operation: current === undefined ? 'create' : 'update',
+        risk: definitionRisk(current, body),
+        payload: { property: name, body },
+      },
+    );
+  }
+}
+
+/**
+ * What a definition change costs, which is not measured by how many fields it
+ * touches.
+ *
+ * A definition that demands a value asks something of every repository the
+ * organisation owns, and dropping an allowed value leaves whichever
+ * repositories hold it holding one the definition no longer offers. Everything
+ * else — a description, a new property nobody has to answer — changes what the
+ * settings page shows and nothing else.
+ */
+function definitionRisk(
+  current: ExistingProperty | undefined,
+  body: Record<string, unknown>,
+): Risk {
+  if (body.required === true || body.require_explicit_values === true) return 'sensitive';
+
+  const before = current?.allowed_values ?? null;
+  const after = (body.allowed_values as string[] | undefined) ?? null;
+  if (before && after && before.some((value) => !after.includes(value))) return 'sensitive';
+
+  return 'normal';
 }
 
 function riskOf(key: string): Risk {

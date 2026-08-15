@@ -392,11 +392,26 @@ const ORGANIZATION_MEMBER_POLICY: ObjectShape = {
   },
 };
 
+const PROPERTY_DEFINITION: ObjectShape = {
+  name: 'PropertyDefinition',
+  fields: {
+    value_type: enumeration('string', 'url', 'true_false', 'single_select', 'multi_select'),
+    description: scalar,
+    required: scalar,
+    default_value: scalar,
+    allowed_values: scalarList,
+    values_editable_by: enumeration('org_actors', 'org_and_repo_actors'),
+    require_explicit_values: scalar,
+    mode: enumeration('present', 'absent'),
+  },
+};
+
 const ORGANIZATION_POLICY: ObjectShape = {
   name: 'OrganizationPolicy',
   fields: {
     profile: object(() => ORGANIZATION_PROFILE),
     members: object(() => ORGANIZATION_MEMBER_POLICY),
+    properties: mapOfObjects(() => PROPERTY_DEFINITION),
   },
 };
 

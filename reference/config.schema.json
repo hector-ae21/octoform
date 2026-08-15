@@ -114,6 +114,13 @@
         },
         "members": {
           "$ref": "#/definitions/OrganizationMemberPolicy"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CPropertyDefinition%3E"
+          },
+          "description": "Custom property definitions, by name.\n\nThe organisation defines a property; a repository gives it a value under its own `properties`. The same word twice is GitHub's, and the two are not interchangeable: nothing can be declared here that a repository could answer, and no repository can answer a property nobody defined."
         }
       },
       "additionalProperties": false,
@@ -274,6 +281,103 @@
         "admin"
       ],
       "description": "The level of access every organisation member has to every repository the organisation owns, before any team or collaborator grant adds to it.\n\n`none` is the only value that makes a repository's own access policy the whole story; anything else is a floor no repository can go below."
+    },
+    "Managed<PropertyDefinition>": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/PropertyDefinition"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "not": {}
+        }
+      ],
+      "description": "A managed setting is tri-state:\n\n  true       enforce it on   false      enforce it off   undefined  not managed at all, leave whatever the repository has\n\n`null` is accepted as an explicit \"stop managing this\", which is how a repository-level entry cancels a policy it would otherwise inherit from its type or from the defaults. Both collapse to `undefined` once resolved."
+    },
+    "PropertyDefinition": {
+      "type": "object",
+      "properties": {
+        "value_type": {
+          "$ref": "#/definitions/PropertyValueType"
+        },
+        "description": {
+          "type": "string",
+          "description": "Short description, shown wherever the property is offered."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether every repository must carry a value for it."
+        },
+        "default_value": {
+          "$ref": "#/definitions/PropertyValue",
+          "description": "The value a repository gets when it states none. Empty means no default, since `null` already means \"stop managing this\"."
+        },
+        "allowed_values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The values a select may take, up to the 200 GitHub stores."
+        },
+        "values_editable_by": {
+          "$ref": "#/definitions/PropertyEditors"
+        },
+        "require_explicit_values": {
+          "type": "boolean",
+          "description": "Whether a repository must answer rather than inherit the default."
+        },
+        "mode": {
+          "$ref": "#/definitions/CollectionMode"
+        }
+      },
+      "required": [
+        "value_type"
+      ],
+      "additionalProperties": false,
+      "description": "A custom property as the organisation defines it, rather than as a repository answers it.\n\nEvery field is optional except the type, and an unstated field keeps whatever the organisation has: GitHub replaces the whole definition on write, so octoform reads the current one and sends the declared fields on top of it. Without that, correcting a description would reset who may edit the values, and the file would never mention either."
+    },
+    "PropertyValueType": {
+      "type": "string",
+      "enum": [
+        "string",
+        "url",
+        "true_false",
+        "single_select",
+        "multi_select"
+      ],
+      "description": "What kind of value a custom property holds."
+    },
+    "PropertyValue": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "A custom property value: one string, or several for a multi-select.\n\nAn empty string or an empty list unsets the property, which is the same absence an empty repository description means. `null` cannot be used for it: that already means \"stop managing this\" everywhere in the configuration."
+    },
+    "PropertyEditors": {
+      "type": "string",
+      "enum": [
+        "org_actors",
+        "org_and_repo_actors"
+      ],
+      "description": "Who may set a property's value on a repository.\n\nThis is the setting that decides which of GitHub's two endpoints can write the value at all: with `org_actors`, the repository's own endpoint is not open to the repository's admins."
+    },
+    "CollectionMode": {
+      "type": "string",
+      "enum": [
+        "present",
+        "absent"
+      ],
+      "description": "Whether an entry of a collection should exist at all.\n\n`absent` is how a collection entry is removed, because leaving it out of the file means \"not managed\" everywhere else and cannot mean \"delete\" here without making an incomplete file dangerous."
     },
     "ClassifyConfig": {
       "type": "object",
@@ -1378,14 +1482,6 @@
       "additionalProperties": false,
       "description": "A desired issue label."
     },
-    "CollectionMode": {
-      "type": "string",
-      "enum": [
-        "present",
-        "absent"
-      ],
-      "description": "Whether an entry of a collection should exist at all.\n\n`absent` is how a collection entry is removed, because leaving it out of the file means \"not managed\" everywhere else and cannot mean \"delete\" here without making an incomplete file dangerous."
-    },
     "MilestonePolicy": {
       "type": "object",
       "properties": {
@@ -1437,20 +1533,6 @@
         }
       ],
       "description": "A managed setting is tri-state:\n\n  true       enforce it on   false      enforce it off   undefined  not managed at all, leave whatever the repository has\n\n`null` is accepted as an explicit \"stop managing this\", which is how a repository-level entry cancels a policy it would otherwise inherit from its type or from the defaults. Both collapse to `undefined` once resolved."
-    },
-    "PropertyValue": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      ],
-      "description": "A custom property value: one string, or several for a multi-select.\n\nAn empty string or an empty list unsets the property, which is the same absence an empty repository description means. `null` cannot be used for it: that already means \"stop managing this\" everywhere in the configuration."
     },
     "EnvironmentPolicy": {
       "type": "object",

@@ -36,6 +36,8 @@ export {
   readRepoFile,
   readPropertyValues,
   putPropertySchema,
+  readPropertyDefinitions,
+  deletePropertySchema,
   setPropertyValues,
   detectLimits,
   detectOwnerKind,
@@ -50,7 +52,7 @@ export { capability } from './github/capabilities.js';
 export { planRepo } from './core/plan.js';
 export { planOrganization } from './core/organization.js';
 export { classifyRepo, pathsUsedBy } from './core/classify.js';
-export { applyOrganizationChanges, applyRepoChanges } from './github/apply.js';
+export { applyOrganizationChanges, applyPropertyValues, applyRepoChanges } from './github/apply.js';
 export { formatChange, groupByRepo, printable } from './report/format.js';
 export { audit } from './commands/audit.js';
 export { plan, summarizePlan } from './commands/plan.js';
@@ -110,6 +112,7 @@ export type {
   ExistingInvitation,
   ExistingLabel,
   ExistingMilestone,
+  ExistingProperty,
   ExistingRuleset,
   FeaturePolicy,
   FileMode,
@@ -132,6 +135,7 @@ export type {
   OrganizationMemberPolicy,
   OrganizationPolicy,
   OrganizationProfile,
+  OrganizationState,
   OutputEnvelope,
   OwnerBlock,
   OwnerDiscovery,
@@ -152,7 +156,10 @@ export type {
   PlanSummary,
   PlanVerification,
   PolicySet,
+  PropertyDefinition,
+  PropertyEditors,
   PropertyValue,
+  PropertyValueType,
   RateLimitStatus,
   RepoDetail,
   RepoEntry,

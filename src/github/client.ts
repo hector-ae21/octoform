@@ -6,6 +6,7 @@ import { readProtection } from '../core/branch-protection.js';
 import { readRuleset } from '../core/rulesets.js';
 import { canonicalLevel, readLevel } from '../core/access.js';
 import { readLabel, readMilestone } from '../core/collections.js';
+import { readDefinition } from '../core/properties.js';
 import { identityKey, namesToResolve } from '../core/identity.js';
 import { ORGANIZATION_FIELDS } from '../core/organization.js';
 import { CHANGED_BY_MUTATION } from '../core/plan.js';
@@ -16,6 +17,7 @@ import type {
   ExistingInvitation,
   ExistingLabel,
   ExistingMilestone,
+  ExistingProperty,
   ExistingRuleset,
   OwnerDiscovery,
   OwnerKind,
@@ -1203,44 +1205,87 @@ export async function readRepoFile(
 }
 
 /**
- * Create or update the custom property definition itself.
+ * Every custom property the organisation defines, by name.
  *
- * `allowed_values` is not declared anywhere in the configuration: it is the
- * set of type names under `types`. Asking an author to list them twice is
- * asking for the two lists to disagree, and the one that would silently win is
- * the one GitHub stores rather than the one the file shows.
+ * Returns nothing rather than an empty map when the listing fails, because
+ * every write to a definition replaces it: an empty map would say "this
+ * property does not exist yet" about properties that do, and creating one over
+ * the other is how a definition loses the fields nobody declared.
+ */
+export async function readPropertyDefinitions(
+  octokit: Octokit,
+  org: string,
+): Promise<Record<string, ExistingProperty> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /orgs/{org}/properties/schema', {
+      org,
+      per_page: 100,
+    });
+    const definitions: Record<string, ExistingProperty> = {};
+    for (const raw of pages as Array<Record<string, unknown>>) {
+      const definition = readDefinition(raw);
+      if (definition) definitions[definition.name] = definition;
+    }
+    return definitions;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Create or replace one custom property definition.
+ *
+ * The body is built by the caller from the definition that already stands, and
+ * that is not a detail of convenience: this endpoint replaces, so a body
+ * assembled from the configuration alone would clear every field the
+ * configuration is silent about.
  */
 export async function putPropertySchema(
   octokit: Octokit,
   org: string,
   property: string,
-  allowedValues: string[],
+  body: Record<string, unknown>,
 ): Promise<void> {
-  await octokit.request('PUT /orgs/{org}/properties/schema/{custom_property_name}', {
+  /**
+   * The route is held in a variable so its typing does not fix the body's
+   * shape here. It is built by the caller from the definition that stands, and
+   * the bundled types for this endpoint predate `url` as a value type.
+   */
+  const route: string = 'PUT /orgs/{org}/properties/schema/{custom_property_name}';
+  await octokit.request(route, { org, custom_property_name: property, ...body });
+}
+
+/** Remove a definition, and with it the value every repository had for it. */
+export async function deletePropertySchema(
+  octokit: Octokit,
+  org: string,
+  property: string,
+): Promise<void> {
+  await octokit.request('DELETE /orgs/{org}/properties/schema/{custom_property_name}', {
     org,
     custom_property_name: property,
-    value_type: 'single_select',
-    allowed_values: allowedValues,
-    required: false,
   });
 }
 
 /**
- * Assign a property value to repositories, in one call for each distinct
- * value: the endpoint takes a list of repositories and a list of properties,
- * so a whole type's worth of repositories costs a single request.
+ * Set the same property values on a group of repositories in one request.
+ *
+ * The organisation endpoint takes up to thirty repositories at a time, which
+ * is what makes a run over a whole type cost one request rather than one per
+ * repository. It also needs organisation permission, where the repository's
+ * own endpoint needs only the repository's — so the caller decides which is
+ * worth using, and only spends the larger permission when it buys something.
  */
 export async function setPropertyValues(
   octokit: Octokit,
   org: string,
-  property: string,
-  value: string,
   repos: string[],
+  properties: Array<{ property_name: string; value: string | string[] | null }>,
 ): Promise<void> {
   await octokit.request('PATCH /orgs/{org}/properties/values', {
     org,
     repository_names: repos,
-    properties: [{ property_name: property, value }],
+    properties,
   });
 }
 

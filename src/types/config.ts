@@ -482,6 +482,47 @@ export interface MilestonePolicy {
  */
 export type PropertyValue = string | string[];
 
+/** What kind of value a custom property holds. */
+export type PropertyValueType = 'string' | 'url' | 'true_false' | 'single_select' | 'multi_select';
+
+/**
+ * Who may set a property's value on a repository.
+ *
+ * This is the setting that decides which of GitHub's two endpoints can write
+ * the value at all: with `org_actors`, the repository's own endpoint is not
+ * open to the repository's admins.
+ */
+export type PropertyEditors = 'org_actors' | 'org_and_repo_actors';
+
+/**
+ * A custom property as the organisation defines it, rather than as a
+ * repository answers it.
+ *
+ * Every field is optional except the type, and an unstated field keeps
+ * whatever the organisation has: GitHub replaces the whole definition on
+ * write, so octoform reads the current one and sends the declared fields on
+ * top of it. Without that, correcting a description would reset who may edit
+ * the values, and the file would never mention either.
+ */
+export interface PropertyDefinition {
+  value_type: PropertyValueType;
+  /** Short description, shown wherever the property is offered. */
+  description?: string;
+  /** Whether every repository must carry a value for it. */
+  required?: boolean;
+  /**
+   * The value a repository gets when it states none. Empty means no default,
+   * since `null` already means "stop managing this".
+   */
+  default_value?: PropertyValue;
+  /** The values a select may take, up to the 200 GitHub stores. */
+  allowed_values?: string[];
+  values_editable_by?: PropertyEditors;
+  /** Whether a repository must answer rather than inherit the default. */
+  require_explicit_values?: boolean;
+  mode?: CollectionMode;
+}
+
 /** Desired deployment environment and its user reviewers. */
 export interface EnvironmentPolicy {
   name: string;
@@ -627,6 +668,15 @@ export interface OrganizationMemberPolicy {
 export interface OrganizationPolicy {
   profile?: OrganizationProfile;
   members?: OrganizationMemberPolicy;
+  /**
+   * Custom property definitions, by name.
+   *
+   * The organisation defines a property; a repository gives it a value under
+   * its own `properties`. The same word twice is GitHub's, and the two are not
+   * interchangeable: nothing can be declared here that a repository could
+   * answer, and no repository can answer a property nobody defined.
+   */
+  properties?: Record<string, Managed<PropertyDefinition>>;
 }
 
 /** A condition used to infer a repository's type when it has none recorded. */

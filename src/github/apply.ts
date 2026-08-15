@@ -6,6 +6,8 @@ import { protectionBody } from '../core/branch-protection.js';
 import { REVOKED, grantLevel, invitationLevel } from '../core/access.js';
 import { labelBody, milestoneBody } from '../core/collections.js';
 import { ORGANIZATION_FIELDS } from '../core/organization.js';
+import { batchPropertyValues } from '../core/properties.js';
+import { deletePropertySchema, putPropertySchema, setPropertyValues } from './client.js';
 import type { RuleContext } from '../core/rulesets.js';
 import { rulesetBody } from '../core/rulesets.js';
 import type {
@@ -417,30 +419,7 @@ export async function applyRepoChanges(
   const propertyChanges = changes.filter((c) => c.key.startsWith('properties.'));
   if (propertyChanges.length > 0) {
     const sending = propertyChanges.filter((change) => !stopped(change));
-    if (sending.length > 0) {
-      /**
-       * One request for every property value, because the endpoint takes a
-       * list and there is no reason to spend a request per name. They succeed
-       * or fail together, which is what the shared body means.
-       */
-      const properties = sending.map((change) => {
-        const payload = change.payload as { property: string; value: string | string[] | null };
-        return { property_name: payload.property, value: payload.value };
-      });
-      try {
-        await octokit.request('PATCH /repos/{owner}/{repo}/properties/values', {
-          owner,
-          repo,
-          properties,
-        });
-        for (const change of sending) record({ ...change, outcome: 'applied' });
-      } catch (error) {
-        const message = describeError(error);
-        for (const change of sending) {
-          record({ ...change, outcome: 'failed', error: message });
-        }
-      }
-    }
+    for (const result of await applyPropertyValues(octokit, owner, sending)) record(result);
   }
 
   for (const change of changes.filter((c) => c.key.startsWith('environments.'))) {
@@ -659,12 +638,16 @@ function describeError(error: unknown): string {
 }
 
 /**
- * Apply every organisation change that is not blocked, in one request.
+ * Apply every organisation change that is not blocked.
  *
- * The whole of what octoform manages on an organisation lives on one object
- * and is written through one PATCH, so the group succeeds or fails together —
- * the same rule the repository settings body already follows, and reported the
- * same way, since none of them happened if the request did not.
+ * The settings all live on one object and are written through one PATCH, so
+ * that group succeeds or fails together — the same rule the repository
+ * settings body already follows, and reported the same way, since none of them
+ * happened if the request did not.
+ *
+ * Custom property definitions are the exception, and not by preference: each
+ * one has its own endpoint. One request each also means one outcome each,
+ * which is worth having for an operation that replaces a definition wholesale.
  */
 export async function applyOrganizationChanges(
   octokit: Octokit,
@@ -674,17 +657,91 @@ export async function applyOrganizationChanges(
   const changes = planned.filter((change) => change.key.startsWith('organization.'));
   if (changes.length === 0) return [];
 
-  const body: Record<string, unknown> = {};
-  for (const change of changes) {
-    const field = ORGANIZATION_FIELDS[change.key];
-    if (field) body[field] = change.to;
+  const settings = changes.filter((change) => ORGANIZATION_FIELDS[change.key] !== undefined);
+  const definitions = changes.filter((change) => change.key.startsWith('organization.properties.'));
+
+  const results: AppliedChange[] = [];
+
+  if (settings.length > 0) {
+    const body: Record<string, unknown> = {};
+    for (const change of settings) body[ORGANIZATION_FIELDS[change.key] as string] = change.to;
+    try {
+      await octokit.request('PATCH /orgs/{org}', { org: owner, ...body });
+      results.push(...settings.map((change) => ({ ...change, outcome: 'applied' as const })));
+    } catch (error) {
+      const message = describeError(error);
+      results.push(
+        ...settings.map((change) => ({ ...change, outcome: 'failed' as const, error: message })),
+      );
+    }
   }
 
-  try {
-    await octokit.request('PATCH /orgs/{org}', { org: owner, ...body });
-    return changes.map((change) => ({ ...change, outcome: 'applied' as const }));
-  } catch (error) {
-    const message = describeError(error);
-    return changes.map((change) => ({ ...change, outcome: 'failed' as const, error: message }));
+  for (const change of definitions) {
+    const payload = change.payload as
+      { property: string; body?: Record<string, unknown>; remove?: boolean } | undefined;
+    results.push(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no property definition to write');
+        if (payload.remove) {
+          await deletePropertySchema(octokit, owner, payload.property);
+          return;
+        }
+        await putPropertySchema(octokit, owner, payload.property, payload.body ?? {});
+      }),
+    );
   }
+
+  return results;
+}
+
+/**
+ * Set custom property values, spending as few requests as the endpoints allow.
+ *
+ * A group of repositories asking for the same values goes through the
+ * organisation's endpoint, which takes thirty at a time. A single repository
+ * goes through its own, which needs only that repository's permission — there
+ * is nothing to save by reaching for the wider one when the request count is
+ * the same either way.
+ *
+ * A shared request has a shared outcome. GitHub does not say which repository
+ * it refused, so every repository in a failed batch is reported failed with
+ * the same message rather than octoform inventing an attribution.
+ */
+export async function applyPropertyValues(
+  octokit: Octokit,
+  owner: string,
+  planned: Change[],
+): Promise<AppliedChange[]> {
+  const changes = planned.filter((change) => change.key.startsWith('properties.'));
+  if (changes.length === 0) return [];
+
+  const results: AppliedChange[] = [];
+  for (const batch of batchPropertyValues(changes)) {
+    const single = batch.repositories.length === 1 ? batch.repositories[0] : undefined;
+    try {
+      if (single !== undefined) {
+        await octokit.request('PATCH /repos/{owner}/{repo}/properties/values', {
+          owner,
+          repo: single,
+          properties: batch.properties,
+        });
+      } else {
+        await setPropertyValues(octokit, owner, batch.repositories, batch.properties);
+      }
+      results.push(...batch.changes.map((change) => ({ ...change, outcome: 'applied' as const })));
+    } catch (error) {
+      const message =
+        batch.repositories.length === 1
+          ? describeError(error)
+          : `${describeError(error)} (one request covering ${batch.repositories.length} repositories)`;
+      results.push(
+        ...batch.changes.map((change) => ({
+          ...change,
+          outcome: 'failed' as const,
+          error: message,
+        })),
+      );
+    }
+  }
+  return results;
 }

@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { MUTATION_FIELDS, applyRepoChanges } from '../src/github/apply.js';
+import {
+  MUTATION_FIELDS,
+  applyOrganizationChanges,
+  applyPropertyValues,
+  applyRepoChanges,
+} from '../src/github/apply.js';
 import { CHANGED_BY_MUTATION } from '../src/core/plan.js';
 import type { Change } from '../src/types/index.js';
 
@@ -461,4 +466,125 @@ test('a repository rename travels in the bundled request like other metadata', a
     visibility: 'private',
     is_template: true,
   });
+});
+
+test('an organisation setting and a property definition do not share a request', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  const setting = planned({
+    key: 'organization.profile.name',
+    to: 'Acme Inc',
+    repo: undefined,
+  });
+  const definition = planned({
+    key: 'organization.properties.tier',
+    to: 'single_select',
+    repo: undefined,
+    payload: { property: 'tier', body: { value_type: 'single_select' } },
+  });
+
+  const results = await applyOrganizationChanges(octokit, 'acme', [setting, definition]);
+
+  assert.deepEqual(
+    calls.map((call) => call.route),
+    ['PATCH /orgs/{org}', 'PUT /orgs/{org}/properties/schema/{custom_property_name}'],
+  );
+  assert.deepEqual(calls[1]?.params, {
+    org: 'acme',
+    custom_property_name: 'tier',
+    value_type: 'single_select',
+  });
+  assert.equal(
+    results.every((result) => result.outcome === 'applied'),
+    true,
+  );
+});
+
+test('a definition nobody asked to keep is deleted rather than written empty', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  const removal = planned({
+    key: 'organization.properties.tier',
+    repo: undefined,
+    operation: 'delete',
+    payload: { property: 'tier', remove: true },
+  });
+
+  await applyOrganizationChanges(octokit, 'acme', [removal]);
+
+  assert.equal(calls[0]?.route, 'DELETE /orgs/{org}/properties/schema/{custom_property_name}');
+});
+
+test('a failed definition does not carry the other definitions down with it', async () => {
+  const { octokit } = fakeOctokit((route, params) => {
+    if (route.startsWith('PUT') && params.custom_property_name === 'tier') throw new Error('boom');
+  });
+  const definition = (name: string): Change =>
+    planned({
+      key: `organization.properties.${name}`,
+      repo: undefined,
+      payload: { property: name, body: { value_type: 'string' } },
+    });
+
+  const results = await applyOrganizationChanges(octokit, 'acme', [
+    definition('tier'),
+    definition('owner_team'),
+  ]);
+
+  assert.equal(results[0]?.outcome, 'failed');
+  assert.equal(results[1]?.outcome, 'applied');
+});
+
+const valueOn = (repo: string, value: string): Change =>
+  planned({
+    id: `acme/${repo}#properties.tier`,
+    repo,
+    key: 'properties.tier',
+    to: value,
+    payload: { property: 'tier', value },
+  });
+
+test('one repository uses its own endpoint, which needs the smaller permission', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+
+  await applyPropertyValues(octokit, 'acme', [valueOn('thing', 'gold')]);
+
+  assert.equal(calls[0]?.route, 'PATCH /repos/{owner}/{repo}/properties/values');
+  assert.deepEqual(calls[0]?.params, {
+    owner: 'acme',
+    repo: 'thing',
+    properties: [{ property_name: 'tier', value: 'gold' }],
+  });
+});
+
+test('several repositories asking for the same value cost one request', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+
+  const results = await applyPropertyValues(octokit, 'acme', [
+    valueOn('one', 'gold'),
+    valueOn('two', 'gold'),
+    valueOn('three', 'bronze'),
+  ]);
+
+  assert.deepEqual(
+    calls.map((call) => call.route),
+    ['PATCH /orgs/{org}/properties/values', 'PATCH /repos/{owner}/{repo}/properties/values'],
+  );
+  assert.deepEqual(calls[0]?.params.repository_names, ['one', 'two']);
+  assert.equal(results.length, 3);
+});
+
+test('a shared request that fails is reported as failed for everyone in it', async () => {
+  const { octokit } = fakeOctokit((route) => {
+    if (route.startsWith('PATCH /orgs')) throw new Error('boom');
+  });
+
+  const results = await applyPropertyValues(octokit, 'acme', [
+    valueOn('one', 'gold'),
+    valueOn('two', 'gold'),
+  ]);
+
+  assert.equal(results.length, 2);
+  for (const result of results) {
+    assert.equal(result.outcome, 'failed');
+    assert.match(String(result.error), /one request covering 2 repositories/u);
+  }
 });
