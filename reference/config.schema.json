@@ -274,6 +274,20 @@
             "boolean",
             "null"
           ]
+        },
+        "sponsorships": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether the repository shows a sponsor button."
+        },
+        "pull_requests": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether pull requests can be opened at all. Turning this off does not remove the ones that already exist."
         }
       },
       "additionalProperties": false,
@@ -485,10 +499,38 @@
             "boolean",
             "null"
           ]
+        },
+        "issue_creation": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CreationPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pull_request_creation": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CreationPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false,
       "description": "Desired state for repository metadata and access settings."
+    },
+    "CreationPolicy": {
+      "type": "string",
+      "enum": [
+        "ALL",
+        "COLLABORATORS_ONLY"
+      ],
+      "description": "Who may open an issue or a pull request on the repository.\n\n`COLLABORATORS_ONLY` still leaves the feature enabled and its history readable; it narrows who can add to it. Turning the feature off entirely is a different setting."
     },
     "DefaultBranchPolicy": {
       "type": "object",

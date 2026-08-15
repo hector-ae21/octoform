@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import type { Octokit } from '@octokit/rest';
 import { toRefName } from './client.js';
+import { graphqlRequest } from './graphql.js';
 import { blockedByPrerequisite, orderByDependency } from '../core/dependencies.js';
 import type {
   AppliedChange,
@@ -38,6 +39,26 @@ const SECURITY_AND_ANALYSIS_FIELDS: Record<string, string> = {
   'security.secret_scanning': 'secret_scanning',
   'security.secret_scanning_push_protection': 'secret_scanning_push_protection',
 };
+
+/**
+ * Maps dotted plan keys to fields of GitHub's `updateRepository` mutation, for
+ * the settings its REST API cannot change at all.
+ */
+export const MUTATION_FIELDS: Record<string, string> = {
+  'features.discussions': 'hasDiscussionsEnabled',
+  'features.sponsorships': 'hasSponsorshipsEnabled',
+  'features.pull_requests': 'hasPullRequestsEnabled',
+  'repo.issue_creation': 'issueCreationPolicy',
+  'repo.pull_request_creation': 'pullRequestCreationPolicy',
+};
+
+const UPDATE_REPOSITORY_MUTATION = `
+  mutation UpdateRepositorySettings($input: UpdateRepositoryInput!) {
+    updateRepository(input: $input) {
+      repository { id }
+    }
+  }
+`;
 
 /**
  * Security toggles that are their own endpoint, enabled with PUT and disabled
@@ -141,6 +162,8 @@ export async function applyRepoChanges(
       for (const change of bundled) results.push({ ...change, outcome: 'failed', error: message });
     }
   }
+
+  results.push(...(await applyMutationSettings(octokit, changes)));
 
   const topics = changes.find((c) => c.key === 'repo.topics');
   if (topics) {
@@ -276,6 +299,55 @@ export async function applyRepoChanges(
   }
 
   return results;
+}
+
+/**
+ * Send every GraphQL-only setting for one repository in a single mutation.
+ *
+ * Grouped for the same reason the repository PATCH is: they are fields of one
+ * operation, so five of them cost one request. They succeed or fail together,
+ * and the mutation is never retried — an ambiguous write is resolved by
+ * observing, not by sending it again.
+ *
+ * The node id comes from the plan, which read it alongside the values it is
+ * comparing against. A change that reached here without one was blocked at
+ * planning time, so the guard here is a last resort rather than the report.
+ */
+async function applyMutationSettings(
+  octokit: Octokit,
+  changes: Change[],
+): Promise<AppliedChange[]> {
+  const mutated = changes.filter((change) => MUTATION_FIELDS[change.key]);
+  if (mutated.length === 0) return [];
+
+  const input: Record<string, unknown> = {};
+  for (const change of mutated) input[MUTATION_FIELDS[change.key] as string] = change.to;
+  const repositoryId = mutated
+    .map((change) => (change.payload as { repositoryId?: string } | undefined)?.repositoryId)
+    .find((id): id is string => typeof id === 'string');
+
+  if (!repositoryId) {
+    return mutated.map((change) => ({
+      ...change,
+      outcome: 'failed',
+      error: 'no repository node id to address the mutation to',
+    }));
+  }
+
+  const outcome = await graphqlRequest(
+    octokit,
+    UPDATE_REPOSITORY_MUTATION,
+    { input: { repositoryId, ...input } },
+    { attempts: 0, wait: async () => {} },
+  );
+
+  if (outcome.failures.length > 0) {
+    const reason = outcome.failures
+      .map((failure) => `${failure.kind}: ${failure.message}`)
+      .join('; ');
+    return mutated.map((change) => ({ ...change, outcome: 'failed', error: reason }));
+  }
+  return mutated.map((change) => ({ ...change, outcome: 'applied' }));
 }
 
 /**

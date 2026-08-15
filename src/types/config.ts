@@ -29,7 +29,23 @@ export interface FeaturePolicy {
   wiki?: Toggle;
   projects?: Toggle;
   discussions?: Toggle;
+  /** Whether the repository shows a sponsor button. */
+  sponsorships?: Toggle;
+  /**
+   * Whether pull requests can be opened at all. Turning this off does not
+   * remove the ones that already exist.
+   */
+  pull_requests?: Toggle;
 }
+
+/**
+ * Who may open an issue or a pull request on the repository.
+ *
+ * `COLLABORATORS_ONLY` still leaves the feature enabled and its history
+ * readable; it narrows who can add to it. Turning the feature off entirely is
+ * a different setting.
+ */
+export type CreationPolicy = 'ALL' | 'COLLABORATORS_ONLY';
 
 /**
  * Where the title of a squash merge commit comes from by default.
@@ -97,6 +113,8 @@ export interface RepoPolicy {
   topics?: Managed<string[]>;
   allow_forking?: Toggle;
   web_commit_signoff_required?: Toggle;
+  issue_creation?: Managed<CreationPolicy>;
+  pull_request_creation?: Managed<CreationPolicy>;
 }
 
 /** Desired default-branch name and guarded rename sources. */

@@ -102,6 +102,15 @@ export interface RepoStructure {
 export interface RepoDetail extends RepoState {
   settings: Record<string, SettingValue>;
   /**
+   * GitHub's node identity for the repository, which its GraphQL mutations
+   * address it by instead of by owner and name.
+   *
+   * Read only when a policy manages a setting that has to be changed that way,
+   * and absent when that read failed — in which case the change is blocked
+   * rather than sent against an identity octoform does not have.
+   */
+  nodeId?: string;
+  /**
    * Settings the owner enforces across its repositories, keyed the same way as
    * {@link RepoDetail.settings}, with the reason a repository cannot override
    * them.

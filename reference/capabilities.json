@@ -472,7 +472,7 @@
     {
       "id": "repository-discussions",
       "area": "repository",
-      "support": "blocked",
+      "support": "supported",
       "configPaths": [
         "features.discussions"
       ],
@@ -492,9 +492,12 @@
         "classic-repo",
         "repository-metadata-read"
       ],
-      "writePermissions": [],
+      "writePermissions": [
+        "classic-repo",
+        "repository-administration-write"
+      ],
       "limitations": [
-        "This version observes the field but has no supported REST mutation and always blocks a requested change."
+        "The REST repository response reports the field but its PATCH body cannot change it; the change is made by the GraphQL updateRepository mutation, so a repository whose node id could not be read blocks instead."
       ]
     },
     {
@@ -529,6 +532,39 @@
         "repository-administration-write"
       ],
       "limitations": []
+    },
+    {
+      "id": "repository-graphql-settings",
+      "area": "repository",
+      "support": "supported",
+      "configPaths": [
+        "features.pull_requests",
+        "features.sponsorships",
+        "repo.issue_creation",
+        "repo.pull_request_creation"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization",
+        "personal"
+      ],
+      "readRoutes": [],
+      "writeRoutes": [],
+      "readPermissions": [
+        "classic-repo",
+        "repository-administration-read"
+      ],
+      "writePermissions": [
+        "classic-repo",
+        "repository-administration-write"
+      ],
+      "limitations": [
+        "The REST API exposes none of these settings; both the read and the change go through GraphQL, which this register does not yet enumerate operation by operation.",
+        "A failed GraphQL read leaves every one of them unreadable, which blocks the change rather than planning over an assumed value."
+      ]
     },
     {
       "id": "repository-inventory",

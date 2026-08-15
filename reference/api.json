@@ -301,7 +301,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 505,
+								"target": 508,
 								"name": "OwnerScope",
 								"package": "@hector21/octoform"
 							}
@@ -520,7 +520,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 505,
+								"target": 508,
 								"name": "OwnerScope",
 								"package": "@hector21/octoform"
 							}
@@ -680,7 +680,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 505,
+								"target": 508,
 								"name": "OwnerScope",
 								"package": "@hector21/octoform"
 							}
@@ -825,7 +825,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 481,
+								"target": 484,
 								"name": "MigrateOptions",
 								"package": "@hector21/octoform"
 							},
@@ -887,7 +887,7 @@
 								"type": "array",
 								"elementType": {
 									"type": "reference",
-									"target": 505,
+									"target": 508,
 									"name": "OwnerScope",
 									"package": "@hector21/octoform"
 								}
@@ -898,7 +898,7 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 459,
+							"target": 462,
 							"name": "InspectedOwner",
 							"package": "@hector21/octoform"
 						}
@@ -1017,7 +1017,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 505,
+								"target": 508,
 								"name": "OwnerScope",
 								"package": "@hector21/octoform"
 							}
@@ -1033,7 +1033,7 @@
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 451,
+								"target": 454,
 								"name": "InspectedCapabilities",
 								"package": "@hector21/octoform"
 							}
@@ -1076,7 +1076,7 @@
 								"type": "array",
 								"elementType": {
 									"type": "reference",
-									"target": 459,
+									"target": 462,
 									"name": "InspectedOwner",
 									"package": "@hector21/octoform"
 								}
@@ -1131,7 +1131,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 451,
+								"target": 454,
 								"name": "InspectedCapabilities",
 								"package": "@hector21/octoform"
 							}
@@ -1279,7 +1279,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 505,
+								"target": 508,
 								"name": "OwnerScope",
 								"package": "@hector21/octoform"
 							}
@@ -1294,7 +1294,7 @@
 							},
 							"type": {
 								"type": "reference",
-								"target": 547,
+								"target": 550,
 								"name": "PlanSelector",
 								"package": "@hector21/octoform"
 							}
@@ -1352,7 +1352,7 @@
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 542,
+								"target": 545,
 								"name": "PlanResult",
 								"package": "@hector21/octoform"
 							}
@@ -1401,7 +1401,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 542,
+								"target": 545,
 								"name": "PlanResult",
 								"package": "@hector21/octoform"
 							}
@@ -1409,7 +1409,7 @@
 					],
 					"type": {
 						"type": "reference",
-						"target": 551,
+						"target": 554,
 						"name": "PlanSummary",
 						"package": "@hector21/octoform"
 					}
@@ -1567,7 +1567,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 505,
+								"target": 508,
 								"name": "OwnerScope",
 								"package": "@hector21/octoform"
 							}
@@ -1653,7 +1653,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 505,
+								"target": 508,
 								"name": "OwnerScope",
 								"package": "@hector21/octoform"
 							}
@@ -1666,7 +1666,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 504,
+								"target": 507,
 								"name": "OwnerKind",
 								"package": "@hector21/octoform"
 							}
@@ -1676,7 +1676,7 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 483,
+							"target": 486,
 							"name": "NotApplicable",
 							"package": "@hector21/octoform"
 						}
@@ -1714,7 +1714,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 483,
+								"target": 486,
 								"name": "NotApplicable",
 								"package": "@hector21/octoform"
 							}
@@ -1727,7 +1727,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 504,
+								"target": 507,
 								"name": "OwnerKind",
 								"package": "@hector21/octoform"
 							}
@@ -1947,7 +1947,7 @@
 					],
 					"type": {
 						"type": "reference",
-						"target": 478,
+						"target": 481,
 						"name": "MigratedConfig",
 						"package": "@hector21/octoform"
 					}
@@ -2066,7 +2066,7 @@
 								"type": "array",
 								"elementType": {
 									"type": "reference",
-									"target": 505,
+									"target": 508,
 									"name": "OwnerScope",
 									"package": "@hector21/octoform"
 								}
@@ -2092,7 +2092,7 @@
 									},
 									{
 										"type": "reference",
-										"target": 542,
+										"target": 545,
 										"name": "PlanResult",
 										"package": "@hector21/octoform"
 									}
@@ -2154,7 +2154,7 @@
 					],
 					"type": {
 						"type": "reference",
-						"target": 513,
+						"target": 516,
 						"name": "PlanArtifact",
 						"package": "@hector21/octoform"
 					}
@@ -2199,7 +2199,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 513,
+								"target": 516,
 								"name": "PlanArtifact",
 								"package": "@hector21/octoform"
 							}
@@ -2212,7 +2212,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 532,
+								"target": 535,
 								"name": "PlanIdentity",
 								"package": "@hector21/octoform"
 							}
@@ -2220,7 +2220,7 @@
 					],
 					"type": {
 						"type": "reference",
-						"target": 558,
+						"target": 561,
 						"name": "PlanVerification",
 						"package": "@hector21/octoform"
 					}
@@ -2263,7 +2263,7 @@
 					],
 					"type": {
 						"type": "reference",
-						"target": 513,
+						"target": 516,
 						"name": "PlanArtifact",
 						"package": "@hector21/octoform"
 					}
@@ -2892,7 +2892,7 @@
 					],
 					"type": {
 						"type": "reference",
-						"target": 624,
+						"target": 630,
 						"name": "ResolvedConfig",
 						"package": "@hector21/octoform"
 					}
@@ -2978,7 +2978,7 @@
 									"flags": {},
 									"type": {
 										"type": "reference",
-										"target": 624,
+										"target": 630,
 										"name": "ResolvedConfig",
 										"package": "@hector21/octoform"
 									}
@@ -3087,7 +3087,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 505,
+								"target": 508,
 								"name": "OwnerScope",
 								"package": "@hector21/octoform"
 							}
@@ -3100,7 +3100,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 608,
+								"target": 614,
 								"name": "RepoState",
 								"package": "@hector21/octoform"
 							}
@@ -3108,7 +3108,7 @@
 					],
 					"type": {
 						"type": "reference",
-						"target": 565,
+						"target": 568,
 						"name": "PolicySet",
 						"package": "@hector21/octoform"
 					}
@@ -3153,7 +3153,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 505,
+								"target": 508,
 								"name": "OwnerScope",
 								"package": "@hector21/octoform"
 							}
@@ -3166,7 +3166,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 608,
+								"target": 614,
 								"name": "RepoState",
 								"package": "@hector21/octoform"
 							}
@@ -3218,7 +3218,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 505,
+								"target": 508,
 								"name": "OwnerScope",
 								"package": "@hector21/octoform"
 							}
@@ -3362,7 +3362,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 624,
+								"target": 630,
 								"name": "ResolvedConfig",
 								"package": "@hector21/octoform"
 							}
@@ -3390,7 +3390,7 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 505,
+							"target": 508,
 							"name": "OwnerScope",
 							"package": "@hector21/octoform"
 						}
@@ -3442,7 +3442,7 @@
 					],
 					"type": {
 						"type": "reference",
-						"target": 605,
+						"target": 611,
 						"name": "RepoSelector",
 						"package": "@hector21/octoform"
 					}
@@ -3495,7 +3495,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 624,
+								"target": 630,
 								"name": "ResolvedConfig",
 								"package": "@hector21/octoform"
 							}
@@ -3510,7 +3510,7 @@
 								"type": "array",
 								"elementType": {
 									"type": "reference",
-									"target": 505,
+									"target": 508,
 									"name": "OwnerScope",
 									"package": "@hector21/octoform"
 								}
@@ -3527,7 +3527,7 @@
 								"types": [
 									{
 										"type": "reference",
-										"target": 605,
+										"target": 611,
 										"name": "RepoSelector",
 										"package": "@hector21/octoform"
 									},
@@ -3581,7 +3581,7 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 505,
+							"target": 508,
 							"name": "OwnerScope",
 							"package": "@hector21/octoform"
 						}
@@ -3694,7 +3694,7 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 643,
+							"target": 649,
 							"name": "SemanticsEntry",
 							"package": "@hector21/octoform"
 						}
@@ -3782,7 +3782,7 @@
 										"type": "array",
 										"elementType": {
 											"type": "reference",
-											"target": 643,
+											"target": 649,
 											"name": "SemanticsEntry",
 											"package": "@hector21/octoform"
 										}
@@ -3900,7 +3900,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 596,
+								"target": 600,
 								"name": "RepoFacts",
 								"package": "@hector21/octoform"
 							}
@@ -3963,7 +3963,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 581,
+								"target": 584,
 								"name": "RepoDetail",
 								"package": "@hector21/octoform"
 							}
@@ -3976,7 +3976,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 565,
+								"target": 568,
 								"name": "PolicySet",
 								"package": "@hector21/octoform"
 							}
@@ -3989,7 +3989,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 539,
+								"target": 542,
 								"name": "PlanOptions",
 								"package": "@hector21/octoform"
 							}
@@ -4849,7 +4849,7 @@
 								"kind": "inline-tag",
 								"tag": "@link",
 								"text": "TokenProvider",
-								"target": 651
+								"target": 657
 							},
 							{
 								"kind": "text",
@@ -4891,7 +4891,7 @@
 									},
 									{
 										"type": "reference",
-										"target": 651,
+										"target": 657,
 										"name": "TokenProvider",
 										"package": "@hector21/octoform"
 									}
@@ -5112,7 +5112,7 @@
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 577,
+								"target": 580,
 								"name": "RateLimitStatus",
 								"package": "@hector21/octoform"
 							}
@@ -5169,7 +5169,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 577,
+								"target": 580,
 								"name": "RateLimitStatus",
 								"package": "@hector21/octoform"
 							}
@@ -5324,7 +5324,7 @@
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 500,
+								"target": 503,
 								"name": "OwnerDiscovery",
 								"package": "@hector21/octoform"
 							}
@@ -5460,7 +5460,7 @@
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 504,
+								"target": 507,
 								"name": "OwnerKind",
 								"package": "@hector21/octoform"
 							}
@@ -5725,7 +5725,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 504,
+								"target": 507,
 								"name": "OwnerKind",
 								"package": "@hector21/octoform"
 							}
@@ -5743,7 +5743,7 @@
 								"type": "array",
 								"elementType": {
 									"type": "reference",
-									"target": 608,
+									"target": 614,
 									"name": "RepoState",
 									"package": "@hector21/octoform"
 								}
@@ -5901,7 +5901,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 608,
+								"target": 614,
 								"name": "RepoState",
 								"package": "@hector21/octoform"
 							}
@@ -5916,7 +5916,7 @@
 							},
 							"type": {
 								"type": "reference",
-								"target": 565,
+								"target": 568,
 								"name": "PolicySet",
 								"package": "@hector21/octoform"
 							}
@@ -5932,7 +5932,7 @@
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 581,
+								"target": 584,
 								"name": "RepoDetail",
 								"package": "@hector21/octoform"
 							}
@@ -6918,7 +6918,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 504,
+								"target": 507,
 								"name": "OwnerKind",
 								"package": "@hector21/octoform"
 							}
@@ -6934,7 +6934,7 @@
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 535,
+								"target": 538,
 								"name": "PlanLimits",
 								"package": "@hector21/octoform"
 							}
@@ -7163,7 +7163,7 @@
 							"type": "array",
 							"elementType": {
 								"type": "reference",
-								"target": 504,
+								"target": 507,
 								"name": "OwnerKind",
 								"package": "@hector21/octoform"
 							}
@@ -7202,7 +7202,7 @@
 			]
 		},
 		{
-			"id": 483,
+			"id": 486,
 			"name": "NotApplicable",
 			"variant": "declaration",
 			"kind": 256,
@@ -7217,7 +7217,7 @@
 			},
 			"children": [
 				{
-					"id": 484,
+					"id": 487,
 					"name": "owner",
 					"variant": "declaration",
 					"kind": 1024,
@@ -7228,7 +7228,7 @@
 					}
 				},
 				{
-					"id": 485,
+					"id": 488,
 					"name": "path",
 					"variant": "declaration",
 					"kind": 1024,
@@ -7239,7 +7239,7 @@
 					}
 				},
 				{
-					"id": 486,
+					"id": 489,
 					"name": "reason",
 					"variant": "declaration",
 					"kind": 1024,
@@ -7254,9 +7254,9 @@
 				{
 					"title": "Properties",
 					"children": [
-						484,
-						485,
-						486
+						487,
+						488,
+						489
 					]
 				}
 			]
@@ -7569,7 +7569,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 487,
+						"target": 490,
 						"name": "OperationKind",
 						"package": "@hector21/octoform"
 					},
@@ -7589,7 +7589,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 627,
+						"target": 633,
 						"name": "Risk",
 						"package": "@hector21/octoform"
 					},
@@ -8209,7 +8209,7 @@
 			]
 		},
 		{
-			"id": 500,
+			"id": 503,
 			"name": "OwnerDiscovery",
 			"variant": "declaration",
 			"kind": 256,
@@ -8224,7 +8224,7 @@
 			},
 			"children": [
 				{
-					"id": 501,
+					"id": 504,
 					"name": "login",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8235,20 +8235,20 @@
 					}
 				},
 				{
-					"id": 502,
+					"id": 505,
 					"name": "kind",
 					"variant": "declaration",
 					"kind": 1024,
 					"flags": {},
 					"type": {
 						"type": "reference",
-						"target": 504,
+						"target": 507,
 						"name": "OwnerKind",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 503,
+					"id": 506,
 					"name": "id",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8271,15 +8271,15 @@
 				{
 					"title": "Properties",
 					"children": [
-						501,
-						502,
-						503
+						504,
+						505,
+						506
 					]
 				}
 			]
 		},
 		{
-			"id": 577,
+			"id": 580,
 			"name": "RateLimitStatus",
 			"variant": "declaration",
 			"kind": 256,
@@ -8294,7 +8294,7 @@
 			},
 			"children": [
 				{
-					"id": 578,
+					"id": 581,
 					"name": "remaining",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8307,7 +8307,7 @@
 					}
 				},
 				{
-					"id": 579,
+					"id": 582,
 					"name": "limit",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8320,7 +8320,7 @@
 					}
 				},
 				{
-					"id": 580,
+					"id": 583,
 					"name": "reset",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8345,15 +8345,15 @@
 				{
 					"title": "Properties",
 					"children": [
-						578,
-						579,
-						580
+						581,
+						582,
+						583
 					]
 				}
 			]
 		},
 		{
-			"id": 596,
+			"id": 600,
 			"name": "RepoFacts",
 			"variant": "declaration",
 			"kind": 256,
@@ -8368,7 +8368,7 @@
 			},
 			"children": [
 				{
-					"id": 597,
+					"id": 601,
 					"name": "visibility",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8379,7 +8379,7 @@
 					}
 				},
 				{
-					"id": 598,
+					"id": 602,
 					"name": "files",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8435,8 +8435,8 @@
 				{
 					"title": "Properties",
 					"children": [
-						597,
-						598
+						601,
+						602
 					]
 				}
 			]
@@ -8498,7 +8498,7 @@
 			]
 		},
 		{
-			"id": 481,
+			"id": 484,
 			"name": "MigrateOptions",
 			"variant": "declaration",
 			"kind": 256,
@@ -8523,7 +8523,7 @@
 			},
 			"children": [
 				{
-					"id": 482,
+					"id": 485,
 					"name": "write",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8548,13 +8548,13 @@
 				{
 					"title": "Properties",
 					"children": [
-						482
+						485
 					]
 				}
 			]
 		},
 		{
-			"id": 478,
+			"id": 481,
 			"name": "MigratedConfig",
 			"variant": "declaration",
 			"kind": 256,
@@ -8569,7 +8569,7 @@
 			},
 			"children": [
 				{
-					"id": 479,
+					"id": 482,
 					"name": "yaml",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8588,7 +8588,7 @@
 					}
 				},
 				{
-					"id": 480,
+					"id": 483,
 					"name": "owner",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8619,14 +8619,14 @@
 				{
 					"title": "Properties",
 					"children": [
-						479,
-						480
+						482,
+						483
 					]
 				}
 			]
 		},
 		{
-			"id": 462,
+			"id": 465,
 			"name": "Managed",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -8657,7 +8657,7 @@
 			},
 			"typeParameters": [
 				{
-					"id": 463,
+					"id": 466,
 					"name": "T",
 					"variant": "typeParam",
 					"kind": 131072,
@@ -8669,7 +8669,7 @@
 				"types": [
 					{
 						"type": "reference",
-						"target": 463,
+						"target": 466,
 						"name": "T",
 						"package": "@hector21/octoform",
 						"refersToTypeParameter": true
@@ -8686,7 +8686,7 @@
 			}
 		},
 		{
-			"id": 650,
+			"id": 656,
 			"name": "Toggle",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -8701,7 +8701,7 @@
 			},
 			"type": {
 				"type": "reference",
-				"target": 462,
+				"target": 465,
 				"typeArguments": [
 					{
 						"type": "intrinsic",
@@ -8713,7 +8713,7 @@
 			}
 		},
 		{
-			"id": 441,
+			"id": 442,
 			"name": "FeaturePolicy",
 			"variant": "declaration",
 			"kind": 256,
@@ -8728,7 +8728,7 @@
 			},
 			"children": [
 				{
-					"id": 442,
+					"id": 443,
 					"name": "issues",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8737,13 +8737,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 443,
+					"id": 444,
 					"name": "wiki",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8752,13 +8752,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 444,
+					"id": 445,
 					"name": "projects",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8767,13 +8767,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 445,
+					"id": 446,
 					"name": "discussions",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8782,7 +8782,53 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
+						"name": "Toggle",
+						"package": "@hector21/octoform"
+					}
+				},
+				{
+					"id": 447,
+					"name": "sponsorships",
+					"variant": "declaration",
+					"kind": 1024,
+					"flags": {
+						"isOptional": true
+					},
+					"comment": {
+						"summary": [
+							{
+								"kind": "text",
+								"text": "Whether the repository shows a sponsor button."
+							}
+						]
+					},
+					"type": {
+						"type": "reference",
+						"target": 656,
+						"name": "Toggle",
+						"package": "@hector21/octoform"
+					}
+				},
+				{
+					"id": 448,
+					"name": "pull_requests",
+					"variant": "declaration",
+					"kind": 1024,
+					"flags": {
+						"isOptional": true
+					},
+					"comment": {
+						"summary": [
+							{
+								"kind": "text",
+								"text": "Whether pull requests can be opened at all. Turning this off does not\nremove the ones that already exist."
+							}
+						]
+					},
+					"type": {
+						"type": "reference",
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -8792,16 +8838,54 @@
 				{
 					"title": "Properties",
 					"children": [
-						442,
 						443,
 						444,
-						445
+						445,
+						446,
+						447,
+						448
 					]
 				}
 			]
 		},
 		{
-			"id": 649,
+			"id": 422,
+			"name": "CreationPolicy",
+			"variant": "declaration",
+			"kind": 2097152,
+			"flags": {},
+			"comment": {
+				"summary": [
+					{
+						"kind": "text",
+						"text": "Who may open an issue or a pull request on the repository.\n\n"
+					},
+					{
+						"kind": "code",
+						"text": "`COLLABORATORS_ONLY`"
+					},
+					{
+						"kind": "text",
+						"text": " still leaves the feature enabled and its history\nreadable; it narrows who can add to it. Turning the feature off entirely is\na different setting."
+					}
+				]
+			},
+			"type": {
+				"type": "union",
+				"types": [
+					{
+						"type": "literal",
+						"value": "ALL"
+					},
+					{
+						"type": "literal",
+						"value": "COLLABORATORS_ONLY"
+					}
+				]
+			}
+		},
+		{
+			"id": 655,
 			"name": "SquashCommitTitle",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -8845,7 +8929,7 @@
 			}
 		},
 		{
-			"id": 648,
+			"id": 654,
 			"name": "SquashCommitMessage",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -8877,7 +8961,7 @@
 			}
 		},
 		{
-			"id": 465,
+			"id": 468,
 			"name": "MergeCommitTitle",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -8913,7 +8997,7 @@
 			}
 		},
 		{
-			"id": 464,
+			"id": 467,
 			"name": "MergeCommitMessage",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -8945,7 +9029,7 @@
 			}
 		},
 		{
-			"id": 466,
+			"id": 469,
 			"name": "MergePolicy",
 			"variant": "declaration",
 			"kind": 256,
@@ -8976,7 +9060,7 @@
 			},
 			"children": [
 				{
-					"id": 467,
+					"id": 470,
 					"name": "allow_squash",
 					"variant": "declaration",
 					"kind": 1024,
@@ -8985,13 +9069,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 468,
+					"id": 471,
 					"name": "allow_merge_commit",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9000,13 +9084,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 469,
+					"id": 472,
 					"name": "allow_rebase",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9015,13 +9099,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 470,
+					"id": 473,
 					"name": "allow_auto_merge",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9030,13 +9114,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 471,
+					"id": 474,
 					"name": "allow_update_branch",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9045,13 +9129,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 472,
+					"id": 475,
 					"name": "delete_branch_on_merge",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9060,13 +9144,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 473,
+					"id": 476,
 					"name": "squash_title",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9075,11 +9159,11 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 462,
+						"target": 465,
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 649,
+								"target": 655,
 								"name": "SquashCommitTitle",
 								"package": "@hector21/octoform"
 							}
@@ -9089,7 +9173,7 @@
 					}
 				},
 				{
-					"id": 474,
+					"id": 477,
 					"name": "squash_message",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9098,11 +9182,11 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 462,
+						"target": 465,
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 648,
+								"target": 654,
 								"name": "SquashCommitMessage",
 								"package": "@hector21/octoform"
 							}
@@ -9112,7 +9196,7 @@
 					}
 				},
 				{
-					"id": 475,
+					"id": 478,
 					"name": "merge_commit_title",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9121,11 +9205,11 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 462,
+						"target": 465,
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 465,
+								"target": 468,
 								"name": "MergeCommitTitle",
 								"package": "@hector21/octoform"
 							}
@@ -9135,7 +9219,7 @@
 					}
 				},
 				{
-					"id": 476,
+					"id": 479,
 					"name": "merge_commit_message",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9144,11 +9228,11 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 462,
+						"target": 465,
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 464,
+								"target": 467,
 								"name": "MergeCommitMessage",
 								"package": "@hector21/octoform"
 							}
@@ -9162,22 +9246,22 @@
 				{
 					"title": "Properties",
 					"children": [
-						467,
-						468,
-						469,
 						470,
 						471,
 						472,
 						473,
 						474,
 						475,
-						476
+						476,
+						477,
+						478,
+						479
 					]
 				}
 			]
 		},
 		{
-			"id": 635,
+			"id": 641,
 			"name": "SecurityPolicy",
 			"variant": "declaration",
 			"kind": 256,
@@ -9192,7 +9276,7 @@
 			},
 			"children": [
 				{
-					"id": 636,
+					"id": 642,
 					"name": "vulnerability_alerts",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9201,13 +9285,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 637,
+					"id": 643,
 					"name": "automated_security_fixes",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9216,13 +9300,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 638,
+					"id": 644,
 					"name": "private_vulnerability_reporting",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9231,13 +9315,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 639,
+					"id": 645,
 					"name": "secret_scanning",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9246,13 +9330,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 640,
+					"id": 646,
 					"name": "secret_scanning_push_protection",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9261,13 +9345,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 641,
+					"id": 647,
 					"name": "code_scanning_default_setup",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9276,13 +9360,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 642,
+					"id": 648,
 					"name": "immutable_releases",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9299,7 +9383,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -9309,19 +9393,19 @@
 				{
 					"title": "Properties",
 					"children": [
-						636,
-						637,
-						638,
-						639,
-						640,
-						641,
-						642
+						642,
+						643,
+						644,
+						645,
+						646,
+						647,
+						648
 					]
 				}
 			]
 		},
 		{
-			"id": 599,
+			"id": 603,
 			"name": "RepoPolicy",
 			"variant": "declaration",
 			"kind": 256,
@@ -9336,7 +9420,7 @@
 			},
 			"children": [
 				{
-					"id": 600,
+					"id": 604,
 					"name": "description",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9345,7 +9429,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 462,
+						"target": 465,
 						"typeArguments": [
 							{
 								"type": "intrinsic",
@@ -9357,7 +9441,7 @@
 					}
 				},
 				{
-					"id": 601,
+					"id": 605,
 					"name": "homepage",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9366,7 +9450,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 462,
+						"target": 465,
 						"typeArguments": [
 							{
 								"type": "intrinsic",
@@ -9378,7 +9462,7 @@
 					}
 				},
 				{
-					"id": 602,
+					"id": 606,
 					"name": "topics",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9387,7 +9471,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 462,
+						"target": 465,
 						"typeArguments": [
 							{
 								"type": "array",
@@ -9402,7 +9486,7 @@
 					}
 				},
 				{
-					"id": 603,
+					"id": 607,
 					"name": "allow_forking",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9411,13 +9495,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 604,
+					"id": 608,
 					"name": "web_commit_signoff_required",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9426,8 +9510,54 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 650,
+						"target": 656,
 						"name": "Toggle",
+						"package": "@hector21/octoform"
+					}
+				},
+				{
+					"id": 609,
+					"name": "issue_creation",
+					"variant": "declaration",
+					"kind": 1024,
+					"flags": {
+						"isOptional": true
+					},
+					"type": {
+						"type": "reference",
+						"target": 465,
+						"typeArguments": [
+							{
+								"type": "reference",
+								"target": 422,
+								"name": "CreationPolicy",
+								"package": "@hector21/octoform"
+							}
+						],
+						"name": "Managed",
+						"package": "@hector21/octoform"
+					}
+				},
+				{
+					"id": 610,
+					"name": "pull_request_creation",
+					"variant": "declaration",
+					"kind": 1024,
+					"flags": {
+						"isOptional": true
+					},
+					"type": {
+						"type": "reference",
+						"target": 465,
+						"typeArguments": [
+							{
+								"type": "reference",
+								"target": 422,
+								"name": "CreationPolicy",
+								"package": "@hector21/octoform"
+							}
+						],
+						"name": "Managed",
 						"package": "@hector21/octoform"
 					}
 				}
@@ -9436,17 +9566,19 @@
 				{
 					"title": "Properties",
 					"children": [
-						600,
-						601,
-						602,
-						603,
-						604
+						604,
+						605,
+						606,
+						607,
+						608,
+						609,
+						610
 					]
 				}
 			]
 		},
 		{
-			"id": 422,
+			"id": 423,
 			"name": "DefaultBranchPolicy",
 			"variant": "declaration",
 			"kind": 256,
@@ -9461,7 +9593,7 @@
 			},
 			"children": [
 				{
-					"id": 423,
+					"id": 424,
 					"name": "name",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9478,7 +9610,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 462,
+						"target": 465,
 						"typeArguments": [
 							{
 								"type": "intrinsic",
@@ -9490,7 +9622,7 @@
 					}
 				},
 				{
-					"id": 424,
+					"id": 425,
 					"name": "rename_from",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9515,7 +9647,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 462,
+						"target": 465,
 						"typeArguments": [
 							{
 								"type": "array",
@@ -9534,14 +9666,14 @@
 				{
 					"title": "Properties",
 					"children": [
-						423,
-						424
+						424,
+						425
 					]
 				}
 			]
 		},
 		{
-			"id": 628,
+			"id": 634,
 			"name": "RulesetPolicy",
 			"variant": "declaration",
 			"kind": 256,
@@ -9556,7 +9688,7 @@
 			},
 			"children": [
 				{
-					"id": 629,
+					"id": 635,
 					"name": "name",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9567,7 +9699,7 @@
 					}
 				},
 				{
-					"id": 630,
+					"id": 636,
 					"name": "target_branches",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9581,7 +9713,7 @@
 					}
 				},
 				{
-					"id": 631,
+					"id": 637,
 					"name": "required_approvals",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9594,7 +9726,7 @@
 					}
 				},
 				{
-					"id": 632,
+					"id": 638,
 					"name": "required_checks",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9610,7 +9742,7 @@
 					}
 				},
 				{
-					"id": 633,
+					"id": 639,
 					"name": "block_force_push",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9623,7 +9755,7 @@
 					}
 				},
 				{
-					"id": 634,
+					"id": 640,
 					"name": "block_deletion",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9640,18 +9772,18 @@
 				{
 					"title": "Properties",
 					"children": [
-						629,
-						630,
-						631,
-						632,
-						633,
-						634
+						635,
+						636,
+						637,
+						638,
+						639,
+						640
 					]
 				}
 			]
 		},
 		{
-			"id": 425,
+			"id": 426,
 			"name": "EnvironmentPolicy",
 			"variant": "declaration",
 			"kind": 256,
@@ -9666,7 +9798,7 @@
 			},
 			"children": [
 				{
-					"id": 426,
+					"id": 427,
 					"name": "name",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9677,7 +9809,7 @@
 					}
 				},
 				{
-					"id": 427,
+					"id": 428,
 					"name": "reviewers",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9705,14 +9837,14 @@
 				{
 					"title": "Properties",
 					"children": [
-						426,
-						427
+						427,
+						428
 					]
 				}
 			]
 		},
 		{
-			"id": 446,
+			"id": 449,
 			"name": "FileMode",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -9731,7 +9863,7 @@
 			}
 		},
 		{
-			"id": 447,
+			"id": 450,
 			"name": "FilePolicy",
 			"variant": "declaration",
 			"kind": 256,
@@ -9746,7 +9878,7 @@
 			},
 			"children": [
 				{
-					"id": 448,
+					"id": 451,
 					"name": "path",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9757,7 +9889,7 @@
 					}
 				},
 				{
-					"id": 449,
+					"id": 452,
 					"name": "from",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9776,7 +9908,7 @@
 					}
 				},
 				{
-					"id": 450,
+					"id": 453,
 					"name": "mode",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9791,15 +9923,15 @@
 				{
 					"title": "Properties",
 					"children": [
-						448,
-						449,
-						450
+						451,
+						452,
+						453
 					]
 				}
 			]
 		},
 		{
-			"id": 565,
+			"id": 568,
 			"name": "PolicySet",
 			"variant": "declaration",
 			"kind": 256,
@@ -9814,7 +9946,7 @@
 			},
 			"children": [
 				{
-					"id": 566,
+					"id": 569,
 					"name": "policies",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9846,7 +9978,7 @@
 					}
 				},
 				{
-					"id": 567,
+					"id": 570,
 					"name": "manage",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9875,7 +10007,7 @@
 					}
 				},
 				{
-					"id": 568,
+					"id": 571,
 					"name": "features",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9884,13 +10016,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 441,
+						"target": 442,
 						"name": "FeaturePolicy",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 569,
+					"id": 572,
 					"name": "merge",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9899,13 +10031,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 466,
+						"target": 469,
 						"name": "MergePolicy",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 570,
+					"id": 573,
 					"name": "security",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9914,13 +10046,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 635,
+						"target": 641,
 						"name": "SecurityPolicy",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 571,
+					"id": 574,
 					"name": "repo",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9929,13 +10061,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 599,
+						"target": 603,
 						"name": "RepoPolicy",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 572,
+					"id": 575,
 					"name": "default_branch",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9944,13 +10076,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 422,
+						"target": 423,
 						"name": "DefaultBranchPolicy",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 573,
+					"id": 576,
 					"name": "ensure_branches",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9966,7 +10098,7 @@
 					}
 				},
 				{
-					"id": 574,
+					"id": 577,
 					"name": "rulesets",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9977,14 +10109,14 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 628,
+							"target": 634,
 							"name": "RulesetPolicy",
 							"package": "@hector21/octoform"
 						}
 					}
 				},
 				{
-					"id": 575,
+					"id": 578,
 					"name": "environments",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9995,14 +10127,14 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 425,
+							"target": 426,
 							"name": "EnvironmentPolicy",
 							"package": "@hector21/octoform"
 						}
 					}
 				},
 				{
-					"id": 576,
+					"id": 579,
 					"name": "files",
 					"variant": "declaration",
 					"kind": 1024,
@@ -10013,7 +10145,7 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 447,
+							"target": 450,
 							"name": "FilePolicy",
 							"package": "@hector21/octoform"
 						}
@@ -10024,9 +10156,6 @@
 				{
 					"title": "Properties",
 					"children": [
-						566,
-						567,
-						568,
 						569,
 						570,
 						571,
@@ -10034,7 +10163,10 @@
 						573,
 						574,
 						575,
-						576
+						576,
+						577,
+						578,
+						579
 					]
 				}
 			]
@@ -10407,7 +10539,7 @@
 			]
 		},
 		{
-			"id": 593,
+			"id": 597,
 			"name": "RepoEntry",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -10425,21 +10557,21 @@
 				"types": [
 					{
 						"type": "reference",
-						"target": 565,
+						"target": 568,
 						"name": "PolicySet",
 						"package": "@hector21/octoform"
 					},
 					{
 						"type": "reflection",
 						"declaration": {
-							"id": 594,
+							"id": 598,
 							"name": "__type",
 							"variant": "declaration",
 							"kind": 65536,
 							"flags": {},
 							"children": [
 								{
-									"id": 595,
+									"id": 599,
 									"name": "type",
 									"variant": "declaration",
 									"kind": 1024,
@@ -10456,7 +10588,7 @@
 								{
 									"title": "Properties",
 									"children": [
-										595
+										599
 									]
 								}
 							]
@@ -10466,7 +10598,7 @@
 			}
 		},
 		{
-			"id": 428,
+			"id": 429,
 			"name": "ExcludeConfig",
 			"variant": "declaration",
 			"kind": 256,
@@ -10481,7 +10613,7 @@
 			},
 			"children": [
 				{
-					"id": 429,
+					"id": 430,
 					"name": "repos",
 					"variant": "declaration",
 					"kind": 1024,
@@ -10501,7 +10633,7 @@
 				{
 					"title": "Properties",
 					"children": [
-						429
+						430
 					]
 				}
 			]
@@ -10526,7 +10658,7 @@
 			}
 		},
 		{
-			"id": 493,
+			"id": 496,
 			"name": "OwnerBlock",
 			"variant": "declaration",
 			"kind": 256,
@@ -10549,7 +10681,7 @@
 			},
 			"children": [
 				{
-					"id": 494,
+					"id": 497,
 					"name": "classify",
 					"variant": "declaration",
 					"kind": 1024,
@@ -10564,7 +10696,7 @@
 					}
 				},
 				{
-					"id": 495,
+					"id": 498,
 					"name": "audit",
 					"variant": "declaration",
 					"kind": 1024,
@@ -10579,7 +10711,7 @@
 					}
 				},
 				{
-					"id": 496,
+					"id": 499,
 					"name": "defaults",
 					"variant": "declaration",
 					"kind": 1024,
@@ -10588,13 +10720,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 565,
+						"target": 568,
 						"name": "PolicySet",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 497,
+					"id": 500,
 					"name": "types",
 					"variant": "declaration",
 					"kind": 1024,
@@ -10615,7 +10747,7 @@
 							},
 							{
 								"type": "reference",
-								"target": 565,
+								"target": 568,
 								"name": "PolicySet",
 								"package": "@hector21/octoform"
 							}
@@ -10625,7 +10757,7 @@
 					}
 				},
 				{
-					"id": 498,
+					"id": 501,
 					"name": "repos",
 					"variant": "declaration",
 					"kind": 1024,
@@ -10646,7 +10778,7 @@
 							},
 							{
 								"type": "reference",
-								"target": 593,
+								"target": 597,
 								"name": "RepoEntry",
 								"package": "@hector21/octoform"
 							}
@@ -10656,7 +10788,7 @@
 					}
 				},
 				{
-					"id": 499,
+					"id": 502,
 					"name": "exclude",
 					"variant": "declaration",
 					"kind": 1024,
@@ -10665,7 +10797,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 428,
+						"target": 429,
 						"name": "ExcludeConfig",
 						"package": "@hector21/octoform"
 					}
@@ -10675,12 +10807,12 @@
 				{
 					"title": "Properties",
 					"children": [
-						494,
-						495,
-						496,
 						497,
 						498,
-						499
+						499,
+						500,
+						501,
+						502
 					]
 				}
 			]
@@ -10796,7 +10928,7 @@
 							},
 							{
 								"type": "reference",
-								"target": 493,
+								"target": 496,
 								"name": "OwnerBlock",
 								"package": "@hector21/octoform"
 							}
@@ -10891,7 +11023,7 @@
 							},
 							{
 								"type": "reference",
-								"target": 565,
+								"target": 568,
 								"name": "PolicySet",
 								"package": "@hector21/octoform"
 							}
@@ -10940,7 +11072,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 565,
+						"target": 568,
 						"name": "PolicySet",
 						"package": "@hector21/octoform"
 					}
@@ -10967,7 +11099,7 @@
 							},
 							{
 								"type": "reference",
-								"target": 565,
+								"target": 568,
 								"name": "PolicySet",
 								"package": "@hector21/octoform"
 							}
@@ -11006,7 +11138,7 @@
 							},
 							{
 								"type": "reference",
-								"target": 593,
+								"target": 597,
 								"name": "RepoEntry",
 								"package": "@hector21/octoform"
 							}
@@ -11025,7 +11157,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 428,
+						"target": 429,
 						"name": "ExcludeConfig",
 						"package": "@hector21/octoform"
 					}
@@ -11051,7 +11183,7 @@
 			]
 		},
 		{
-			"id": 505,
+			"id": 508,
 			"name": "OwnerScope",
 			"variant": "declaration",
 			"kind": 256,
@@ -11066,7 +11198,7 @@
 			},
 			"children": [
 				{
-					"id": 506,
+					"id": 509,
 					"name": "owner",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11077,7 +11209,7 @@
 					}
 				},
 				{
-					"id": 507,
+					"id": 510,
 					"name": "classify",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11092,7 +11224,7 @@
 					}
 				},
 				{
-					"id": 508,
+					"id": 511,
 					"name": "audit",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11107,7 +11239,7 @@
 					}
 				},
 				{
-					"id": 509,
+					"id": 512,
 					"name": "defaults",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11116,13 +11248,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 565,
+						"target": 568,
 						"name": "PolicySet",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 510,
+					"id": 513,
 					"name": "types",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11143,7 +11275,7 @@
 							},
 							{
 								"type": "reference",
-								"target": 565,
+								"target": 568,
 								"name": "PolicySet",
 								"package": "@hector21/octoform"
 							}
@@ -11153,7 +11285,7 @@
 					}
 				},
 				{
-					"id": 511,
+					"id": 514,
 					"name": "repos",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11174,7 +11306,7 @@
 							},
 							{
 								"type": "reference",
-								"target": 593,
+								"target": 597,
 								"name": "RepoEntry",
 								"package": "@hector21/octoform"
 							}
@@ -11184,7 +11316,7 @@
 					}
 				},
 				{
-					"id": 512,
+					"id": 515,
 					"name": "exclude",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11193,7 +11325,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 428,
+						"target": 429,
 						"name": "ExcludeConfig",
 						"package": "@hector21/octoform"
 					}
@@ -11203,19 +11335,19 @@
 				{
 					"title": "Properties",
 					"children": [
-						506,
-						507,
-						508,
 						509,
 						510,
 						511,
-						512
+						512,
+						513,
+						514,
+						515
 					]
 				}
 			]
 		},
 		{
-			"id": 624,
+			"id": 630,
 			"name": "ResolvedConfig",
 			"variant": "declaration",
 			"kind": 256,
@@ -11230,7 +11362,7 @@
 			},
 			"children": [
 				{
-					"id": 625,
+					"id": 631,
 					"name": "version",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11241,7 +11373,7 @@
 					}
 				},
 				{
-					"id": 626,
+					"id": 632,
 					"name": "owners",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11258,7 +11390,7 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 505,
+							"target": 508,
 							"name": "OwnerScope",
 							"package": "@hector21/octoform"
 						}
@@ -11269,14 +11401,14 @@
 				{
 					"title": "Properties",
 					"children": [
-						625,
-						626
+						631,
+						632
 					]
 				}
 			]
 		},
 		{
-			"id": 535,
+			"id": 538,
 			"name": "PlanLimits",
 			"variant": "declaration",
 			"kind": 256,
@@ -11291,20 +11423,20 @@
 			},
 			"children": [
 				{
-					"id": 536,
+					"id": 539,
 					"name": "ownerKind",
 					"variant": "declaration",
 					"kind": 1024,
 					"flags": {},
 					"type": {
 						"type": "reference",
-						"target": 504,
+						"target": 507,
 						"name": "OwnerKind",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 537,
+					"id": 540,
 					"name": "plan",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11325,7 +11457,7 @@
 					}
 				},
 				{
-					"id": 538,
+					"id": 541,
 					"name": "orgRulesets",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11348,15 +11480,15 @@
 				{
 					"title": "Properties",
 					"children": [
-						536,
-						537,
-						538
+						539,
+						540,
+						541
 					]
 				}
 			]
 		},
 		{
-			"id": 488,
+			"id": 491,
 			"name": "OutputEnvelope",
 			"variant": "declaration",
 			"kind": 256,
@@ -11379,7 +11511,7 @@
 			},
 			"children": [
 				{
-					"id": 490,
+					"id": 493,
 					"name": "schemaVersion",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11390,7 +11522,7 @@
 					}
 				},
 				{
-					"id": 491,
+					"id": 494,
 					"name": "command",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11401,14 +11533,14 @@
 					}
 				},
 				{
-					"id": 492,
+					"id": 495,
 					"name": "data",
 					"variant": "declaration",
 					"kind": 1024,
 					"flags": {},
 					"type": {
 						"type": "reference",
-						"target": 489,
+						"target": 492,
 						"name": "T",
 						"package": "@hector21/octoform",
 						"qualifiedName": "OutputEnvelope.T",
@@ -11420,15 +11552,15 @@
 				{
 					"title": "Properties",
 					"children": [
-						490,
-						491,
-						492
+						493,
+						494,
+						495
 					]
 				}
 			],
 			"typeParameters": [
 				{
-					"id": 489,
+					"id": 492,
 					"name": "T",
 					"variant": "typeParam",
 					"kind": 131072,
@@ -11437,7 +11569,7 @@
 			]
 		},
 		{
-			"id": 459,
+			"id": 462,
 			"name": "InspectedOwner",
 			"variant": "declaration",
 			"kind": 256,
@@ -11460,7 +11592,7 @@
 			},
 			"children": [
 				{
-					"id": 460,
+					"id": 463,
 					"name": "owner",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11471,14 +11603,14 @@
 					}
 				},
 				{
-					"id": 461,
+					"id": 464,
 					"name": "resolved",
 					"variant": "declaration",
 					"kind": 1024,
 					"flags": {},
 					"type": {
 						"type": "reference",
-						"target": 505,
+						"target": 508,
 						"name": "OwnerScope",
 						"package": "@hector21/octoform"
 					}
@@ -11488,14 +11620,14 @@
 				{
 					"title": "Properties",
 					"children": [
-						460,
-						461
+						463,
+						464
 					]
 				}
 			]
 		},
 		{
-			"id": 451,
+			"id": 454,
 			"name": "InspectedCapabilities",
 			"variant": "declaration",
 			"kind": 256,
@@ -11518,20 +11650,20 @@
 			},
 			"children": [
 				{
-					"id": 452,
+					"id": 455,
 					"name": "discovery",
 					"variant": "declaration",
 					"kind": 1024,
 					"flags": {},
 					"type": {
 						"type": "reference",
-						"target": 500,
+						"target": 503,
 						"name": "OwnerDiscovery",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 453,
+					"id": 456,
 					"name": "plan",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11552,7 +11684,7 @@
 					}
 				},
 				{
-					"id": 454,
+					"id": 457,
 					"name": "organizationRulesets",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11571,7 +11703,7 @@
 					}
 				},
 				{
-					"id": 455,
+					"id": 458,
 					"name": "notApplicable",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11589,14 +11721,14 @@
 						"elementType": {
 							"type": "reflection",
 							"declaration": {
-								"id": 456,
+								"id": 459,
 								"name": "__type",
 								"variant": "declaration",
 								"kind": 65536,
 								"flags": {},
 								"children": [
 									{
-										"id": 457,
+										"id": 460,
 										"name": "path",
 										"variant": "declaration",
 										"kind": 1024,
@@ -11607,7 +11739,7 @@
 										}
 									},
 									{
-										"id": 458,
+										"id": 461,
 										"name": "reason",
 										"variant": "declaration",
 										"kind": 1024,
@@ -11622,8 +11754,8 @@
 									{
 										"title": "Properties",
 										"children": [
-											457,
-											458
+											460,
+											461
 										]
 									}
 								]
@@ -11636,16 +11768,16 @@
 				{
 					"title": "Properties",
 					"children": [
-						452,
-						453,
-						454,
-						455
+						455,
+						456,
+						457,
+						458
 					]
 				}
 			]
 		},
 		{
-			"id": 528,
+			"id": 531,
 			"name": "PlanArtifactSchemaVersion",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -11672,7 +11804,7 @@
 			}
 		},
 		{
-			"id": 523,
+			"id": 526,
 			"name": "PlanArtifactOwner",
 			"variant": "declaration",
 			"kind": 256,
@@ -11687,7 +11819,7 @@
 			},
 			"children": [
 				{
-					"id": 524,
+					"id": 527,
 					"name": "login",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11698,7 +11830,7 @@
 					}
 				},
 				{
-					"id": 525,
+					"id": 528,
 					"name": "id",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11717,7 +11849,7 @@
 					}
 				},
 				{
-					"id": 526,
+					"id": 529,
 					"name": "changes",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11733,7 +11865,7 @@
 					}
 				},
 				{
-					"id": 527,
+					"id": 530,
 					"name": "blocked",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11753,16 +11885,16 @@
 				{
 					"title": "Properties",
 					"children": [
-						524,
-						525,
-						526,
-						527
+						527,
+						528,
+						529,
+						530
 					]
 				}
 			]
 		},
 		{
-			"id": 513,
+			"id": 516,
 			"name": "PlanArtifact",
 			"variant": "declaration",
 			"kind": 256,
@@ -11785,7 +11917,7 @@
 			},
 			"children": [
 				{
-					"id": 514,
+					"id": 517,
 					"name": "schemaVersion",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11796,7 +11928,7 @@
 					}
 				},
 				{
-					"id": 515,
+					"id": 518,
 					"name": "octoformVersion",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11815,7 +11947,7 @@
 					}
 				},
 				{
-					"id": 516,
+					"id": 519,
 					"name": "actor",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11834,7 +11966,7 @@
 					}
 				},
 				{
-					"id": 517,
+					"id": 520,
 					"name": "observedAt",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11853,7 +11985,7 @@
 					}
 				},
 				{
-					"id": 518,
+					"id": 521,
 					"name": "expiresAt",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11880,7 +12012,7 @@
 					}
 				},
 				{
-					"id": 519,
+					"id": 522,
 					"name": "configPath",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11907,7 +12039,7 @@
 					}
 				},
 				{
-					"id": 520,
+					"id": 523,
 					"name": "configDigest",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11926,7 +12058,7 @@
 					}
 				},
 				{
-					"id": 521,
+					"id": 524,
 					"name": "sourceDigests",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11961,7 +12093,7 @@
 					}
 				},
 				{
-					"id": 522,
+					"id": 525,
 					"name": "owners",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11970,7 +12102,7 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 523,
+							"target": 526,
 							"name": "PlanArtifactOwner",
 							"package": "@hector21/octoform"
 						}
@@ -11981,21 +12113,21 @@
 				{
 					"title": "Properties",
 					"children": [
-						514,
-						515,
-						516,
 						517,
 						518,
 						519,
 						520,
 						521,
-						522
+						522,
+						523,
+						524,
+						525
 					]
 				}
 			]
 		},
 		{
-			"id": 532,
+			"id": 535,
 			"name": "PlanIdentity",
 			"variant": "declaration",
 			"kind": 256,
@@ -12010,7 +12142,7 @@
 			},
 			"children": [
 				{
-					"id": 533,
+					"id": 536,
 					"name": "actor",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12038,7 +12170,7 @@
 					}
 				},
 				{
-					"id": 534,
+					"id": 537,
 					"name": "ownerIds",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12077,14 +12209,14 @@
 				{
 					"title": "Properties",
 					"children": [
-						533,
-						534
+						536,
+						537
 					]
 				}
 			]
 		},
 		{
-			"id": 541,
+			"id": 544,
 			"name": "PlanRejectionReason",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -12128,7 +12260,7 @@
 			}
 		},
 		{
-			"id": 558,
+			"id": 561,
 			"name": "PlanVerification",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -12147,14 +12279,14 @@
 					{
 						"type": "reflection",
 						"declaration": {
-							"id": 559,
+							"id": 562,
 							"name": "__type",
 							"variant": "declaration",
 							"kind": 65536,
 							"flags": {},
 							"children": [
 								{
-									"id": 560,
+									"id": 563,
 									"name": "valid",
 									"variant": "declaration",
 									"kind": 1024,
@@ -12169,7 +12301,7 @@
 								{
 									"title": "Properties",
 									"children": [
-										560
+										563
 									]
 								}
 							]
@@ -12178,14 +12310,14 @@
 					{
 						"type": "reflection",
 						"declaration": {
-							"id": 561,
+							"id": 564,
 							"name": "__type",
 							"variant": "declaration",
 							"kind": 65536,
 							"flags": {},
 							"children": [
 								{
-									"id": 562,
+									"id": 565,
 									"name": "valid",
 									"variant": "declaration",
 									"kind": 1024,
@@ -12196,20 +12328,20 @@
 									}
 								},
 								{
-									"id": 563,
+									"id": 566,
 									"name": "reason",
 									"variant": "declaration",
 									"kind": 1024,
 									"flags": {},
 									"type": {
 										"type": "reference",
-										"target": 541,
+										"target": 544,
 										"name": "PlanRejectionReason",
 										"package": "@hector21/octoform"
 									}
 								},
 								{
-									"id": 564,
+									"id": 567,
 									"name": "detail",
 									"variant": "declaration",
 									"kind": 1024,
@@ -12224,9 +12356,9 @@
 								{
 									"title": "Properties",
 									"children": [
-										562,
-										563,
-										564
+										565,
+										566,
+										567
 									]
 								}
 							]
@@ -12236,7 +12368,7 @@
 			}
 		},
 		{
-			"id": 539,
+			"id": 542,
 			"name": "PlanOptions",
 			"variant": "declaration",
 			"kind": 256,
@@ -12251,7 +12383,7 @@
 			},
 			"children": [
 				{
-					"id": 540,
+					"id": 543,
 					"name": "rulesetCapability",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12276,13 +12408,13 @@
 				{
 					"title": "Properties",
 					"children": [
-						540
+						543
 					]
 				}
 			]
 		},
 		{
-			"id": 529,
+			"id": 532,
 			"name": "PlanError",
 			"variant": "declaration",
 			"kind": 256,
@@ -12297,7 +12429,7 @@
 			},
 			"children": [
 				{
-					"id": 530,
+					"id": 533,
 					"name": "repo",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12308,7 +12440,7 @@
 					}
 				},
 				{
-					"id": 531,
+					"id": 534,
 					"name": "message",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12323,14 +12455,14 @@
 				{
 					"title": "Properties",
 					"children": [
-						530,
-						531
+						533,
+						534
 					]
 				}
 			]
 		},
 		{
-			"id": 547,
+			"id": 550,
 			"name": "PlanSelector",
 			"variant": "declaration",
 			"kind": 256,
@@ -12355,7 +12487,7 @@
 			},
 			"children": [
 				{
-					"id": 548,
+					"id": 551,
 					"name": "repo",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12368,7 +12500,7 @@
 					}
 				},
 				{
-					"id": 549,
+					"id": 552,
 					"name": "type",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12381,7 +12513,7 @@
 					}
 				},
 				{
-					"id": 550,
+					"id": 553,
 					"name": "concurrency",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12406,15 +12538,15 @@
 				{
 					"title": "Properties",
 					"children": [
-						548,
-						549,
-						550
+						551,
+						552,
+						553
 					]
 				}
 			]
 		},
 		{
-			"id": 542,
+			"id": 545,
 			"name": "PlanResult",
 			"variant": "declaration",
 			"kind": 256,
@@ -12429,7 +12561,7 @@
 			},
 			"children": [
 				{
-					"id": 543,
+					"id": 546,
 					"name": "changes",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12445,7 +12577,7 @@
 					}
 				},
 				{
-					"id": 544,
+					"id": 547,
 					"name": "blocked",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12461,7 +12593,7 @@
 					}
 				},
 				{
-					"id": 545,
+					"id": 548,
 					"name": "errors",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12478,14 +12610,14 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 529,
+							"target": 532,
 							"name": "PlanError",
 							"package": "@hector21/octoform"
 						}
 					}
 				},
 				{
-					"id": 546,
+					"id": 549,
 					"name": "scanned",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12508,16 +12640,16 @@
 				{
 					"title": "Properties",
 					"children": [
-						543,
-						544,
-						545,
-						546
+						546,
+						547,
+						548,
+						549
 					]
 				}
 			]
 		},
 		{
-			"id": 551,
+			"id": 554,
 			"name": "PlanSummary",
 			"variant": "declaration",
 			"kind": 256,
@@ -12532,7 +12664,7 @@
 			},
 			"children": [
 				{
-					"id": 552,
+					"id": 555,
 					"name": "scanned",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12551,7 +12683,7 @@
 					}
 				},
 				{
-					"id": 553,
+					"id": 556,
 					"name": "changed",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12570,7 +12702,7 @@
 					}
 				},
 				{
-					"id": 554,
+					"id": 557,
 					"name": "blocked",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12589,7 +12721,7 @@
 					}
 				},
 				{
-					"id": 555,
+					"id": 558,
 					"name": "blockedRepositories",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12632,7 +12764,7 @@
 					}
 				},
 				{
-					"id": 556,
+					"id": 559,
 					"name": "failed",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12651,7 +12783,7 @@
 					}
 				},
 				{
-					"id": 557,
+					"id": 560,
 					"name": "unchanged",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12674,18 +12806,18 @@
 				{
 					"title": "Properties",
 					"children": [
-						552,
-						553,
-						554,
 						555,
 						556,
-						557
+						557,
+						558,
+						559,
+						560
 					]
 				}
 			]
 		},
 		{
-			"id": 504,
+			"id": 507,
 			"name": "OwnerKind",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -12721,7 +12853,7 @@
 			}
 		},
 		{
-			"id": 608,
+			"id": 614,
 			"name": "RepoState",
 			"variant": "declaration",
 			"kind": 256,
@@ -12736,7 +12868,7 @@
 			},
 			"children": [
 				{
-					"id": 609,
+					"id": 615,
 					"name": "name",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12747,7 +12879,7 @@
 					}
 				},
 				{
-					"id": 610,
+					"id": 616,
 					"name": "visibility",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12771,7 +12903,7 @@
 					}
 				},
 				{
-					"id": 611,
+					"id": 617,
 					"name": "archived",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12782,7 +12914,7 @@
 					}
 				},
 				{
-					"id": 612,
+					"id": 618,
 					"name": "default_branch",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12793,7 +12925,7 @@
 					}
 				},
 				{
-					"id": 613,
+					"id": 619,
 					"name": "description",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12813,7 +12945,7 @@
 					}
 				},
 				{
-					"id": 614,
+					"id": 620,
 					"name": "homepage",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12833,7 +12965,7 @@
 					}
 				},
 				{
-					"id": 615,
+					"id": 621,
 					"name": "topics",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12847,7 +12979,7 @@
 					}
 				},
 				{
-					"id": 616,
+					"id": 622,
 					"name": "type",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12880,27 +13012,27 @@
 				{
 					"title": "Properties",
 					"children": [
-						609,
-						610,
-						611,
-						612,
-						613,
-						614,
 						615,
-						616
+						616,
+						617,
+						618,
+						619,
+						620,
+						621,
+						622
 					]
 				}
 			],
 			"extendedBy": [
 				{
 					"type": "reference",
-					"target": 581,
+					"target": 584,
 					"name": "RepoDetail"
 				}
 			]
 		},
 		{
-			"id": 647,
+			"id": 653,
 			"name": "SettingValue",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -12948,7 +13080,7 @@
 			}
 		},
 		{
-			"id": 433,
+			"id": 434,
 			"name": "ExistingRuleset",
 			"variant": "declaration",
 			"kind": 256,
@@ -12971,7 +13103,7 @@
 			},
 			"children": [
 				{
-					"id": 434,
+					"id": 435,
 					"name": "id",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12982,7 +13114,7 @@
 					}
 				},
 				{
-					"id": 435,
+					"id": 436,
 					"name": "name",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12993,7 +13125,7 @@
 					}
 				},
 				{
-					"id": 436,
+					"id": 437,
 					"name": "target_branches",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13007,7 +13139,7 @@
 					}
 				},
 				{
-					"id": 437,
+					"id": 438,
 					"name": "required_approvals",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13020,7 +13152,7 @@
 					}
 				},
 				{
-					"id": 438,
+					"id": 439,
 					"name": "required_checks",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13036,7 +13168,7 @@
 					}
 				},
 				{
-					"id": 439,
+					"id": 440,
 					"name": "block_force_push",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13047,7 +13179,7 @@
 					}
 				},
 				{
-					"id": 440,
+					"id": 441,
 					"name": "block_deletion",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13062,19 +13194,19 @@
 				{
 					"title": "Properties",
 					"children": [
-						434,
 						435,
 						436,
 						437,
 						438,
 						439,
-						440
+						440,
+						441
 					]
 				}
 			]
 		},
 		{
-			"id": 430,
+			"id": 431,
 			"name": "ExistingEnvironment",
 			"variant": "declaration",
 			"kind": 256,
@@ -13121,7 +13253,7 @@
 			},
 			"children": [
 				{
-					"id": 431,
+					"id": 432,
 					"name": "name",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13132,7 +13264,7 @@
 					}
 				},
 				{
-					"id": 432,
+					"id": 433,
 					"name": "reviewers",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13164,14 +13296,14 @@
 				{
 					"title": "Properties",
 					"children": [
-						431,
-						432
+						432,
+						433
 					]
 				}
 			]
 		},
 		{
-			"id": 617,
+			"id": 623,
 			"name": "RepoStructure",
 			"variant": "declaration",
 			"kind": 256,
@@ -13194,7 +13326,7 @@
 			},
 			"children": [
 				{
-					"id": 618,
+					"id": 624,
 					"name": "environments",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13213,14 +13345,14 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 430,
+							"target": 431,
 							"name": "ExistingEnvironment",
 							"package": "@hector21/octoform"
 						}
 					}
 				},
 				{
-					"id": 619,
+					"id": 625,
 					"name": "rulesets",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13231,14 +13363,14 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 433,
+							"target": 434,
 							"name": "ExistingRuleset",
 							"package": "@hector21/octoform"
 						}
 					}
 				},
 				{
-					"id": 620,
+					"id": 626,
 					"name": "files",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13283,7 +13415,7 @@
 					}
 				},
 				{
-					"id": 621,
+					"id": 627,
 					"name": "branches",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13328,7 +13460,7 @@
 					}
 				},
 				{
-					"id": 622,
+					"id": 628,
 					"name": "workflowsNamingDefaultBranch",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13352,7 +13484,7 @@
 					}
 				},
 				{
-					"id": 623,
+					"id": 629,
 					"name": "workflowsUploadingCodeScanning",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13388,18 +13520,18 @@
 				{
 					"title": "Properties",
 					"children": [
-						618,
-						619,
-						620,
-						621,
-						622,
-						623
+						624,
+						625,
+						626,
+						627,
+						628,
+						629
 					]
 				}
 			]
 		},
 		{
-			"id": 581,
+			"id": 584,
 			"name": "RepoDetail",
 			"variant": "declaration",
 			"kind": 256,
@@ -13430,7 +13562,7 @@
 			},
 			"children": [
 				{
-					"id": 585,
+					"id": 589,
 					"name": "name",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13443,12 +13575,12 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 609,
+						"target": 615,
 						"name": "RepoState.name"
 					}
 				},
 				{
-					"id": 586,
+					"id": 590,
 					"name": "visibility",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13474,12 +13606,12 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 610,
+						"target": 616,
 						"name": "RepoState.visibility"
 					}
 				},
 				{
-					"id": 587,
+					"id": 591,
 					"name": "archived",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13492,12 +13624,12 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 611,
+						"target": 617,
 						"name": "RepoState.archived"
 					}
 				},
 				{
-					"id": 588,
+					"id": 592,
 					"name": "default_branch",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13510,12 +13642,12 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 612,
+						"target": 618,
 						"name": "RepoState.default_branch"
 					}
 				},
 				{
-					"id": 589,
+					"id": 593,
 					"name": "description",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13537,12 +13669,12 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 613,
+						"target": 619,
 						"name": "RepoState.description"
 					}
 				},
 				{
-					"id": 590,
+					"id": 594,
 					"name": "homepage",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13564,12 +13696,12 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 614,
+						"target": 620,
 						"name": "RepoState.homepage"
 					}
 				},
 				{
-					"id": 591,
+					"id": 595,
 					"name": "topics",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13585,12 +13717,12 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 615,
+						"target": 621,
 						"name": "RepoState.topics"
 					}
 				},
 				{
-					"id": 592,
+					"id": 596,
 					"name": "type",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13620,12 +13752,12 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 616,
+						"target": 622,
 						"name": "RepoState.type"
 					}
 				},
 				{
-					"id": 582,
+					"id": 585,
 					"name": "settings",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13644,7 +13776,7 @@
 							},
 							{
 								"type": "reference",
-								"target": 647,
+								"target": 653,
 								"name": "SettingValue",
 								"package": "@hector21/octoform"
 							}
@@ -13654,7 +13786,28 @@
 					}
 				},
 				{
-					"id": 583,
+					"id": 586,
+					"name": "nodeId",
+					"variant": "declaration",
+					"kind": 1024,
+					"flags": {
+						"isOptional": true
+					},
+					"comment": {
+						"summary": [
+							{
+								"kind": "text",
+								"text": "GitHub's node identity for the repository, which its GraphQL mutations\naddress it by instead of by owner and name.\n\nRead only when a policy manages a setting that has to be changed that way,\nand absent when that read failed — in which case the change is blocked\nrather than sent against an identity octoform does not have."
+							}
+						]
+					},
+					"type": {
+						"type": "intrinsic",
+						"name": "string"
+					}
+				},
+				{
+					"id": 587,
 					"name": "enforced",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13671,7 +13824,7 @@
 								"kind": "inline-tag",
 								"tag": "@link",
 								"text": "RepoDetail.settings",
-								"target": 582
+								"target": 585
 							},
 							{
 								"kind": "text",
@@ -13709,7 +13862,7 @@
 					}
 				},
 				{
-					"id": 584,
+					"id": 588,
 					"name": "structure",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13718,7 +13871,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 617,
+						"target": 623,
 						"name": "RepoStructure",
 						"package": "@hector21/octoform"
 					}
@@ -13728,31 +13881,32 @@
 				{
 					"title": "Properties",
 					"children": [
-						585,
-						586,
-						587,
-						588,
 						589,
 						590,
 						591,
 						592,
-						582,
-						583,
-						584
+						593,
+						594,
+						595,
+						596,
+						585,
+						586,
+						587,
+						588
 					]
 				}
 			],
 			"extendedTypes": [
 				{
 					"type": "reference",
-					"target": 608,
+					"target": 614,
 					"name": "RepoState",
 					"package": "@hector21/octoform"
 				}
 			]
 		},
 		{
-			"id": 487,
+			"id": 490,
 			"name": "OperationKind",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -13816,7 +13970,7 @@
 			}
 		},
 		{
-			"id": 627,
+			"id": 633,
 			"name": "Risk",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -13974,7 +14128,7 @@
 					"flags": {},
 					"type": {
 						"type": "reference",
-						"target": 487,
+						"target": 490,
 						"name": "OperationKind",
 						"package": "@hector21/octoform"
 					}
@@ -13987,7 +14141,7 @@
 					"flags": {},
 					"type": {
 						"type": "reference",
-						"target": 627,
+						"target": 633,
 						"name": "Risk",
 						"package": "@hector21/octoform"
 					}
@@ -14162,7 +14316,7 @@
 			]
 		},
 		{
-			"id": 605,
+			"id": 611,
 			"name": "RepoSelector",
 			"variant": "declaration",
 			"kind": 256,
@@ -14185,7 +14339,7 @@
 			},
 			"children": [
 				{
-					"id": 606,
+					"id": 612,
 					"name": "owner",
 					"variant": "declaration",
 					"kind": 1024,
@@ -14214,7 +14368,7 @@
 					}
 				},
 				{
-					"id": 607,
+					"id": 613,
 					"name": "name",
 					"variant": "declaration",
 					"kind": 1024,
@@ -14229,14 +14383,14 @@
 				{
 					"title": "Properties",
 					"children": [
-						606,
-						607
+						612,
+						613
 					]
 				}
 			]
 		},
 		{
-			"id": 477,
+			"id": 480,
 			"name": "MergeSemantics",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -14318,7 +14472,7 @@
 			}
 		},
 		{
-			"id": 643,
+			"id": 649,
 			"name": "SemanticsEntry",
 			"variant": "declaration",
 			"kind": 256,
@@ -14333,7 +14487,7 @@
 			},
 			"children": [
 				{
-					"id": 644,
+					"id": 650,
 					"name": "shape",
 					"variant": "declaration",
 					"kind": 1024,
@@ -14360,7 +14514,7 @@
 					}
 				},
 				{
-					"id": 645,
+					"id": 651,
 					"name": "field",
 					"variant": "declaration",
 					"kind": 1024,
@@ -14371,14 +14525,14 @@
 					}
 				},
 				{
-					"id": 646,
+					"id": 652,
 					"name": "merge",
 					"variant": "declaration",
 					"kind": 1024,
 					"flags": {},
 					"type": {
 						"type": "reference",
-						"target": 477,
+						"target": 480,
 						"name": "MergeSemantics",
 						"package": "@hector21/octoform"
 					}
@@ -14388,15 +14542,15 @@
 				{
 					"title": "Properties",
 					"children": [
-						644,
-						645,
-						646
+						650,
+						651,
+						652
 					]
 				}
 			]
 		},
 		{
-			"id": 651,
+			"id": 657,
 			"name": "TokenProvider",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -14412,14 +14566,14 @@
 			"type": {
 				"type": "reflection",
 				"declaration": {
-					"id": 652,
+					"id": 658,
 					"name": "__type",
 					"variant": "declaration",
 					"kind": 65536,
 					"flags": {},
 					"signatures": [
 						{
-							"id": 653,
+							"id": 659,
 							"name": "__type",
 							"variant": "signature",
 							"kind": 4096,
@@ -14455,56 +14609,56 @@
 			"title": "Interfaces",
 			"children": [
 				337,
-				483,
+				486,
 				356,
 				341,
 				364,
 				361,
 				377,
 				335,
-				500,
-				577,
-				596,
+				503,
+				580,
+				600,
 				400,
+				484,
 				481,
-				478,
-				441,
-				466,
-				635,
-				599,
-				422,
-				628,
-				425,
-				447,
-				565,
+				442,
+				469,
+				641,
+				603,
+				423,
+				634,
+				426,
+				450,
+				568,
 				402,
 				397,
 				368,
-				428,
-				493,
+				429,
+				496,
 				409,
-				505,
-				624,
+				508,
+				630,
+				538,
+				491,
+				462,
+				454,
+				526,
+				516,
 				535,
-				488,
-				459,
-				451,
-				523,
-				513,
-				532,
-				539,
-				529,
-				547,
 				542,
-				551,
-				608,
-				433,
-				430,
-				617,
-				581,
+				532,
+				550,
+				545,
+				554,
+				614,
+				434,
+				431,
+				623,
+				584,
 				384,
-				605,
-				643
+				611,
+				649
 			]
 		},
 		{
@@ -14512,24 +14666,25 @@
 			"children": [
 				383,
 				382,
-				462,
-				650,
-				649,
-				648,
 				465,
-				464,
-				446,
-				593,
+				656,
+				422,
+				655,
+				654,
+				468,
+				467,
+				449,
+				597,
 				421,
-				528,
-				541,
-				558,
-				504,
-				647,
-				487,
-				627,
-				477,
-				651
+				531,
+				544,
+				561,
+				507,
+				653,
+				490,
+				633,
+				480,
+				657
 			]
 		},
 		{
@@ -16725,1159 +16880,1189 @@
 		"422": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "DefaultBranchPolicy"
+			"qualifiedName": "CreationPolicy"
 		},
 		"423": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "DefaultBranchPolicy.name"
+			"qualifiedName": "DefaultBranchPolicy"
 		},
 		"424": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "DefaultBranchPolicy.rename_from"
+			"qualifiedName": "DefaultBranchPolicy.name"
 		},
 		"425": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "EnvironmentPolicy"
+			"qualifiedName": "DefaultBranchPolicy.rename_from"
 		},
 		"426": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "EnvironmentPolicy.name"
+			"qualifiedName": "EnvironmentPolicy"
 		},
 		"427": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "EnvironmentPolicy.reviewers"
+			"qualifiedName": "EnvironmentPolicy.name"
 		},
 		"428": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "ExcludeConfig"
+			"qualifiedName": "EnvironmentPolicy.reviewers"
 		},
 		"429": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "ExcludeConfig.repos"
+			"qualifiedName": "ExcludeConfig"
 		},
 		"430": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "ExistingEnvironment"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "ExcludeConfig.repos"
 		},
 		"431": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "ExistingEnvironment.name"
+			"qualifiedName": "ExistingEnvironment"
 		},
 		"432": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "ExistingEnvironment.reviewers"
+			"qualifiedName": "ExistingEnvironment.name"
 		},
 		"433": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "ExistingRuleset"
+			"qualifiedName": "ExistingEnvironment.reviewers"
 		},
 		"434": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "ExistingRuleset.id"
+			"qualifiedName": "ExistingRuleset"
 		},
 		"435": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "ExistingRuleset.name"
+			"qualifiedName": "ExistingRuleset.id"
 		},
 		"436": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "ExistingRuleset.target_branches"
+			"qualifiedName": "ExistingRuleset.name"
 		},
 		"437": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "ExistingRuleset.required_approvals"
+			"qualifiedName": "ExistingRuleset.target_branches"
 		},
 		"438": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "ExistingRuleset.required_checks"
+			"qualifiedName": "ExistingRuleset.required_approvals"
 		},
 		"439": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "ExistingRuleset.block_force_push"
+			"qualifiedName": "ExistingRuleset.required_checks"
 		},
 		"440": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "ExistingRuleset.block_deletion"
+			"qualifiedName": "ExistingRuleset.block_force_push"
 		},
 		"441": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "FeaturePolicy"
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "ExistingRuleset.block_deletion"
 		},
 		"442": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "FeaturePolicy.issues"
+			"qualifiedName": "FeaturePolicy"
 		},
 		"443": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "FeaturePolicy.wiki"
+			"qualifiedName": "FeaturePolicy.issues"
 		},
 		"444": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "FeaturePolicy.projects"
+			"qualifiedName": "FeaturePolicy.wiki"
 		},
 		"445": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "FeaturePolicy.discussions"
+			"qualifiedName": "FeaturePolicy.projects"
 		},
 		"446": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "FileMode"
+			"qualifiedName": "FeaturePolicy.discussions"
 		},
 		"447": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "FilePolicy"
+			"qualifiedName": "FeaturePolicy.sponsorships"
 		},
 		"448": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "FilePolicy.path"
+			"qualifiedName": "FeaturePolicy.pull_requests"
 		},
 		"449": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "FilePolicy.from"
+			"qualifiedName": "FileMode"
 		},
 		"450": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "FilePolicy.mode"
+			"qualifiedName": "FilePolicy"
 		},
 		"451": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/inspect.ts",
-			"qualifiedName": "InspectedCapabilities"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "FilePolicy.path"
 		},
 		"452": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/inspect.ts",
-			"qualifiedName": "InspectedCapabilities.discovery"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "FilePolicy.from"
 		},
 		"453": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/inspect.ts",
-			"qualifiedName": "InspectedCapabilities.plan"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "FilePolicy.mode"
 		},
 		"454": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
-			"qualifiedName": "InspectedCapabilities.organizationRulesets"
+			"qualifiedName": "InspectedCapabilities"
 		},
 		"455": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
-			"qualifiedName": "InspectedCapabilities.notApplicable"
+			"qualifiedName": "InspectedCapabilities.discovery"
 		},
 		"456": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
-			"qualifiedName": "__type"
+			"qualifiedName": "InspectedCapabilities.plan"
 		},
 		"457": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
-			"qualifiedName": "__type.path"
+			"qualifiedName": "InspectedCapabilities.organizationRulesets"
 		},
 		"458": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
-			"qualifiedName": "__type.reason"
+			"qualifiedName": "InspectedCapabilities.notApplicable"
 		},
 		"459": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
-			"qualifiedName": "InspectedOwner"
+			"qualifiedName": "__type"
 		},
 		"460": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
-			"qualifiedName": "InspectedOwner.owner"
+			"qualifiedName": "__type.path"
 		},
 		"461": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
-			"qualifiedName": "InspectedOwner.resolved"
+			"qualifiedName": "__type.reason"
 		},
 		"462": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "Managed"
+			"packagePath": "src/types/inspect.ts",
+			"qualifiedName": "InspectedOwner"
 		},
 		"463": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "T"
+			"packagePath": "src/types/inspect.ts",
+			"qualifiedName": "InspectedOwner.owner"
 		},
 		"464": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergeCommitMessage"
+			"packagePath": "src/types/inspect.ts",
+			"qualifiedName": "InspectedOwner.resolved"
 		},
 		"465": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergeCommitTitle"
+			"qualifiedName": "Managed"
 		},
 		"466": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergePolicy"
+			"qualifiedName": "T"
 		},
 		"467": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergePolicy.allow_squash"
+			"qualifiedName": "MergeCommitMessage"
 		},
 		"468": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergePolicy.allow_merge_commit"
+			"qualifiedName": "MergeCommitTitle"
 		},
 		"469": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergePolicy.allow_rebase"
+			"qualifiedName": "MergePolicy"
 		},
 		"470": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergePolicy.allow_auto_merge"
+			"qualifiedName": "MergePolicy.allow_squash"
 		},
 		"471": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergePolicy.allow_update_branch"
+			"qualifiedName": "MergePolicy.allow_merge_commit"
 		},
 		"472": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergePolicy.delete_branch_on_merge"
+			"qualifiedName": "MergePolicy.allow_rebase"
 		},
 		"473": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergePolicy.squash_title"
+			"qualifiedName": "MergePolicy.allow_auto_merge"
 		},
 		"474": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergePolicy.squash_message"
+			"qualifiedName": "MergePolicy.allow_update_branch"
 		},
 		"475": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergePolicy.merge_commit_title"
+			"qualifiedName": "MergePolicy.delete_branch_on_merge"
 		},
 		"476": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "MergePolicy.merge_commit_message"
+			"qualifiedName": "MergePolicy.squash_title"
 		},
 		"477": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "MergePolicy.squash_message"
+		},
+		"478": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "MergePolicy.merge_commit_title"
+		},
+		"479": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "MergePolicy.merge_commit_message"
+		},
+		"480": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/shape.ts",
 			"qualifiedName": "MergeSemantics"
 		},
-		"478": {
+		"481": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config-command.ts",
 			"qualifiedName": "MigratedConfig"
 		},
-		"479": {
+		"482": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config-command.ts",
 			"qualifiedName": "MigratedConfig.yaml"
 		},
-		"480": {
+		"483": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config-command.ts",
 			"qualifiedName": "MigratedConfig.owner"
 		},
-		"481": {
+		"484": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config-command.ts",
 			"qualifiedName": "MigrateOptions"
 		},
-		"482": {
+		"485": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config-command.ts",
 			"qualifiedName": "MigrateOptions.write"
 		},
-		"483": {
+		"486": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/applicability.ts",
 			"qualifiedName": "NotApplicable"
 		},
-		"484": {
+		"487": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/applicability.ts",
 			"qualifiedName": "NotApplicable.owner"
 		},
-		"485": {
+		"488": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/applicability.ts",
 			"qualifiedName": "NotApplicable.path"
 		},
-		"486": {
+		"489": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/applicability.ts",
 			"qualifiedName": "NotApplicable.reason"
 		},
-		"487": {
+		"490": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "OperationKind"
 		},
-		"488": {
+		"491": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
 			"qualifiedName": "OutputEnvelope"
 		},
-		"489": {
+		"492": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
 			"qualifiedName": "OutputEnvelope.T"
 		},
-		"490": {
+		"493": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
 			"qualifiedName": "OutputEnvelope.schemaVersion"
 		},
-		"491": {
+		"494": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
 			"qualifiedName": "OutputEnvelope.command"
 		},
-		"492": {
+		"495": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/inspect.ts",
 			"qualifiedName": "OutputEnvelope.data"
 		},
-		"493": {
+		"496": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerBlock"
 		},
-		"494": {
+		"497": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerBlock.classify"
 		},
-		"495": {
+		"498": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerBlock.audit"
 		},
-		"496": {
+		"499": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerBlock.defaults"
 		},
-		"497": {
+		"500": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerBlock.types"
 		},
-		"498": {
+		"501": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerBlock.repos"
 		},
-		"499": {
+		"502": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerBlock.exclude"
 		},
-		"500": {
+		"503": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/capabilities.ts",
 			"qualifiedName": "OwnerDiscovery"
 		},
-		"501": {
+		"504": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/capabilities.ts",
 			"qualifiedName": "OwnerDiscovery.login"
 		},
-		"502": {
+		"505": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/capabilities.ts",
 			"qualifiedName": "OwnerDiscovery.kind"
 		},
-		"503": {
+		"506": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/capabilities.ts",
 			"qualifiedName": "OwnerDiscovery.id"
 		},
-		"504": {
+		"507": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "OwnerKind"
 		},
-		"505": {
+		"508": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerScope"
 		},
-		"506": {
+		"509": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerScope.owner"
 		},
-		"507": {
+		"510": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerScope.classify"
 		},
-		"508": {
+		"511": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerScope.audit"
 		},
-		"509": {
+		"512": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerScope.defaults"
 		},
-		"510": {
+		"513": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerScope.types"
 		},
-		"511": {
+		"514": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerScope.repos"
 		},
-		"512": {
+		"515": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "OwnerScope.exclude"
 		},
-		"513": {
+		"516": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifact"
 		},
-		"514": {
+		"517": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifact.schemaVersion"
 		},
-		"515": {
+		"518": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifact.octoformVersion"
 		},
-		"516": {
+		"519": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifact.actor"
 		},
-		"517": {
+		"520": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifact.observedAt"
 		},
-		"518": {
+		"521": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifact.expiresAt"
 		},
-		"519": {
+		"522": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifact.configPath"
 		},
-		"520": {
+		"523": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifact.configDigest"
 		},
-		"521": {
+		"524": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifact.sourceDigests"
 		},
-		"522": {
+		"525": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifact.owners"
 		},
-		"523": {
+		"526": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifactOwner"
 		},
-		"524": {
+		"527": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifactOwner.login"
 		},
-		"525": {
+		"528": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifactOwner.id"
 		},
-		"526": {
+		"529": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifactOwner.changes"
 		},
-		"527": {
+		"530": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifactOwner.blocked"
 		},
-		"528": {
+		"531": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanArtifactSchemaVersion"
 		},
-		"529": {
+		"532": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanError"
 		},
-		"530": {
+		"533": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanError.repo"
 		},
-		"531": {
+		"534": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanError.message"
 		},
-		"532": {
+		"535": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanIdentity"
 		},
-		"533": {
+		"536": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanIdentity.actor"
 		},
-		"534": {
+		"537": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanIdentity.ownerIds"
 		},
-		"535": {
+		"538": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/github.ts",
 			"qualifiedName": "PlanLimits"
 		},
-		"536": {
+		"539": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/github.ts",
 			"qualifiedName": "PlanLimits.ownerKind"
 		},
-		"537": {
+		"540": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/github.ts",
 			"qualifiedName": "PlanLimits.plan"
 		},
-		"538": {
+		"541": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/github.ts",
 			"qualifiedName": "PlanLimits.orgRulesets"
 		},
-		"539": {
+		"542": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanOptions"
 		},
-		"540": {
+		"543": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanOptions.rulesetCapability"
 		},
-		"541": {
+		"544": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanRejectionReason"
 		},
-		"542": {
+		"545": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanResult"
 		},
-		"543": {
+		"546": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanResult.changes"
 		},
-		"544": {
+		"547": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanResult.blocked"
 		},
-		"545": {
+		"548": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanResult.errors"
 		},
-		"546": {
+		"549": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanResult.scanned"
 		},
-		"547": {
+		"550": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanSelector"
 		},
-		"548": {
+		"551": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanSelector.repo"
 		},
-		"549": {
+		"552": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanSelector.type"
 		},
-		"550": {
+		"553": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanSelector.concurrency"
 		},
-		"551": {
+		"554": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanSummary"
 		},
-		"552": {
+		"555": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanSummary.scanned"
 		},
-		"553": {
+		"556": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanSummary.changed"
 		},
-		"554": {
+		"557": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanSummary.blocked"
 		},
-		"555": {
+		"558": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanSummary.blockedRepositories"
 		},
-		"556": {
+		"559": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanSummary.failed"
 		},
-		"557": {
+		"560": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan.ts",
 			"qualifiedName": "PlanSummary.unchanged"
 		},
-		"558": {
+		"561": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
 			"qualifiedName": "PlanVerification"
 		},
-		"559": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/plan-artifact.ts",
-			"qualifiedName": "__type"
-		},
-		"560": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/plan-artifact.ts",
-			"qualifiedName": "__type.valid"
-		},
-		"561": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/plan-artifact.ts",
-			"qualifiedName": "__type"
-		},
 		"562": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
-			"qualifiedName": "__type.valid"
+			"qualifiedName": "__type"
 		},
 		"563": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
-			"qualifiedName": "__type.reason"
+			"qualifiedName": "__type.valid"
 		},
 		"564": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/plan-artifact.ts",
-			"qualifiedName": "__type.detail"
+			"qualifiedName": "__type"
 		},
 		"565": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet"
+			"packagePath": "src/types/plan-artifact.ts",
+			"qualifiedName": "__type.valid"
 		},
 		"566": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet.policies"
+			"packagePath": "src/types/plan-artifact.ts",
+			"qualifiedName": "__type.reason"
 		},
 		"567": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet.manage"
+			"packagePath": "src/types/plan-artifact.ts",
+			"qualifiedName": "__type.detail"
 		},
 		"568": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet.features"
+			"qualifiedName": "PolicySet"
 		},
 		"569": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet.merge"
+			"qualifiedName": "PolicySet.policies"
 		},
 		"570": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet.security"
+			"qualifiedName": "PolicySet.manage"
 		},
 		"571": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet.repo"
+			"qualifiedName": "PolicySet.features"
 		},
 		"572": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet.default_branch"
+			"qualifiedName": "PolicySet.merge"
 		},
 		"573": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet.ensure_branches"
+			"qualifiedName": "PolicySet.security"
 		},
 		"574": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet.rulesets"
+			"qualifiedName": "PolicySet.repo"
 		},
 		"575": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet.environments"
+			"qualifiedName": "PolicySet.default_branch"
 		},
 		"576": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "PolicySet.files"
+			"qualifiedName": "PolicySet.ensure_branches"
 		},
 		"577": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/capabilities.ts",
-			"qualifiedName": "RateLimitStatus"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "PolicySet.rulesets"
 		},
 		"578": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/capabilities.ts",
-			"qualifiedName": "RateLimitStatus.remaining"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "PolicySet.environments"
 		},
 		"579": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/capabilities.ts",
-			"qualifiedName": "RateLimitStatus.limit"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "PolicySet.files"
 		},
 		"580": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/capabilities.ts",
-			"qualifiedName": "RateLimitStatus.reset"
+			"qualifiedName": "RateLimitStatus"
 		},
 		"581": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoDetail"
+			"packagePath": "src/types/capabilities.ts",
+			"qualifiedName": "RateLimitStatus.remaining"
 		},
 		"582": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoDetail.settings"
+			"packagePath": "src/types/capabilities.ts",
+			"qualifiedName": "RateLimitStatus.limit"
 		},
 		"583": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoDetail.enforced"
+			"packagePath": "src/types/capabilities.ts",
+			"qualifiedName": "RateLimitStatus.reset"
 		},
 		"584": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoDetail.structure"
+			"qualifiedName": "RepoDetail"
 		},
 		"585": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState.name"
+			"qualifiedName": "RepoDetail.settings"
 		},
 		"586": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState.visibility"
+			"qualifiedName": "RepoDetail.nodeId"
 		},
 		"587": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState.archived"
+			"qualifiedName": "RepoDetail.enforced"
 		},
 		"588": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState.default_branch"
+			"qualifiedName": "RepoDetail.structure"
 		},
 		"589": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState.description"
+			"qualifiedName": "RepoState.name"
 		},
 		"590": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState.homepage"
+			"qualifiedName": "RepoState.visibility"
 		},
 		"591": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState.topics"
+			"qualifiedName": "RepoState.archived"
 		},
 		"592": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState.type"
-		},
-		"593": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RepoEntry"
-		},
-		"594": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "__type"
-		},
-		"595": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "__type.type"
-		},
-		"596": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/classify.ts",
-			"qualifiedName": "RepoFacts"
-		},
-		"597": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/classify.ts",
-			"qualifiedName": "RepoFacts.visibility"
-		},
-		"598": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/classify.ts",
-			"qualifiedName": "RepoFacts.files"
-		},
-		"599": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RepoPolicy"
-		},
-		"600": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RepoPolicy.description"
-		},
-		"601": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RepoPolicy.homepage"
-		},
-		"602": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RepoPolicy.topics"
-		},
-		"603": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RepoPolicy.allow_forking"
-		},
-		"604": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RepoPolicy.web_commit_signoff_required"
-		},
-		"605": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/selectors.ts",
-			"qualifiedName": "RepoSelector"
-		},
-		"606": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/selectors.ts",
-			"qualifiedName": "RepoSelector.owner"
-		},
-		"607": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/selectors.ts",
-			"qualifiedName": "RepoSelector.name"
-		},
-		"608": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState"
-		},
-		"609": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState.name"
-		},
-		"610": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState.visibility"
-		},
-		"611": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoState.archived"
-		},
-		"612": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.default_branch"
 		},
-		"613": {
+		"593": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.description"
 		},
-		"614": {
+		"594": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.homepage"
 		},
-		"615": {
+		"595": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.topics"
 		},
-		"616": {
+		"596": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.type"
 		},
+		"597": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoEntry"
+		},
+		"598": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "__type"
+		},
+		"599": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "__type.type"
+		},
+		"600": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/classify.ts",
+			"qualifiedName": "RepoFacts"
+		},
+		"601": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/classify.ts",
+			"qualifiedName": "RepoFacts.visibility"
+		},
+		"602": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/classify.ts",
+			"qualifiedName": "RepoFacts.files"
+		},
+		"603": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy"
+		},
+		"604": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.description"
+		},
+		"605": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.homepage"
+		},
+		"606": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.topics"
+		},
+		"607": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.allow_forking"
+		},
+		"608": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.web_commit_signoff_required"
+		},
+		"609": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.issue_creation"
+		},
+		"610": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.pull_request_creation"
+		},
+		"611": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/selectors.ts",
+			"qualifiedName": "RepoSelector"
+		},
+		"612": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/selectors.ts",
+			"qualifiedName": "RepoSelector.owner"
+		},
+		"613": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/selectors.ts",
+			"qualifiedName": "RepoSelector.name"
+		},
+		"614": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "RepoState"
+		},
+		"615": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "RepoState.name"
+		},
+		"616": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "RepoState.visibility"
+		},
 		"617": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoStructure"
+			"qualifiedName": "RepoState.archived"
 		},
 		"618": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoStructure.environments"
+			"qualifiedName": "RepoState.default_branch"
 		},
 		"619": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoStructure.rulesets"
+			"qualifiedName": "RepoState.description"
 		},
 		"620": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoStructure.files"
+			"qualifiedName": "RepoState.homepage"
 		},
 		"621": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoStructure.branches"
+			"qualifiedName": "RepoState.topics"
 		},
 		"622": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoStructure.workflowsNamingDefaultBranch"
+			"qualifiedName": "RepoState.type"
 		},
 		"623": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "RepoStructure.workflowsUploadingCodeScanning"
+			"qualifiedName": "RepoStructure"
 		},
 		"624": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "ResolvedConfig"
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "RepoStructure.environments"
 		},
 		"625": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "ResolvedConfig.version"
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "RepoStructure.rulesets"
 		},
 		"626": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "ResolvedConfig.owners"
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "RepoStructure.files"
 		},
 		"627": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "Risk"
+			"qualifiedName": "RepoStructure.branches"
 		},
 		"628": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy"
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "RepoStructure.workflowsNamingDefaultBranch"
 		},
 		"629": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.name"
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "RepoStructure.workflowsUploadingCodeScanning"
 		},
 		"630": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.target_branches"
+			"qualifiedName": "ResolvedConfig"
 		},
 		"631": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.required_approvals"
+			"qualifiedName": "ResolvedConfig.version"
 		},
 		"632": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.required_checks"
+			"qualifiedName": "ResolvedConfig.owners"
 		},
 		"633": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.block_force_push"
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "Risk"
 		},
 		"634": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.block_deletion"
+			"qualifiedName": "RulesetPolicy"
 		},
 		"635": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy"
+			"qualifiedName": "RulesetPolicy.name"
 		},
 		"636": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.vulnerability_alerts"
+			"qualifiedName": "RulesetPolicy.target_branches"
 		},
 		"637": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.automated_security_fixes"
+			"qualifiedName": "RulesetPolicy.required_approvals"
 		},
 		"638": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.private_vulnerability_reporting"
+			"qualifiedName": "RulesetPolicy.required_checks"
 		},
 		"639": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.secret_scanning"
+			"qualifiedName": "RulesetPolicy.block_force_push"
 		},
 		"640": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.secret_scanning_push_protection"
+			"qualifiedName": "RulesetPolicy.block_deletion"
 		},
 		"641": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.code_scanning_default_setup"
+			"qualifiedName": "SecurityPolicy"
 		},
 		"642": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.immutable_releases"
+			"qualifiedName": "SecurityPolicy.vulnerability_alerts"
 		},
 		"643": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/shape.ts",
-			"qualifiedName": "SemanticsEntry"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SecurityPolicy.automated_security_fixes"
 		},
 		"644": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/shape.ts",
-			"qualifiedName": "SemanticsEntry.shape"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SecurityPolicy.private_vulnerability_reporting"
 		},
 		"645": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/shape.ts",
-			"qualifiedName": "SemanticsEntry.field"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SecurityPolicy.secret_scanning"
 		},
 		"646": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/shape.ts",
-			"qualifiedName": "SemanticsEntry.merge"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SecurityPolicy.secret_scanning_push_protection"
 		},
 		"647": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "SettingValue"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SecurityPolicy.code_scanning_default_setup"
 		},
 		"648": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SquashCommitMessage"
+			"qualifiedName": "SecurityPolicy.immutable_releases"
 		},
 		"649": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/shape.ts",
+			"qualifiedName": "SemanticsEntry"
+		},
+		"650": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/shape.ts",
+			"qualifiedName": "SemanticsEntry.shape"
+		},
+		"651": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/shape.ts",
+			"qualifiedName": "SemanticsEntry.field"
+		},
+		"652": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/shape.ts",
+			"qualifiedName": "SemanticsEntry.merge"
+		},
+		"653": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "SettingValue"
+		},
+		"654": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SquashCommitMessage"
+		},
+		"655": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "SquashCommitTitle"
 		},
-		"650": {
+		"656": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "Toggle"
 		},
-		"651": {
+		"657": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/token.ts",
 			"qualifiedName": "TokenProvider"
 		},
-		"652": {
+		"658": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/token.ts",
 			"qualifiedName": "__type"
 		},
-		"653": {
+		"659": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/token.ts",
 			"qualifiedName": "__type"
