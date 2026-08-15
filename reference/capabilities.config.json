@@ -124,6 +124,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /user"],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": ["classic-repo"],
       "writePermissions": [],
       "limitations": ["Some token types do not expose an authenticated user login or classic scope headers."]
@@ -137,6 +138,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /orgs/{org}", "GET /users/{username}"],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": ["classic-repo"],
       "writePermissions": [],
       "limitations": ["Owner kind is discovered from GitHub and is never declared in configuration."]
@@ -155,6 +157,7 @@
         "GET /repos/{owner}/{repo}"
       ],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": [],
       "limitations": ["Another personal account exposes public repositories only; the authenticated owner can expose repositories granted to the token."]
@@ -168,6 +171,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": [],
       "limitations": ["Audit findings are informational and do not change the command exit code."]
@@ -181,6 +185,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": []
@@ -194,6 +199,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": [],
+      "writeMutations": ["updateRepository"],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": [
@@ -209,11 +215,31 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": [],
       "writeRoutes": [],
+      "writeMutations": ["updateRepository"],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": [
-        "The REST API exposes none of these settings; both the read and the change go through GraphQL, which this register does not yet enumerate operation by operation.",
+        "The REST API exposes none of these settings; both the read and the change go through GraphQL, and only the mutation half has an identity this register can name.",
         "A failed GraphQL read leaves every one of them unreadable, which blocks the change rather than planning over an assumed value."
+      ]
+    },
+    {
+      "id": "repository-guarded-changes",
+      "area": "repository",
+      "support": "supported",
+      "configPaths": ["repo.visibility", "repo.archived", "repo.template", "repo.name", "repo.rename_from"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}"],
+      "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-metadata-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": [
+        "A rename must declare repo.rename_from, so that a shared policy layer cannot rename every repository it covers.",
+        "Repositories are declared under repos.<name>, so the entry that asked for a rename stops matching once it is applied; the plan reports that as a warning.",
+        "GitHub reports internal visibility but does not accept it back, so leaving it is reported as a change the configuration cannot reverse.",
+        "Archiving is sent after every other change and only if they all succeeded; unarchiving is sent before them. An archived repository with no unarchive declared is not planned against at all."
       ]
     },
     {
@@ -225,6 +251,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": []
@@ -238,6 +265,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": []
@@ -251,6 +279,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/topics"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": []
@@ -264,6 +293,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["An omitted security_and_analysis field is unreadable and blocks mutation instead of being treated as disabled."]
@@ -277,6 +307,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/vulnerability-alerts"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/vulnerability-alerts", "DELETE /repos/{owner}/{repo}/vulnerability-alerts"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
@@ -290,6 +321,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/automated-security-fixes"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/automated-security-fixes", "DELETE /repos/{owner}/{repo}/automated-security-fixes"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
@@ -303,6 +335,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/private-vulnerability-reporting"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/private-vulnerability-reporting", "DELETE /repos/{owner}/{repo}/private-vulnerability-reporting"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
@@ -316,6 +349,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/code-scanning/default-setup"],
       "writeRoutes": ["PATCH /repos/{owner}/{repo}/code-scanning/default-setup"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
@@ -332,6 +366,7 @@
         "PUT /repos/{owner}/{repo}/immutable-releases",
         "DELETE /repos/{owner}/{repo}/immutable-releases"
       ],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": [
@@ -347,6 +382,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}", "GET /repos/{owner}/{repo}/contents/{path}"],
       "writeRoutes": ["POST /repos/{owner}/{repo}/branches/{branch}/rename"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read", "repository-contents-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["Rename is guarded by rename_from and workflow references are reported but never rewritten."]
@@ -360,6 +396,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/branches/{branch}", "GET /repos/{owner}/{repo}/git/ref/{ref}"],
       "writeRoutes": ["POST /repos/{owner}/{repo}/git/refs"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-contents-read"],
       "writePermissions": ["classic-repo", "repository-contents-write"],
       "limitations": ["A missing branch is created from the current default branch; existing branches are never changed or deleted."]
@@ -378,6 +415,7 @@
         "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}"
       ],
       "writeRoutes": ["POST /repos/{owner}/{repo}/rulesets", "PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["Private repositories require positive owner, repository, token, and API evidence; unknown remote rule types are not removed."]
@@ -391,6 +429,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/environments", "GET /users/{username}"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/environments/{environment_name}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["Declared reviewers resolve to users only; an observed team reviewer blocks replacement."]
@@ -404,6 +443,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/contents/{path}"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/contents/{path}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-contents-read"],
       "writePermissions": ["classic-repo", "repository-contents-write"],
       "limitations": ["Only create-if-missing is supported; existing files are never overwritten or deleted."]
@@ -417,6 +457,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/contents/{path}"],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-contents-read"],
       "writePermissions": [],
       "limitations": ["Personal accounts use local type declarations because organization custom properties do not apply."]
@@ -430,6 +471,7 @@
       "ownerKinds": ["organization"],
       "readRoutes": ["GET /orgs/{org}/properties/values"],
       "writeRoutes": ["PUT /orgs/{org}/properties/schema/{custom_property_name}", "PATCH /orgs/{org}/properties/values"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "organization-custom-properties-read"],
       "writePermissions": [
         "classic-repo",

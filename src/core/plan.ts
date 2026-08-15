@@ -30,6 +30,9 @@ const RISK_BY_PREFIX: ReadonlyArray<readonly [string, Risk]> = [
   ['default_branch.', 'sensitive'],
   ['rulesets.', 'sensitive'],
   ['environments.', 'sensitive'],
+  ['repo.visibility', 'sensitive'],
+  ['repo.archived', 'sensitive'],
+  ['repo.name', 'sensitive'],
 ];
 
 function riskFor(key: string): Risk {
@@ -94,6 +97,14 @@ function unreadableReason(key: string, visibility: RepoDetail['visibility']): st
  * @param repo - The observed repository, including whatever structure was read.
  */
 function consequenceOf(key: string, wanted: unknown, repo: RepoDetail): string | undefined {
+  /**
+   * GitHub reports `internal` as a visibility but will not accept it back, so
+   * leaving it is a decision the configuration cannot reverse later.
+   */
+  if (key === 'repo.visibility' && repo.visibility === 'internal') {
+    return `the repository is internal, and GitHub does not accept "internal" as a visibility to set, so changing this cannot be undone by changing the configuration back`;
+  }
+
   if (key !== 'security.code_scanning_default_setup' || wanted !== true) return undefined;
 
   const workflows = repo.structure?.workflowsUploadingCodeScanning;
@@ -138,6 +149,16 @@ export const CHANGED_BY_MUTATION: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Keys inside a scalar group that {@link planScalars} must leave alone,
+ * because a function of their own plans them.
+ *
+ * `repo.rename_from` names no setting at all — it guards another key. And a
+ * rename has to be compared against that guard before it becomes a change, so
+ * `repo.name` is planned beside it rather than as an ordinary value.
+ */
+const PLANNED_ELSEWHERE: ReadonlySet<string> = new Set(['repo.name', 'repo.rename_from']);
+
+/**
  * Compare one repository against its resolved policy.
  *
  * Only settings the policy actually manages are considered: an absent or
@@ -153,11 +174,16 @@ export function planRepo(
 
   if (policy.manage === false) return [];
 
-  if (repo.archived) {
-    return [];
-  }
+  /**
+   * An archived repository refuses every write, so there is nothing to plan
+   * against it — unless the policy asks for it to be unarchived, which is the
+   * one change that can still be made. Everything else planned in that same
+   * run waits for it through the dependency graph.
+   */
+  if (repo.archived && policy.repo?.archived !== false) return [];
 
   planScalars(repo, policy, drafts);
+  planRename(repo, policy, drafts);
   planDefaultBranch(repo, policy, drafts);
   planEnsureBranches(repo, policy, drafts);
   planRulesets(repo, policy, options, drafts);
@@ -185,6 +211,7 @@ function planScalars(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]
       if (!isManaged(wanted)) continue;
 
       const key = `${group}.${name}`;
+      if (PLANNED_ELSEWHERE.has(key)) continue;
       const current = repo.settings[key];
 
       if (current === undefined) {
@@ -269,6 +296,59 @@ function planScalars(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]
       });
     }
   }
+}
+
+/**
+ * Renaming the repository itself.
+ *
+ * `rename_from` is required rather than optional, which is where this differs
+ * from the default-branch rename. A policy layer is shared: `repo.name` on its
+ * own, declared under `defaults` or a type, would ask for every repository
+ * that layer covers to be given the same name. Naming what is being renamed
+ * from is what keeps the change addressed at one repository, wherever it was
+ * written.
+ *
+ * The rename is also the one change that invalidates the configuration that
+ * asked for it, since repositories are declared under `repos.<name>`. That is
+ * attached as a warning: it happens, and the file needs an edit afterwards.
+ */
+function planRename(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]): void {
+  const wanted = policy.repo?.name;
+  if (!isManaged(wanted)) return;
+
+  const current = repo.name;
+  if (current === wanted) return;
+
+  const renameFrom = policy.repo?.rename_from;
+  if (!isManaged(renameFrom)) {
+    changes.push({
+      repo: current,
+      key: 'repo.name',
+      from: current,
+      to: wanted,
+      blocked:
+        'a repository rename must declare repo.rename_from, so that a shared policy layer cannot rename every repository it covers',
+    });
+    return;
+  }
+  if (!renameFrom.includes(current)) {
+    changes.push({
+      repo: current,
+      key: 'repo.name',
+      from: current,
+      to: wanted,
+      blocked: `current name "${current}" is not in rename_from (${renameFrom.join(', ')})`,
+    });
+    return;
+  }
+
+  changes.push({
+    repo: current,
+    key: 'repo.name',
+    from: current,
+    to: wanted,
+    warning: `repositories are declared under repos.<name>, so the entry for "${current}" will stop matching once this is applied`,
+  });
 }
 
 /**

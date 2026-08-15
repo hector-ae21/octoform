@@ -57,6 +57,16 @@ export const DEPENDENCY_RULES: readonly DependencyRule[] = [
   },
 ];
 
+/** The change that archives or unarchives a repository, planned by this run. */
+const ARCHIVE_KEY = 'repo.archived';
+
+/** Why a change was not attempted because the repository stayed archived. */
+const STILL_ARCHIVED = 'the repository could not be unarchived, and an archived one refuses writes';
+
+/** Why archiving was not attempted after something else failed. */
+const WOULD_FREEZE_A_FAILURE =
+  'archiving would have frozen the repository with a change that failed to apply';
+
 /**
  * Fill in each change's prerequisites from the rules, for one repository's
  * planned changes.
@@ -65,19 +75,31 @@ export const DEPENDENCY_RULES: readonly DependencyRule[] = [
  * depend on a rename nobody asked for, so a run that changes no branch name
  * produces no edges at all.
  *
+ * Archiving is the exception the table cannot express, because which way the
+ * edge points depends on the value rather than the key. Unarchiving has to
+ * come first and everything else waits for it; archiving has to come last and
+ * waits for everything else — otherwise a run could freeze a repository in a
+ * state one of its own failed changes left behind.
+ *
  * @param changes - Every change planned for one repository.
  */
 export function withPrerequisites(changes: readonly Change[]): Change[] {
   const byKey = new Map(changes.map((change) => [change.key, change.id]));
+  const archive = changes.find((change) => change.key === ARCHIVE_KEY);
+  const others = changes.filter((change) => change.key !== ARCHIVE_KEY).map((change) => change.id);
 
   return changes.map((change) => {
     const prerequisites = DEPENDENCY_RULES.filter(
       (rule) => matches(change.key, rule.dependent) && byKey.has(rule.requires),
-    )
-      .map((rule) => byKey.get(rule.requires) as string)
-      .filter((id) => id !== change.id);
+    ).map((rule) => byKey.get(rule.requires) as string);
 
-    return { ...change, prerequisites: [...new Set(prerequisites)] };
+    if (archive?.to === true && change.key === ARCHIVE_KEY) prerequisites.push(...others);
+    if (archive?.to === false && change.key !== ARCHIVE_KEY) prerequisites.push(archive.id);
+
+    return {
+      ...change,
+      prerequisites: [...new Set(prerequisites)].filter((id) => id !== change.id),
+    };
   });
 }
 
@@ -128,6 +150,9 @@ export function blockedByPrerequisite(
 ): string | undefined {
   const unmet = change.prerequisites.find((id) => failed.has(id));
   if (unmet === undefined) return undefined;
+
+  if (change.key === ARCHIVE_KEY) return `not attempted: ${WOULD_FREEZE_A_FAILURE}`;
+  if (unmet.endsWith(`#${ARCHIVE_KEY}`)) return `not attempted: ${STILL_ARCHIVED}`;
 
   const rule = DEPENDENCY_RULES.find(
     (candidate) => matches(change.key, candidate.dependent) && unmet.endsWith(candidate.requires),

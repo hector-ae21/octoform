@@ -42,6 +42,7 @@ type SurfaceConfig = {
     reviewedOperations: string[];
   };
   graphql: {
+    implementedMutations: Record<string, string[]>;
     mutations: Array<
       Policy & { name: string; deprecated: boolean; deprecationReason: string | null }
     >;
@@ -119,28 +120,54 @@ test('the GraphQL mutation snapshot and generated register agree', () => {
   }
 });
 
-test('every implemented route is stamped with the release it actually arrived in', () => {
+/** Flatten a release-to-names map, refusing a name claimed by two releases. */
+function declaredArrivals(byRelease: Record<string, string[]>): Map<string, string> {
   const declared = new Map<string, string>();
-  for (const [version, routes] of Object.entries(config.rest.implementedRoutes)) {
-    for (const route of routes) {
-      assert.equal(declared.has(route), false, `${route} is declared under two releases`);
-      declared.set(route, version);
+  for (const [version, names] of Object.entries(byRelease)) {
+    for (const name of names) {
+      assert.equal(declared.has(name), false, `${name} is declared under two releases`);
+      declared.set(name, version);
     }
   }
+  return declared;
+}
 
-  const stamped = new Map(
+/** What the register says shipped, by transport, keyed as that transport is. */
+function stampedArrivals(transport: 'rest' | 'graphql'): Map<string, string> {
+  return new Map(
     register.operations
-      .filter((operation) => operation.status.startsWith('implemented-v'))
+      .filter(
+        (operation) =>
+          operation.transport === transport && operation.status.startsWith('implemented-v'),
+      )
       .map((operation) => [
-        `${operation.method} ${operation.path}`,
+        transport === 'rest' ? `${operation.method} ${operation.path}` : operation.operation,
         operation.status.slice('implemented-v'.length),
       ]),
   );
+}
 
-  assert.deepEqual(stamped, declared);
-  assert.equal(register.summary.implemented, declared.size);
-  for (const [version, routes] of Object.entries(config.rest.implementedRoutes)) {
-    assert.equal(register.summary.byImplementedIn[version], routes.length, version);
+test('every implemented route is stamped with the release it actually arrived in', () => {
+  assert.deepEqual(stampedArrivals('rest'), declaredArrivals(config.rest.implementedRoutes));
+});
+
+test('an implemented mutation stops being reported as planned, like an implemented route', () => {
+  const declared = declaredArrivals(config.graphql.implementedMutations);
+  assert.ok(declared.size > 0, 'octoform sends at least one mutation');
+  assert.deepEqual(stampedArrivals('graphql'), declared);
+});
+
+test('the implemented counts add up across both transports', () => {
+  const rest = declaredArrivals(config.rest.implementedRoutes);
+  const graphql = declaredArrivals(config.graphql.implementedMutations);
+  assert.equal(register.summary.implemented, rest.size + graphql.size);
+
+  const perRelease = new Map<string, number>();
+  for (const version of [...rest.values(), ...graphql.values()]) {
+    perRelease.set(version, (perRelease.get(version) ?? 0) + 1);
+  }
+  for (const [version, count] of perRelease) {
+    assert.equal(register.summary.byImplementedIn[version], count, version);
   }
 });
 

@@ -1453,6 +1453,11 @@
   "graphql": {
     "endpoint": "https://api.github.com/graphql",
     "capturedAt": "2026-08-13",
+    "implementedMutations": {
+      "0.5.0": [
+        "updateRepository"
+      ]
+    },
     "mutations": [
       {
         "name": "abortQueuedMigrations",

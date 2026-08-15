@@ -227,6 +227,11 @@
     },
     {
       "shape": "RepoPolicy",
+      "field": "rename_from",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoPolicy",
       "field": "topics",
       "merge": "replace"
     },

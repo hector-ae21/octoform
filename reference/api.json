@@ -2892,7 +2892,7 @@
 					],
 					"type": {
 						"type": "reference",
-						"target": 630,
+						"target": 636,
 						"name": "ResolvedConfig",
 						"package": "@hector21/octoform"
 					}
@@ -2978,7 +2978,7 @@
 									"flags": {},
 									"type": {
 										"type": "reference",
-										"target": 630,
+										"target": 636,
 										"name": "ResolvedConfig",
 										"package": "@hector21/octoform"
 									}
@@ -3100,7 +3100,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 614,
+								"target": 619,
 								"name": "RepoState",
 								"package": "@hector21/octoform"
 							}
@@ -3166,7 +3166,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 614,
+								"target": 619,
 								"name": "RepoState",
 								"package": "@hector21/octoform"
 							}
@@ -3362,7 +3362,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 630,
+								"target": 636,
 								"name": "ResolvedConfig",
 								"package": "@hector21/octoform"
 							}
@@ -3442,7 +3442,7 @@
 					],
 					"type": {
 						"type": "reference",
-						"target": 611,
+						"target": 616,
 						"name": "RepoSelector",
 						"package": "@hector21/octoform"
 					}
@@ -3495,7 +3495,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 630,
+								"target": 636,
 								"name": "ResolvedConfig",
 								"package": "@hector21/octoform"
 							}
@@ -3527,7 +3527,7 @@
 								"types": [
 									{
 										"type": "reference",
-										"target": 611,
+										"target": 616,
 										"name": "RepoSelector",
 										"package": "@hector21/octoform"
 									},
@@ -3694,7 +3694,7 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 649,
+							"target": 655,
 							"name": "SemanticsEntry",
 							"package": "@hector21/octoform"
 						}
@@ -3782,7 +3782,7 @@
 										"type": "array",
 										"elementType": {
 											"type": "reference",
-											"target": 649,
+											"target": 655,
 											"name": "SemanticsEntry",
 											"package": "@hector21/octoform"
 										}
@@ -4032,7 +4032,7 @@
 							},
 							{
 								"kind": "text",
-								"text": " found for one repository that is not blocked.\n\nGrouped by the endpoint each key actually belongs to, not one call per\nsetting: everything that fits in the repository PATCH body — features,\nmerge options, description, homepage, and the two security_and_analysis\ntoggles, which GitHub nests inside the same PATCH rather than exposing\nseparately — goes in a single request. Enabling five such settings costs\none API call, not five. Everything else has an endpoint of its own.\n\nEach group succeeds or fails together: if the one PATCH request for a\nrepository's settings fails, every change bundled into it is reported as\nfailed with the same reason, since none of them actually happened.\n\nOrder is deliberate where it matters. The default branch is renamed before\nanything that could name a branch, so a ruleset or a seeded file lands\nagainst the name the configuration actually declares."
+								"text": " found for one repository that is not blocked.\n\nGrouped by the endpoint each key actually belongs to, not one call per\nsetting: everything that fits in the repository PATCH body — features,\nmerge options, description, homepage, and the two security_and_analysis\ntoggles, which GitHub nests inside the same PATCH rather than exposing\nseparately — goes in a single request. Enabling five such settings costs\none API call, not five. Everything else has an endpoint of its own.\n\nEach group succeeds or fails together: if the one PATCH request for a\nrepository's settings fails, every change bundled into it is reported as\nfailed with the same reason, since none of them actually happened.\n\nOrder is deliberate where it matters. The default branch is renamed before\nanything that could name a branch, so a ruleset or a seeded file lands\nagainst the name the configuration actually declares. Unarchiving comes\nbefore everything, and archiving after everything, because on either side of\nthose the repository accepts no writes at all."
 							}
 						]
 					},
@@ -4849,7 +4849,7 @@
 								"kind": "inline-tag",
 								"tag": "@link",
 								"text": "TokenProvider",
-								"target": 657
+								"target": 663
 							},
 							{
 								"kind": "text",
@@ -4891,7 +4891,7 @@
 									},
 									{
 										"type": "reference",
-										"target": 657,
+										"target": 663,
 										"name": "TokenProvider",
 										"package": "@hector21/octoform"
 									}
@@ -5743,7 +5743,7 @@
 								"type": "array",
 								"elementType": {
 									"type": "reference",
-									"target": 614,
+									"target": 619,
 									"name": "RepoState",
 									"package": "@hector21/octoform"
 								}
@@ -5901,7 +5901,7 @@
 							"flags": {},
 							"type": {
 								"type": "reference",
-								"target": 614,
+								"target": 619,
 								"name": "RepoState",
 								"package": "@hector21/octoform"
 							}
@@ -7589,7 +7589,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 633,
+						"target": 639,
 						"name": "Risk",
 						"package": "@hector21/octoform"
 					},
@@ -8686,7 +8686,7 @@
 			}
 		},
 		{
-			"id": 656,
+			"id": 662,
 			"name": "Toggle",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -8737,7 +8737,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -8752,7 +8752,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -8767,7 +8767,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -8782,7 +8782,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -8805,7 +8805,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -8828,7 +8828,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -8885,7 +8885,7 @@
 			}
 		},
 		{
-			"id": 655,
+			"id": 661,
 			"name": "SquashCommitTitle",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -8929,7 +8929,7 @@
 			}
 		},
 		{
-			"id": 654,
+			"id": 660,
 			"name": "SquashCommitMessage",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -9069,7 +9069,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -9084,7 +9084,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -9099,7 +9099,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -9114,7 +9114,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -9129,7 +9129,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -9144,7 +9144,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -9163,7 +9163,7 @@
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 655,
+								"target": 661,
 								"name": "SquashCommitTitle",
 								"package": "@hector21/octoform"
 							}
@@ -9186,7 +9186,7 @@
 						"typeArguments": [
 							{
 								"type": "reference",
-								"target": 654,
+								"target": 660,
 								"name": "SquashCommitMessage",
 								"package": "@hector21/octoform"
 							}
@@ -9261,7 +9261,7 @@
 			]
 		},
 		{
-			"id": 641,
+			"id": 647,
 			"name": "SecurityPolicy",
 			"variant": "declaration",
 			"kind": 256,
@@ -9276,7 +9276,7 @@
 			},
 			"children": [
 				{
-					"id": 642,
+					"id": 648,
 					"name": "vulnerability_alerts",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9285,13 +9285,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 643,
+					"id": 649,
 					"name": "automated_security_fixes",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9300,13 +9300,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 644,
+					"id": 650,
 					"name": "private_vulnerability_reporting",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9315,13 +9315,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 645,
+					"id": 651,
 					"name": "secret_scanning",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9330,13 +9330,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 646,
+					"id": 652,
 					"name": "secret_scanning_push_protection",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9345,13 +9345,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 647,
+					"id": 653,
 					"name": "code_scanning_default_setup",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9360,13 +9360,13 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
 				},
 				{
-					"id": 648,
+					"id": 654,
 					"name": "immutable_releases",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9383,7 +9383,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -9393,16 +9393,52 @@
 				{
 					"title": "Properties",
 					"children": [
-						642,
-						643,
-						644,
-						645,
-						646,
-						647,
-						648
+						648,
+						649,
+						650,
+						651,
+						652,
+						653,
+						654
 					]
 				}
 			]
+		},
+		{
+			"id": 635,
+			"name": "RepositoryVisibility",
+			"variant": "declaration",
+			"kind": 2097152,
+			"flags": {},
+			"comment": {
+				"summary": [
+					{
+						"kind": "text",
+						"text": "A visibility a repository can be set to.\n\n"
+					},
+					{
+						"kind": "code",
+						"text": "`internal`"
+					},
+					{
+						"kind": "text",
+						"text": " is deliberately absent. GitHub reports it on a repository but its\nupdate endpoint does not accept it, so octoform can observe an internal\nrepository and never restore one — a policy that could name it would be\noffering a door that only opens one way."
+					}
+				]
+			},
+			"type": {
+				"type": "union",
+				"types": [
+					{
+						"type": "literal",
+						"value": "public"
+					},
+					{
+						"type": "literal",
+						"value": "private"
+					}
+				]
+			}
 		},
 		{
 			"id": 603,
@@ -9495,7 +9531,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -9510,7 +9546,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 656,
+						"target": 662,
 						"name": "Toggle",
 						"package": "@hector21/octoform"
 					}
@@ -9560,6 +9596,162 @@
 						"name": "Managed",
 						"package": "@hector21/octoform"
 					}
+				},
+				{
+					"id": 611,
+					"name": "visibility",
+					"variant": "declaration",
+					"kind": 1024,
+					"flags": {
+						"isOptional": true
+					},
+					"type": {
+						"type": "reference",
+						"target": 465,
+						"typeArguments": [
+							{
+								"type": "reference",
+								"target": 635,
+								"name": "RepositoryVisibility",
+								"package": "@hector21/octoform"
+							}
+						],
+						"name": "Managed",
+						"package": "@hector21/octoform"
+					}
+				},
+				{
+					"id": 612,
+					"name": "archived",
+					"variant": "declaration",
+					"kind": 1024,
+					"flags": {
+						"isOptional": true
+					},
+					"comment": {
+						"summary": [
+							{
+								"kind": "text",
+								"text": "Whether the repository is archived. Archiving is reversible, but while it\nlasts GitHub refuses every write, so it is applied after everything else\nand only when everything else succeeded."
+							}
+						]
+					},
+					"type": {
+						"type": "reference",
+						"target": 662,
+						"name": "Toggle",
+						"package": "@hector21/octoform"
+					}
+				},
+				{
+					"id": 613,
+					"name": "template",
+					"variant": "declaration",
+					"kind": 1024,
+					"flags": {
+						"isOptional": true
+					},
+					"comment": {
+						"summary": [
+							{
+								"kind": "text",
+								"text": "Whether the repository can be used as a template for new ones."
+							}
+						]
+					},
+					"type": {
+						"type": "reference",
+						"target": 662,
+						"name": "Toggle",
+						"package": "@hector21/octoform"
+					}
+				},
+				{
+					"id": 614,
+					"name": "name",
+					"variant": "declaration",
+					"kind": 1024,
+					"flags": {
+						"isOptional": true
+					},
+					"comment": {
+						"summary": [
+							{
+								"kind": "text",
+								"text": "Desired name of the repository, renamed only from one of\n"
+							},
+							{
+								"kind": "inline-tag",
+								"tag": "@link",
+								"text": "RepoPolicy.rename_from",
+								"target": 615
+							},
+							{
+								"kind": "text",
+								"text": ".\n\nRepositories are declared under "
+							},
+							{
+								"kind": "code",
+								"text": "`repos.<name>`"
+							},
+							{
+								"kind": "text",
+								"text": ", so a rename outlives the\nentry that asked for it: once it happens, that entry no longer matches\nanything. The plan says so before it happens rather than leaving it to be\ndiscovered on the next run."
+							}
+						]
+					},
+					"type": {
+						"type": "reference",
+						"target": 465,
+						"typeArguments": [
+							{
+								"type": "intrinsic",
+								"name": "string"
+							}
+						],
+						"name": "Managed",
+						"package": "@hector21/octoform"
+					}
+				},
+				{
+					"id": 615,
+					"name": "rename_from",
+					"variant": "declaration",
+					"kind": 1024,
+					"flags": {
+						"isOptional": true
+					},
+					"comment": {
+						"summary": [
+							{
+								"kind": "text",
+								"text": "Rename to "
+							},
+							{
+								"kind": "code",
+								"text": "`name`"
+							},
+							{
+								"kind": "text",
+								"text": " only when the repository currently has one of these."
+							}
+						]
+					},
+					"type": {
+						"type": "reference",
+						"target": 465,
+						"typeArguments": [
+							{
+								"type": "array",
+								"elementType": {
+									"type": "intrinsic",
+									"name": "string"
+								}
+							}
+						],
+						"name": "Managed",
+						"package": "@hector21/octoform"
+					}
 				}
 			],
 			"groups": [
@@ -9572,7 +9764,12 @@
 						607,
 						608,
 						609,
-						610
+						610,
+						611,
+						612,
+						613,
+						614,
+						615
 					]
 				}
 			]
@@ -9673,7 +9870,7 @@
 			]
 		},
 		{
-			"id": 634,
+			"id": 640,
 			"name": "RulesetPolicy",
 			"variant": "declaration",
 			"kind": 256,
@@ -9688,7 +9885,7 @@
 			},
 			"children": [
 				{
-					"id": 635,
+					"id": 641,
 					"name": "name",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9699,7 +9896,7 @@
 					}
 				},
 				{
-					"id": 636,
+					"id": 642,
 					"name": "target_branches",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9713,7 +9910,7 @@
 					}
 				},
 				{
-					"id": 637,
+					"id": 643,
 					"name": "required_approvals",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9726,7 +9923,7 @@
 					}
 				},
 				{
-					"id": 638,
+					"id": 644,
 					"name": "required_checks",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9742,7 +9939,7 @@
 					}
 				},
 				{
-					"id": 639,
+					"id": 645,
 					"name": "block_force_push",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9755,7 +9952,7 @@
 					}
 				},
 				{
-					"id": 640,
+					"id": 646,
 					"name": "block_deletion",
 					"variant": "declaration",
 					"kind": 1024,
@@ -9772,12 +9969,12 @@
 				{
 					"title": "Properties",
 					"children": [
-						635,
-						636,
-						637,
-						638,
-						639,
-						640
+						641,
+						642,
+						643,
+						644,
+						645,
+						646
 					]
 				}
 			]
@@ -10046,7 +10243,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 641,
+						"target": 647,
 						"name": "SecurityPolicy",
 						"package": "@hector21/octoform"
 					}
@@ -10109,7 +10306,7 @@
 						"type": "array",
 						"elementType": {
 							"type": "reference",
-							"target": 634,
+							"target": 640,
 							"name": "RulesetPolicy",
 							"package": "@hector21/octoform"
 						}
@@ -11347,7 +11544,7 @@
 			]
 		},
 		{
-			"id": 630,
+			"id": 636,
 			"name": "ResolvedConfig",
 			"variant": "declaration",
 			"kind": 256,
@@ -11362,7 +11559,7 @@
 			},
 			"children": [
 				{
-					"id": 631,
+					"id": 637,
 					"name": "version",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11373,7 +11570,7 @@
 					}
 				},
 				{
-					"id": 632,
+					"id": 638,
 					"name": "owners",
 					"variant": "declaration",
 					"kind": 1024,
@@ -11401,8 +11598,8 @@
 				{
 					"title": "Properties",
 					"children": [
-						631,
-						632
+						637,
+						638
 					]
 				}
 			]
@@ -12853,7 +13050,7 @@
 			}
 		},
 		{
-			"id": 614,
+			"id": 619,
 			"name": "RepoState",
 			"variant": "declaration",
 			"kind": 256,
@@ -12868,7 +13065,7 @@
 			},
 			"children": [
 				{
-					"id": 615,
+					"id": 620,
 					"name": "name",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12879,7 +13076,7 @@
 					}
 				},
 				{
-					"id": 616,
+					"id": 621,
 					"name": "visibility",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12903,7 +13100,7 @@
 					}
 				},
 				{
-					"id": 617,
+					"id": 622,
 					"name": "archived",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12914,7 +13111,7 @@
 					}
 				},
 				{
-					"id": 618,
+					"id": 623,
 					"name": "default_branch",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12925,7 +13122,7 @@
 					}
 				},
 				{
-					"id": 619,
+					"id": 624,
 					"name": "description",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12945,7 +13142,7 @@
 					}
 				},
 				{
-					"id": 620,
+					"id": 625,
 					"name": "homepage",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12965,7 +13162,7 @@
 					}
 				},
 				{
-					"id": 621,
+					"id": 626,
 					"name": "topics",
 					"variant": "declaration",
 					"kind": 1024,
@@ -12979,7 +13176,7 @@
 					}
 				},
 				{
-					"id": 622,
+					"id": 627,
 					"name": "type",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13012,14 +13209,14 @@
 				{
 					"title": "Properties",
 					"children": [
-						615,
-						616,
-						617,
-						618,
-						619,
 						620,
 						621,
-						622
+						622,
+						623,
+						624,
+						625,
+						626,
+						627
 					]
 				}
 			],
@@ -13032,7 +13229,7 @@
 			]
 		},
 		{
-			"id": 653,
+			"id": 659,
 			"name": "SettingValue",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -13303,7 +13500,7 @@
 			]
 		},
 		{
-			"id": 623,
+			"id": 628,
 			"name": "RepoStructure",
 			"variant": "declaration",
 			"kind": 256,
@@ -13326,7 +13523,7 @@
 			},
 			"children": [
 				{
-					"id": 624,
+					"id": 629,
 					"name": "environments",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13352,7 +13549,7 @@
 					}
 				},
 				{
-					"id": 625,
+					"id": 630,
 					"name": "rulesets",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13370,7 +13567,7 @@
 					}
 				},
 				{
-					"id": 626,
+					"id": 631,
 					"name": "files",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13415,7 +13612,7 @@
 					}
 				},
 				{
-					"id": 627,
+					"id": 632,
 					"name": "branches",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13460,7 +13657,7 @@
 					}
 				},
 				{
-					"id": 628,
+					"id": 633,
 					"name": "workflowsNamingDefaultBranch",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13484,7 +13681,7 @@
 					}
 				},
 				{
-					"id": 629,
+					"id": 634,
 					"name": "workflowsUploadingCodeScanning",
 					"variant": "declaration",
 					"kind": 1024,
@@ -13520,12 +13717,12 @@
 				{
 					"title": "Properties",
 					"children": [
-						624,
-						625,
-						626,
-						627,
-						628,
-						629
+						629,
+						630,
+						631,
+						632,
+						633,
+						634
 					]
 				}
 			]
@@ -13575,7 +13772,7 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 615,
+						"target": 620,
 						"name": "RepoState.name"
 					}
 				},
@@ -13606,7 +13803,7 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 616,
+						"target": 621,
 						"name": "RepoState.visibility"
 					}
 				},
@@ -13624,7 +13821,7 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 617,
+						"target": 622,
 						"name": "RepoState.archived"
 					}
 				},
@@ -13642,7 +13839,7 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 618,
+						"target": 623,
 						"name": "RepoState.default_branch"
 					}
 				},
@@ -13669,7 +13866,7 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 619,
+						"target": 624,
 						"name": "RepoState.description"
 					}
 				},
@@ -13696,7 +13893,7 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 620,
+						"target": 625,
 						"name": "RepoState.homepage"
 					}
 				},
@@ -13717,7 +13914,7 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 621,
+						"target": 626,
 						"name": "RepoState.topics"
 					}
 				},
@@ -13752,7 +13949,7 @@
 					},
 					"inheritedFrom": {
 						"type": "reference",
-						"target": 622,
+						"target": 627,
 						"name": "RepoState.type"
 					}
 				},
@@ -13776,7 +13973,7 @@
 							},
 							{
 								"type": "reference",
-								"target": 653,
+								"target": 659,
 								"name": "SettingValue",
 								"package": "@hector21/octoform"
 							}
@@ -13871,7 +14068,7 @@
 					},
 					"type": {
 						"type": "reference",
-						"target": 623,
+						"target": 628,
 						"name": "RepoStructure",
 						"package": "@hector21/octoform"
 					}
@@ -13899,7 +14096,7 @@
 			"extendedTypes": [
 				{
 					"type": "reference",
-					"target": 614,
+					"target": 619,
 					"name": "RepoState",
 					"package": "@hector21/octoform"
 				}
@@ -13970,7 +14167,7 @@
 			}
 		},
 		{
-			"id": 633,
+			"id": 639,
 			"name": "Risk",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -14141,7 +14338,7 @@
 					"flags": {},
 					"type": {
 						"type": "reference",
-						"target": 633,
+						"target": 639,
 						"name": "Risk",
 						"package": "@hector21/octoform"
 					}
@@ -14316,7 +14513,7 @@
 			]
 		},
 		{
-			"id": 611,
+			"id": 616,
 			"name": "RepoSelector",
 			"variant": "declaration",
 			"kind": 256,
@@ -14339,7 +14536,7 @@
 			},
 			"children": [
 				{
-					"id": 612,
+					"id": 617,
 					"name": "owner",
 					"variant": "declaration",
 					"kind": 1024,
@@ -14368,7 +14565,7 @@
 					}
 				},
 				{
-					"id": 613,
+					"id": 618,
 					"name": "name",
 					"variant": "declaration",
 					"kind": 1024,
@@ -14383,8 +14580,8 @@
 				{
 					"title": "Properties",
 					"children": [
-						612,
-						613
+						617,
+						618
 					]
 				}
 			]
@@ -14472,7 +14669,7 @@
 			}
 		},
 		{
-			"id": 649,
+			"id": 655,
 			"name": "SemanticsEntry",
 			"variant": "declaration",
 			"kind": 256,
@@ -14487,7 +14684,7 @@
 			},
 			"children": [
 				{
-					"id": 650,
+					"id": 656,
 					"name": "shape",
 					"variant": "declaration",
 					"kind": 1024,
@@ -14514,7 +14711,7 @@
 					}
 				},
 				{
-					"id": 651,
+					"id": 657,
 					"name": "field",
 					"variant": "declaration",
 					"kind": 1024,
@@ -14525,7 +14722,7 @@
 					}
 				},
 				{
-					"id": 652,
+					"id": 658,
 					"name": "merge",
 					"variant": "declaration",
 					"kind": 1024,
@@ -14542,15 +14739,15 @@
 				{
 					"title": "Properties",
 					"children": [
-						650,
-						651,
-						652
+						656,
+						657,
+						658
 					]
 				}
 			]
 		},
 		{
-			"id": 657,
+			"id": 663,
 			"name": "TokenProvider",
 			"variant": "declaration",
 			"kind": 2097152,
@@ -14566,14 +14763,14 @@
 			"type": {
 				"type": "reflection",
 				"declaration": {
-					"id": 658,
+					"id": 664,
 					"name": "__type",
 					"variant": "declaration",
 					"kind": 65536,
 					"flags": {},
 					"signatures": [
 						{
-							"id": 659,
+							"id": 665,
 							"name": "__type",
 							"variant": "signature",
 							"kind": 4096,
@@ -14624,10 +14821,10 @@
 				481,
 				442,
 				469,
-				641,
+				647,
 				603,
 				423,
-				634,
+				640,
 				426,
 				450,
 				568,
@@ -14638,7 +14835,7 @@
 				496,
 				409,
 				508,
-				630,
+				636,
 				538,
 				491,
 				462,
@@ -14651,14 +14848,14 @@
 				550,
 				545,
 				554,
-				614,
+				619,
 				434,
 				431,
-				623,
+				628,
 				584,
 				384,
-				611,
-				649
+				616,
+				655
 			]
 		},
 		{
@@ -14667,12 +14864,13 @@
 				383,
 				382,
 				465,
-				656,
+				662,
 				422,
-				655,
-				654,
+				661,
+				660,
 				468,
 				467,
+				635,
 				449,
 				597,
 				421,
@@ -14680,11 +14878,11 @@
 				544,
 				561,
 				507,
-				653,
+				659,
 				490,
-				633,
+				639,
 				480,
-				657
+				663
 			]
 		},
 		{
@@ -17824,245 +18022,275 @@
 		},
 		"611": {
 			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.visibility"
+		},
+		"612": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.archived"
+		},
+		"613": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.template"
+		},
+		"614": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.name"
+		},
+		"615": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "RepoPolicy.rename_from"
+		},
+		"616": {
+			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/selectors.ts",
 			"qualifiedName": "RepoSelector"
 		},
-		"612": {
+		"617": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/selectors.ts",
 			"qualifiedName": "RepoSelector.owner"
 		},
-		"613": {
+		"618": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/selectors.ts",
 			"qualifiedName": "RepoSelector.name"
 		},
-		"614": {
+		"619": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState"
 		},
-		"615": {
+		"620": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.name"
 		},
-		"616": {
+		"621": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.visibility"
 		},
-		"617": {
+		"622": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.archived"
 		},
-		"618": {
+		"623": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.default_branch"
 		},
-		"619": {
+		"624": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.description"
 		},
-		"620": {
+		"625": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.homepage"
 		},
-		"621": {
+		"626": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.topics"
 		},
-		"622": {
+		"627": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoState.type"
 		},
-		"623": {
+		"628": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoStructure"
 		},
-		"624": {
+		"629": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoStructure.environments"
 		},
-		"625": {
+		"630": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoStructure.rulesets"
 		},
-		"626": {
+		"631": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoStructure.files"
 		},
-		"627": {
+		"632": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoStructure.branches"
 		},
-		"628": {
+		"633": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoStructure.workflowsNamingDefaultBranch"
 		},
-		"629": {
+		"634": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/repository.ts",
 			"qualifiedName": "RepoStructure.workflowsUploadingCodeScanning"
 		},
-		"630": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "ResolvedConfig"
-		},
-		"631": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "ResolvedConfig.version"
-		},
-		"632": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "ResolvedConfig.owners"
-		},
-		"633": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "Risk"
-		},
-		"634": {
-			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy"
-		},
 		"635": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.name"
+			"qualifiedName": "RepositoryVisibility"
 		},
 		"636": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.target_branches"
+			"qualifiedName": "ResolvedConfig"
 		},
 		"637": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.required_approvals"
+			"qualifiedName": "ResolvedConfig.version"
 		},
 		"638": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.required_checks"
+			"qualifiedName": "ResolvedConfig.owners"
 		},
 		"639": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.block_force_push"
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "Risk"
 		},
 		"640": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "RulesetPolicy.block_deletion"
+			"qualifiedName": "RulesetPolicy"
 		},
 		"641": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy"
+			"qualifiedName": "RulesetPolicy.name"
 		},
 		"642": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.vulnerability_alerts"
+			"qualifiedName": "RulesetPolicy.target_branches"
 		},
 		"643": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.automated_security_fixes"
+			"qualifiedName": "RulesetPolicy.required_approvals"
 		},
 		"644": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.private_vulnerability_reporting"
+			"qualifiedName": "RulesetPolicy.required_checks"
 		},
 		"645": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.secret_scanning"
+			"qualifiedName": "RulesetPolicy.block_force_push"
 		},
 		"646": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.secret_scanning_push_protection"
+			"qualifiedName": "RulesetPolicy.block_deletion"
 		},
 		"647": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.code_scanning_default_setup"
+			"qualifiedName": "SecurityPolicy"
 		},
 		"648": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SecurityPolicy.immutable_releases"
+			"qualifiedName": "SecurityPolicy.vulnerability_alerts"
 		},
 		"649": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/shape.ts",
-			"qualifiedName": "SemanticsEntry"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SecurityPolicy.automated_security_fixes"
 		},
 		"650": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/shape.ts",
-			"qualifiedName": "SemanticsEntry.shape"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SecurityPolicy.private_vulnerability_reporting"
 		},
 		"651": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/shape.ts",
-			"qualifiedName": "SemanticsEntry.field"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SecurityPolicy.secret_scanning"
 		},
 		"652": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/shape.ts",
-			"qualifiedName": "SemanticsEntry.merge"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SecurityPolicy.secret_scanning_push_protection"
 		},
 		"653": {
 			"packageName": "@hector21/octoform",
-			"packagePath": "src/types/repository.ts",
-			"qualifiedName": "SettingValue"
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SecurityPolicy.code_scanning_default_setup"
 		},
 		"654": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
-			"qualifiedName": "SquashCommitMessage"
+			"qualifiedName": "SecurityPolicy.immutable_releases"
 		},
 		"655": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/shape.ts",
+			"qualifiedName": "SemanticsEntry"
+		},
+		"656": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/shape.ts",
+			"qualifiedName": "SemanticsEntry.shape"
+		},
+		"657": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/shape.ts",
+			"qualifiedName": "SemanticsEntry.field"
+		},
+		"658": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/shape.ts",
+			"qualifiedName": "SemanticsEntry.merge"
+		},
+		"659": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/repository.ts",
+			"qualifiedName": "SettingValue"
+		},
+		"660": {
+			"packageName": "@hector21/octoform",
+			"packagePath": "src/types/config.ts",
+			"qualifiedName": "SquashCommitMessage"
+		},
+		"661": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "SquashCommitTitle"
 		},
-		"656": {
+		"662": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/config.ts",
 			"qualifiedName": "Toggle"
 		},
-		"657": {
+		"663": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/token.ts",
 			"qualifiedName": "TokenProvider"
 		},
-		"658": {
+		"664": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/token.ts",
 			"qualifiedName": "__type"
 		},
-		"659": {
+		"665": {
 			"packageName": "@hector21/octoform",
 			"packagePath": "src/types/token.ts",
 			"qualifiedName": "__type"
