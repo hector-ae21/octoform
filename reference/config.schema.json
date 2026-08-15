@@ -1305,10 +1305,18 @@
         },
         "from": {
           "type": "string",
-          "description": "Path to the local file to copy, relative to the configuration file."
+          "description": "Path to the local file to copy, relative to the configuration file that declares it, and refused if it resolves outside that file's directory."
         },
         "mode": {
           "$ref": "#/definitions/FileMode"
+        },
+        "message": {
+          "type": "string",
+          "description": "Message for the commit that creates the file.\n\nWorth setting where the repository's own rules constrain commit messages — which octoform can be the thing that put there, so its own commit is exactly the one that would be refused."
+        },
+        "branch": {
+          "type": "string",
+          "description": "Branch to create the file on. Defaults to the repository's default branch, which is also the one most likely to refuse a direct push."
         }
       },
       "required": [
@@ -1322,7 +1330,7 @@
     "FileMode": {
       "type": "string",
       "const": "create-if-missing",
-      "description": "Supported behavior when reconciling a declared repository file."
+      "description": "What octoform is allowed to do to a file in a repository.\n\nThere is one mode and it is the whole boundary: a file that is not there is created, and a file that is there is left exactly as it is, whatever it contains. Nothing here overwrites and nothing here deletes. A repository's files are the one thing octoform manages that people edit by hand every day, and a governance run that quietly reverted somebody's edit would be worse than one that did nothing at all.\n\nThis is also why the existing content is never fetched to compare against: a difference octoform refuses to correct is not worth reporting on every run for the life of the repository."
     },
     "RepoEntry": {
       "type": "object",

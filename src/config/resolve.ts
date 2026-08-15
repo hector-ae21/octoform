@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { dirname, resolve as resolvePath } from 'node:path';
+import { accessSync, constants, readFileSync } from 'node:fs';
+import { dirname, isAbsolute, relative, resolve as resolvePath } from 'node:path';
 import { parse } from 'yaml';
 import { CONFIG } from './shape.js';
 import { sourceDigest } from './digest.js';
@@ -95,7 +95,7 @@ function resolveFile(absolutePath: string, stack: string[], sources: Map<string,
   validateVersion(file, absolutePath);
 
   const { imports = [], ...ownContent } = file;
-  absolutizeFileSources(ownContent, dirname(absolutePath));
+  resolveFileSources(ownContent, dirname(absolutePath));
 
   let merged: Config | undefined;
   for (const importPath of imports) {
@@ -227,15 +227,24 @@ function editDistance(left: string, right: string): number {
 
 /**
  * Rewrite every `files[].from` to an absolute path, resolved against the file
- * that declared it.
+ * that declared it, and refuse anything octoform should not be reading.
  *
  * A shared preset that seeds `files/dependabot/npm.yml` means a path next to
  * itself, not next to whichever configuration happens to import it — the same
  * rule `imports` already follows. Resolving it here, once, is what lets a
  * preset be imported from anywhere without its file references breaking, and
  * means nothing downstream has to remember which file a policy came from.
+ *
+ * The two refusals are the boundary of what seeding a file means. It takes
+ * something off the operator's disk and publishes it into a repository that
+ * may well be public, so the file has to be one the configuration's own author
+ * put there: a path that climbs out of the declaring file's directory is
+ * refused, whether it climbs with `..` or starts somewhere else entirely. And
+ * a source that cannot be read is refused here rather than discovered
+ * repository by repository, because a missing seed file is one mistake in one
+ * place, not a finding about every repository it would have been copied to.
  */
-function absolutizeFileSources(draft: Config, dir: string): void {
+function resolveFileSources(draft: Config, dir: string): void {
   const blocks: OwnerFields[] = [draft, ...Object.values(draft.owners ?? {})];
   const sets: Array<PolicySet | undefined> = [
     ...Object.values(draft.policies ?? {}),
@@ -245,9 +254,27 @@ function absolutizeFileSources(draft: Config, dir: string): void {
       ...Object.values(block.repos ?? {}),
     ]),
   ];
+  const base = resolvePath(dir);
   for (const set of sets) {
     for (const file of set?.files ?? []) {
-      if (file?.from) file.from = resolvePath(dir, file.from);
+      if (!file?.from) continue;
+      const absolute = resolvePath(base, file.from);
+      if (relative(base, absolute).startsWith('..') || isAbsolute(relative(base, absolute))) {
+        throw new ConfigError(
+          `files[].from "${file.from}" resolves outside ${base}. Seeding a file copies it from ` +
+            `this machine into a repository, so the source has to live beside the configuration ` +
+            `that names it.`,
+        );
+      }
+      try {
+        accessSync(absolute, constants.R_OK);
+      } catch {
+        throw new ConfigError(
+          `files[].from "${file.from}" cannot be read (${absolute}). A seed file is read at ` +
+            `apply time, so a missing one would fail against every repository it was declared for.`,
+        );
+      }
+      file.from = absolute;
     }
   }
 }

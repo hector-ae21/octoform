@@ -529,9 +529,14 @@ export async function applyRepoChanges(
     record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no file to seed');
-        let content: string;
+        /**
+         * Read as bytes. Decoding to a string first and encoding it back
+         * replaces every byte that is not valid UTF-8, which quietly corrupts
+         * anything that is not text — an icon, a font, a signature.
+         */
+        let content: Buffer;
         try {
-          content = readFileSync(payload.file.from, 'utf8');
+          content = readFileSync(payload.file.from);
         } catch {
           throw new Error(`cannot read local file ${payload.file.from}`);
         }
@@ -539,8 +544,9 @@ export async function applyRepoChanges(
           owner,
           repo,
           path: payload.file.path,
-          message: `chore: add ${payload.file.path}`,
-          content: Buffer.from(content, 'utf8').toString('base64'),
+          message: payload.file.message ?? `chore: add ${payload.file.path}`,
+          content: content.toString('base64'),
+          ...(payload.file.branch === undefined ? {} : { branch: payload.file.branch }),
         });
       }),
     );

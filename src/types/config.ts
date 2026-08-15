@@ -489,15 +489,44 @@ export interface EnvironmentPolicy {
   reviewers?: string[];
 }
 
-/** Supported behavior when reconciling a declared repository file. */
+/**
+ * What octoform is allowed to do to a file in a repository.
+ *
+ * There is one mode and it is the whole boundary: a file that is not there is
+ * created, and a file that is there is left exactly as it is, whatever it
+ * contains. Nothing here overwrites and nothing here deletes. A repository's
+ * files are the one thing octoform manages that people edit by hand every day,
+ * and a governance run that quietly reverted somebody's edit would be worse
+ * than one that did nothing at all.
+ *
+ * This is also why the existing content is never fetched to compare against:
+ * a difference octoform refuses to correct is not worth reporting on every run
+ * for the life of the repository.
+ */
 export type FileMode = 'create-if-missing';
 
 /** Desired create-if-missing repository file. */
 export interface FilePolicy {
   path: string;
-  /** Path to the local file to copy, relative to the configuration file. */
+  /**
+   * Path to the local file to copy, relative to the configuration file that
+   * declares it, and refused if it resolves outside that file's directory.
+   */
   from: string;
   mode: FileMode;
+  /**
+   * Message for the commit that creates the file.
+   *
+   * Worth setting where the repository's own rules constrain commit messages —
+   * which octoform can be the thing that put there, so its own commit is
+   * exactly the one that would be refused.
+   */
+  message?: string;
+  /**
+   * Branch to create the file on. Defaults to the repository's default branch,
+   * which is also the one most likely to refuse a direct push.
+   */
+  branch?: string;
 }
 
 /** Everything that can be declared at any level of the precedence chain. */
