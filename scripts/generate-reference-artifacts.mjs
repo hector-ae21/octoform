@@ -173,15 +173,15 @@ function generateCapabilities(config, productVersion) {
 }
 
 function generatePermissions(config, apiSurfaceConfig, productVersion) {
-  const currentRoutes = [...apiSurfaceConfig.rest.currentRoutes].sort();
-  const knownRoutes = new Set(currentRoutes);
+  const implementedRoutes = Object.values(apiSurfaceConfig.rest.implementedRoutes).flat().sort();
+  const knownRoutes = new Set(implementedRoutes);
   const usedRoutes = new Set(
     config.capabilities.flatMap((capability) => [
       ...capability.readRoutes,
       ...capability.writeRoutes,
     ]),
   );
-  const missing = currentRoutes.filter((route) => !usedRoutes.has(route));
+  const missing = implementedRoutes.filter((route) => !usedRoutes.has(route));
   const unknown = [...usedRoutes].filter((route) => !knownRoutes.has(route)).sort();
   if (missing.length || unknown.length) {
     throw new Error(
@@ -190,7 +190,7 @@ function generatePermissions(config, apiSurfaceConfig, productVersion) {
   }
 
   const permissionIds = new Set(config.permissions.map((permission) => permission.id));
-  const operations = currentRoutes.map((route) => {
+  const operations = implementedRoutes.map((route) => {
     const access = route.startsWith('GET ') ? 'read' : 'write';
     const matching = config.capabilities.filter((capability) =>
       [...capability.readRoutes, ...capability.writeRoutes].includes(route),

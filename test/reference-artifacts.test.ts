@@ -126,9 +126,10 @@ test('the published configuration model describes the shape the loader enforces'
 test('every implemented route has capabilities and permission evidence', () => {
   const capabilities = readJson<CapabilityRegister>('reference/capabilities.json');
   const permissions = readJson<PermissionRegister>('reference/permissions.json');
-  const surface = readJson<{ rest: { currentRoutes: string[] } }>(
+  const surface = readJson<{ rest: { implementedRoutes: Record<string, string[]> } }>(
     'reference/github-api-surface.config.json',
   );
+  const implementedRoutes = Object.values(surface.rest.implementedRoutes).flat();
   const capabilityIds = new Set(capabilities.capabilities.map((capability) => capability.id));
   const profileIds = new Set(permissions.profiles.map((profile) => profile.id));
 
@@ -138,7 +139,7 @@ test('every implemented route has capabilities and permission evidence', () => {
   assert.equal(permissions.productVersion, packageMetadata.version);
   assert.deepEqual(
     permissions.operations.map((operation) => operation.route),
-    [...surface.rest.currentRoutes].sort(),
+    [...implementedRoutes].sort(),
   );
   for (const operation of permissions.operations) {
     assert.ok(operation.capabilityIds.length > 0, operation.route);
