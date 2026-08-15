@@ -70,7 +70,7 @@ test('manage: false suppresses everything', () => {
   assert.deepEqual(planned(repo(), policy, OPTIONS), []);
 });
 
-test('an archived repository is never planned against', () => {
+test('an archived repository is not planned against, since it refuses every write', () => {
   const policy: PolicySet = { features: { wiki: false } };
   assert.deepEqual(planned(repo({ archived: true }), policy, OPTIONS), []);
 });
@@ -511,4 +511,91 @@ test('enforcement only matters where the policy disagrees with it', () => {
   const policy: PolicySet = { security: { immutable_releases: true } };
 
   assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('declaring the unarchive is what makes an archived repository plannable again', () => {
+  const archived = repo({
+    archived: true,
+    settings: { ...repo().settings, 'repo.archived': true },
+  });
+
+  const keys = planned(
+    archived,
+    { repo: { archived: false }, features: { wiki: false } },
+    OPTIONS,
+  ).map((change) => change.key);
+  assert.deepEqual(keys.sort(), ['features.wiki', 'repo.archived']);
+});
+
+test('everything planned beside an unarchive waits for it', () => {
+  const archived = repo({
+    archived: true,
+    settings: { ...repo().settings, 'repo.archived': true },
+  });
+  const changes = planned(
+    archived,
+    { repo: { archived: false }, features: { wiki: false } },
+    OPTIONS,
+  );
+
+  const unarchive = changes.find((c) => c.key === 'repo.archived');
+  const other = changes.find((c) => c.key === 'features.wiki');
+  assert.deepEqual(other?.prerequisites, [unarchive?.id]);
+  assert.deepEqual(unarchive?.prerequisites, []);
+});
+
+test('archiving waits for everything else, so it cannot freeze a failed change', () => {
+  const state = repo({ settings: { ...repo().settings, 'repo.archived': false } });
+  const changes = planned(state, { repo: { archived: true }, features: { wiki: false } }, OPTIONS);
+
+  const archive = changes.find((c) => c.key === 'repo.archived');
+  const other = changes.find((c) => c.key === 'features.wiki');
+  assert.deepEqual(archive?.prerequisites, [other?.id]);
+  assert.deepEqual(other?.prerequisites, []);
+});
+
+test('a rename without rename_from is refused, whatever layer declared it', () => {
+  const [change] = planned(repo(), { repo: { name: 'renamed' } }, OPTIONS);
+
+  assert.match(String(change?.blocked), /must declare repo\.rename_from/u);
+});
+
+test('a rename fires only from a name it anticipated', () => {
+  const policy: PolicySet = { repo: { name: 'renamed', rename_from: ['something-else'] } };
+  const [change] = planned(repo(), policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /not in rename_from/u);
+});
+
+test('a rename warns that the entry which asked for it will stop matching', () => {
+  const policy: PolicySet = { repo: { name: 'renamed', rename_from: ['thing'] } };
+  const [change] = planned(repo(), policy, OPTIONS);
+
+  assert.equal(change?.blocked, undefined);
+  assert.equal(change?.risk, 'sensitive');
+  assert.match(String(change?.warning), /stop matching/u);
+});
+
+test('rename_from is a guard, not a setting, so it is never planned on its own', () => {
+  const policy: PolicySet = { repo: { rename_from: ['thing'] } };
+  assert.deepEqual(planned(repo(), policy, OPTIONS), []);
+});
+
+test('leaving internal visibility warns that the configuration cannot restore it', () => {
+  const state = repo({
+    visibility: 'internal',
+    settings: { ...repo().settings, 'repo.visibility': 'internal' },
+  });
+  const [change] = planned(state, { repo: { visibility: 'private' } }, OPTIONS);
+
+  assert.equal(change?.blocked, undefined);
+  assert.equal(change?.risk, 'sensitive');
+  assert.match(String(change?.warning), /cannot be undone/u);
+});
+
+test('an ordinary visibility change carries no such warning', () => {
+  const state = repo({ settings: { ...repo().settings, 'repo.visibility': 'public' } });
+  const [change] = planned(state, { repo: { visibility: 'private' } }, OPTIONS);
+
+  assert.equal(change?.warning, undefined);
 });

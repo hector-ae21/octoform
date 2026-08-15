@@ -90,23 +90,34 @@ async function loadOpenApi(source, localPath) {
  * the answer depend on iteration order, so it is rejected outright.
  */
 function arrivalsByRoute(config) {
-  const arrivals = new Map();
-  for (const [version, routes] of Object.entries(config.rest.implementedRoutes)) {
+  return arrivals(config.rest.implementedRoutes, 'rest.implementedRoutes');
+}
+
+/**
+ * The release each implemented operation arrived in, by its identity.
+ *
+ * Shared by both transports: a mutation octoform sends is as much a part of
+ * what a release implemented as a REST route is, and a register that recorded
+ * only one of them would keep saying an implemented mutation is planned.
+ */
+function arrivals(declared, where) {
+  const found = new Map();
+  for (const [version, names] of Object.entries(declared ?? {})) {
     if (!/^\d+\.\d+\.\d+$/.test(version)) {
-      throw new Error(`rest.implementedRoutes has a key that is not a release: ${version}`);
+      throw new Error(`${where} has a key that is not a release: ${version}`);
     }
-    for (const route of routes) {
-      const seen = arrivals.get(route);
-      if (seen) throw new Error(`${route} is listed as implemented in both ${seen} and ${version}`);
-      arrivals.set(route, version);
+    for (const name of names) {
+      const seen = found.get(name);
+      if (seen) throw new Error(`${name} is listed as implemented in both ${seen} and ${version}`);
+      found.set(name, version);
     }
   }
-  return arrivals;
+  return found;
 }
 
 function buildRegister(config, openApi) {
-  const arrivals = arrivalsByRoute(config);
-  const unmatched = new Set(arrivals.keys());
+  const routeArrivals = arrivalsByRoute(config);
+  const unmatched = new Set(routeArrivals.keys());
   const reviewedOperations = new Set(config.rest.reviewedOperations);
   if (reviewedOperations.size !== config.rest.reviewedOperations.length) {
     throw new Error('Duplicate entry in rest.reviewedOperations');
@@ -136,7 +147,7 @@ function buildRegister(config, openApi) {
       }
       validatePolicy(policy, `${method.toUpperCase()} ${path}`);
       const route = `${method.toUpperCase()} ${path}`;
-      const arrivedIn = arrivals.get(route);
+      const arrivedIn = routeArrivals.get(route);
       const reviewedKey = restOperationKey(method, path, operation.operationId);
       if (!reviewedOperations.delete(reviewedKey)) undispositioned.push(reviewedKey);
       rest.push({
@@ -172,12 +183,18 @@ function buildRegister(config, openApi) {
     );
   }
 
+  const mutationArrivals = arrivals(
+    config.graphql.implementedMutations,
+    'graphql.implementedMutations',
+  );
   const graphqlNames = new Set();
   const graphql = config.graphql.mutations.map((mutation) => {
     if (graphqlNames.has(mutation.name))
       throw new Error(`Duplicate GraphQL mutation: ${mutation.name}`);
     graphqlNames.add(mutation.name);
     validatePolicy(mutation, `GraphQL mutation ${mutation.name}`);
+    const arrivedIn = mutationArrivals.get(mutation.name);
+    mutationArrivals.delete(mutation.name);
     return {
       transport: 'graphql',
       operation: mutation.name,
@@ -186,15 +203,20 @@ function buildRegister(config, openApi) {
       tag: mutation.family,
       summary: '',
       disposition: mutation.disposition,
-      target: mutation.target,
+      target: arrivedIn ?? mutation.target,
       rationale: mutation.rationale,
       rule: 'graphql-explicit-snapshot',
-      status: statusFor(mutation.disposition),
+      status: arrivedIn ? `implemented-v${arrivedIn}` : statusFor(mutation.disposition),
       deprecated: mutation.deprecated,
       githubApps: null,
       documentation: 'https://docs.github.com/en/graphql/reference/mutations',
     };
   });
+  if (mutationArrivals.size > 0) {
+    throw new Error(
+      `Implemented GraphQL mutations absent from the snapshot: ${[...mutationArrivals.keys()].join(', ')}`,
+    );
+  }
 
   rest.sort(compareOperations);
   graphql.sort(compareOperations);

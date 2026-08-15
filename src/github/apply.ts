@@ -32,7 +32,19 @@ const PATCH_FIELDS: Record<string, string> = {
   'repo.homepage': 'homepage',
   'repo.allow_forking': 'allow_forking',
   'repo.web_commit_signoff_required': 'web_commit_signoff_required',
+  'repo.visibility': 'visibility',
+  'repo.template': 'is_template',
+  'repo.name': 'name',
 };
+
+/**
+ * Archiving is its own request rather than a field of the bundled one, because
+ * its position matters: once it lands nothing else can be written, and until
+ * it is undone nothing else can be written either. The planner puts the rest
+ * of the run on the correct side of it; sending it in the same body as those
+ * changes would leave GitHub to decide the order instead.
+ */
+const ARCHIVE_KEY = 'repo.archived';
 
 /** Maps dotted plan keys to fields in the nested security settings object. */
 const SECURITY_AND_ANALYSIS_FIELDS: Record<string, string> = {
@@ -88,7 +100,9 @@ const PUT_DELETE_TOGGLES: Record<string, string> = {
  *
  * Order is deliberate where it matters. The default branch is renamed before
  * anything that could name a branch, so a ruleset or a seeded file lands
- * against the name the configuration actually declares.
+ * against the name the configuration actually declares. Unarchiving comes
+ * before everything, and archiving after everything, because on either side of
+ * those the repository accepts no writes at all.
  */
 export async function applyRepoChanges(
   octokit: Octokit,
@@ -121,13 +135,20 @@ export async function applyRepoChanges(
     return true;
   };
 
+  const archive = changes.find((change) => change.key === ARCHIVE_KEY);
+  if (archive?.to === false) {
+    record(await attempt(archive, () => setArchived(octokit, owner, repo, false)));
+  }
+
   const patchBody: Record<string, unknown> = {};
   const securityAndAnalysis: Record<string, { status: 'enabled' | 'disabled' }> = {};
   const bundled: Change[] = [];
 
   for (const change of changes) {
+    if (change.key === ARCHIVE_KEY) continue;
     const field = PATCH_FIELDS[change.key];
     if (field) {
+      if (stopped(change)) continue;
       /**
        * A setting GitHub will not accept alone brings its companion with it.
        * A companion that is itself a planned change sets the same field from
@@ -144,6 +165,7 @@ export async function applyRepoChanges(
     }
     const secField = SECURITY_AND_ANALYSIS_FIELDS[change.key];
     if (secField) {
+      if (stopped(change)) continue;
       securityAndAnalysis[secField] = { status: change.to ? 'enabled' : 'disabled' };
       bundled.push(change);
     }
@@ -156,18 +178,18 @@ export async function applyRepoChanges(
   if (bundled.length > 0) {
     try {
       await octokit.request('PATCH /repos/{owner}/{repo}', { owner, repo, ...patchBody });
-      for (const change of bundled) results.push({ ...change, outcome: 'applied' });
+      for (const change of bundled) record({ ...change, outcome: 'applied' });
     } catch (error) {
       const message = describeError(error);
-      for (const change of bundled) results.push({ ...change, outcome: 'failed', error: message });
+      for (const change of bundled) record({ ...change, outcome: 'failed', error: message });
     }
   }
 
-  results.push(...(await applyMutationSettings(octokit, changes)));
+  for (const result of await applyMutationSettings(octokit, changes, stopped)) record(result);
 
   const topics = changes.find((c) => c.key === 'repo.topics');
-  if (topics) {
-    results.push(
+  if (topics && !stopped(topics)) {
+    record(
       await attempt(topics, () =>
         octokit.request('PUT /repos/{owner}/{repo}/topics', {
           owner,
@@ -180,8 +202,8 @@ export async function applyRepoChanges(
 
   for (const [key, path] of Object.entries(PUT_DELETE_TOGGLES)) {
     const change = changes.find((c) => c.key === key);
-    if (!change) continue;
-    results.push(
+    if (!change || stopped(change)) continue;
+    record(
       await attempt(change, () =>
         octokit.request(`${change.to ? 'PUT' : 'DELETE'} ${path}`, { owner, repo }),
       ),
@@ -189,8 +211,8 @@ export async function applyRepoChanges(
   }
 
   const codeScanning = changes.find((c) => c.key === 'security.code_scanning_default_setup');
-  if (codeScanning) {
-    results.push(
+  if (codeScanning && !stopped(codeScanning)) {
+    record(
       await attempt(codeScanning, () =>
         octokit.request('PATCH /repos/{owner}/{repo}/code-scanning/default-setup', {
           owner,
@@ -202,7 +224,7 @@ export async function applyRepoChanges(
   }
 
   const rename = changes.find((c) => c.key === 'default_branch.name');
-  if (rename) {
+  if (rename && !stopped(rename)) {
     const payload = rename.payload as { from: string; to: string } | undefined;
     record(
       await attempt(rename, async () => {
@@ -239,8 +261,9 @@ export async function applyRepoChanges(
   }
 
   for (const change of changes.filter((c) => c.key.startsWith('environments.'))) {
+    if (stopped(change)) continue;
     const payload = change.payload as { environment: EnvironmentPolicy } | undefined;
-    results.push(
+    record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no environment to create');
         const reviewers = await resolveReviewers(octokit, payload.environment.reviewers ?? []);
@@ -298,7 +321,20 @@ export async function applyRepoChanges(
     );
   }
 
+  if (archive?.to === true && !stopped(archive)) {
+    record(await attempt(archive, () => setArchived(octokit, owner, repo, true)));
+  }
+
   return results;
+}
+
+function setArchived(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  archived: boolean,
+): Promise<unknown> {
+  return octokit.request('PATCH /repos/{owner}/{repo}', { owner, repo, archived });
 }
 
 /**
@@ -316,8 +352,11 @@ export async function applyRepoChanges(
 async function applyMutationSettings(
   octokit: Octokit,
   changes: Change[],
+  stopped: (change: Change) => boolean,
 ): Promise<AppliedChange[]> {
-  const mutated = changes.filter((change) => MUTATION_FIELDS[change.key]);
+  const mutated = changes.filter(
+    (change) => MUTATION_FIELDS[change.key] !== undefined && !stopped(change),
+  );
   if (mutated.length === 0) return [];
 
   const input: Record<string, unknown> = {};

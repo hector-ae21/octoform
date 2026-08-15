@@ -165,6 +165,7 @@ function generateCapabilities(config, productVersion) {
         ownerKinds: [...capability.ownerKinds].sort(),
         readRoutes: [...capability.readRoutes].sort(),
         writeRoutes: [...capability.writeRoutes].sort(),
+        writeMutations: [...capability.writeMutations].sort(),
         readPermissions: [...capability.readPermissions].sort(),
         writePermissions: [...capability.writePermissions].sort(),
       }))
@@ -186,6 +187,25 @@ function generatePermissions(config, apiSurfaceConfig, productVersion) {
   if (missing.length || unknown.length) {
     throw new Error(
       `Capability route coverage differs from the implementation register.\nMissing: ${missing.join(', ') || 'none'}\nUnknown: ${unknown.join(', ') || 'none'}`,
+    );
+  }
+
+  /**
+   * The same coverage check for the other transport. A capability naming a
+   * mutation the register does not record as implemented would claim support
+   * the register contradicts.
+   */
+  const implementedMutations = new Set(
+    Object.values(apiSurfaceConfig.graphql.implementedMutations ?? {}).flat(),
+  );
+  const unknownMutations = [
+    ...new Set(config.capabilities.flatMap((capability) => capability.writeMutations ?? [])),
+  ]
+    .filter((mutation) => !implementedMutations.has(mutation))
+    .sort();
+  if (unknownMutations.length > 0) {
+    throw new Error(
+      `Capabilities name GraphQL mutations the register does not record as implemented: ${unknownMutations.join(', ')}`,
     );
   }
 

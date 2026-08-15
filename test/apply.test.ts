@@ -379,3 +379,86 @@ test('a mutation is never retried, because an ambiguous write is resolved by obs
 test('every setting the planner routes to a mutation has a field to send it in', () => {
   assert.deepEqual(new Set(Object.keys(MUTATION_FIELDS)), CHANGED_BY_MUTATION);
 });
+
+test('unarchiving is sent before anything else, in a request of its own', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  const unarchive = planned({ key: 'repo.archived', to: false });
+  const other = planned({
+    key: 'features.wiki',
+    to: true,
+    prerequisites: [unarchive.id],
+  });
+
+  await applyRepoChanges(octokit, 'owner', 'thing', [other, unarchive]);
+
+  assert.deepEqual(
+    calls.map((c) => c.params),
+    [
+      { owner: 'owner', repo: 'thing', archived: false },
+      { owner: 'owner', repo: 'thing', has_wiki: true },
+    ],
+  );
+});
+
+test('archiving is sent last, in a request of its own', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  const other = planned({ key: 'features.wiki', to: true });
+  const archive = planned({ key: 'repo.archived', to: true, prerequisites: [other.id] });
+
+  await applyRepoChanges(octokit, 'owner', 'thing', [archive, other]);
+
+  assert.deepEqual(
+    calls.map((c) => c.params),
+    [
+      { owner: 'owner', repo: 'thing', has_wiki: true },
+      { owner: 'owner', repo: 'thing', archived: true },
+    ],
+  );
+});
+
+test('a failed change stops the archive that would have frozen it', async () => {
+  const { octokit, calls } = fakeOctokit((_route, params) => {
+    if (params.has_wiki !== undefined) throw new Error('boom');
+  });
+  const other = planned({ key: 'features.wiki', to: true });
+  const archive = planned({ key: 'repo.archived', to: true, prerequisites: [other.id] });
+
+  const results = await applyRepoChanges(octokit, 'owner', 'thing', [archive, other]);
+
+  assert.equal(calls.length, 1, 'the archive was never sent');
+  const stopped = results.find((r) => r.key === 'repo.archived');
+  assert.equal(stopped?.outcome, 'blocked');
+  assert.match(String(stopped?.error), /frozen/u);
+});
+
+test('a failed unarchive stops everything that would have been written after it', async () => {
+  const { octokit } = fakeOctokit((_route, params) => {
+    if (params.archived === false) throw new Error('boom');
+  });
+  const unarchive = planned({ key: 'repo.archived', to: false });
+  const other = planned({ key: 'features.wiki', to: true, prerequisites: [unarchive.id] });
+
+  const results = await applyRepoChanges(octokit, 'owner', 'thing', [other, unarchive]);
+
+  const stopped = results.find((r) => r.key === 'features.wiki');
+  assert.equal(stopped?.outcome, 'blocked');
+  assert.match(String(stopped?.error), /refuses writes/u);
+});
+
+test('a repository rename travels in the bundled request like other metadata', async () => {
+  const { octokit, calls } = fakeOctokit(() => {});
+  await applyRepoChanges(octokit, 'owner', 'thing', [
+    change('repo.name', 'renamed'),
+    change('repo.visibility', 'private'),
+    change('repo.template', true),
+  ]);
+
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0]?.params, {
+    owner: 'owner',
+    repo: 'thing',
+    name: 'renamed',
+    visibility: 'private',
+    is_template: true,
+  });
+});

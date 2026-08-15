@@ -16,7 +16,7 @@
   },
   "summary": {
     "total": 1337,
-    "implemented": 40,
+    "implemented": 41,
     "deprecated": 47,
     "byTransport": {
       "graphql": 274,
@@ -37,7 +37,7 @@
     },
     "byImplementedIn": {
       "0.3.1": 37,
-      "0.5.0": 3
+      "0.5.0": 4
     }
   },
   "operations": [
@@ -21252,7 +21252,7 @@
       "target": "0.5.0",
       "rationale": "Durable repository desired state with readable current state.",
       "rule": "graphql-explicit-snapshot",
-      "status": "planned",
+      "status": "implemented-v0.5.0",
       "deprecated": false,
       "githubApps": null,
       "documentation": "https://docs.github.com/en/graphql/reference/mutations"

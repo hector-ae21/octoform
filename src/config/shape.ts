@@ -87,6 +87,11 @@ const REPO_POLICY: ObjectShape = {
     web_commit_signoff_required: scalar,
     issue_creation: enumeration('ALL', 'COLLABORATORS_ONLY'),
     pull_request_creation: enumeration('ALL', 'COLLABORATORS_ONLY'),
+    visibility: enumeration('public', 'private'),
+    archived: scalar,
+    template: scalar,
+    name: scalar,
+    rename_from: scalarList,
   },
 };
 

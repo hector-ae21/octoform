@@ -27,6 +27,7 @@
         "GET /repos/{owner}/{repo}"
       ],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-metadata-read"
@@ -56,6 +57,7 @@
         "GET /user"
       ],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo"
       ],
@@ -86,6 +88,7 @@
         "DELETE /repos/{owner}/{repo}/automated-security-fixes",
         "PUT /repos/{owner}/{repo}/automated-security-fixes"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-administration-read"
@@ -119,6 +122,7 @@
       "writeRoutes": [
         "PATCH /repos/{owner}/{repo}/code-scanning/default-setup"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-administration-read"
@@ -152,6 +156,7 @@
       "writeRoutes": [
         "PUT /repos/{owner}/{repo}/contents/{path}"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-contents-read"
@@ -187,6 +192,7 @@
       "writeRoutes": [
         "POST /repos/{owner}/{repo}/branches/{branch}/rename"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-contents-read",
@@ -222,6 +228,7 @@
       "writeRoutes": [
         "PUT /repos/{owner}/{repo}/environments/{environment_name}"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-administration-read"
@@ -256,6 +263,7 @@
       "writeRoutes": [
         "POST /repos/{owner}/{repo}/git/refs"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-contents-read"
@@ -290,6 +298,7 @@
         "DELETE /repos/{owner}/{repo}/immutable-releases",
         "PUT /repos/{owner}/{repo}/immutable-releases"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-administration-read"
@@ -323,6 +332,7 @@
       "writeRoutes": [
         "PATCH /repos/{owner}/{repo}"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-metadata-read"
@@ -359,6 +369,7 @@
         "PATCH /orgs/{org}/properties/values",
         "PUT /orgs/{org}/properties/schema/{custom_property_name}"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "organization-custom-properties-read"
@@ -396,6 +407,7 @@
         "GET /users/{username}"
       ],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo"
       ],
@@ -426,6 +438,7 @@
         "DELETE /repos/{owner}/{repo}/private-vulnerability-reporting",
         "PUT /repos/{owner}/{repo}/private-vulnerability-reporting"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-administration-read"
@@ -460,6 +473,7 @@
         "GET /repos/{owner}/{repo}/contents/{path}"
       ],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-contents-read"
@@ -488,6 +502,9 @@
         "GET /repos/{owner}/{repo}"
       ],
       "writeRoutes": [],
+      "writeMutations": [
+        "updateRepository"
+      ],
       "readPermissions": [
         "classic-repo",
         "repository-metadata-read"
@@ -523,6 +540,7 @@
       "writeRoutes": [
         "PATCH /repos/{owner}/{repo}"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-metadata-read"
@@ -553,6 +571,9 @@
       ],
       "readRoutes": [],
       "writeRoutes": [],
+      "writeMutations": [
+        "updateRepository"
+      ],
       "readPermissions": [
         "classic-repo",
         "repository-administration-read"
@@ -562,8 +583,49 @@
         "repository-administration-write"
       ],
       "limitations": [
-        "The REST API exposes none of these settings; both the read and the change go through GraphQL, which this register does not yet enumerate operation by operation.",
+        "The REST API exposes none of these settings; both the read and the change go through GraphQL, and only the mutation half has an identity this register can name.",
         "A failed GraphQL read leaves every one of them unreadable, which blocks the change rather than planning over an assumed value."
+      ]
+    },
+    {
+      "id": "repository-guarded-changes",
+      "area": "repository",
+      "support": "supported",
+      "configPaths": [
+        "repo.archived",
+        "repo.name",
+        "repo.rename_from",
+        "repo.template",
+        "repo.visibility"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization",
+        "personal"
+      ],
+      "readRoutes": [
+        "GET /repos/{owner}/{repo}"
+      ],
+      "writeRoutes": [
+        "PATCH /repos/{owner}/{repo}"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-repo",
+        "repository-metadata-read"
+      ],
+      "writePermissions": [
+        "classic-repo",
+        "repository-administration-write"
+      ],
+      "limitations": [
+        "A rename must declare repo.rename_from, so that a shared policy layer cannot rename every repository it covers.",
+        "Repositories are declared under repos.<name>, so the entry that asked for a rename stops matching once it is applied; the plan reports that as a warning.",
+        "GitHub reports internal visibility but does not accept it back, so leaving it is reported as a change the configuration cannot reverse.",
+        "Archiving is sent after every other change and only if they all succeeded; unarchiving is sent before them. An archived repository with no unarchive declared is not planned against at all."
       ]
     },
     {
@@ -592,6 +654,7 @@
         "GET /users/{username}/repos"
       ],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-metadata-read"
@@ -625,6 +688,7 @@
       "writeRoutes": [
         "PATCH /repos/{owner}/{repo}"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-metadata-read"
@@ -660,6 +724,7 @@
         "POST /repos/{owner}/{repo}/rulesets",
         "PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-administration-read"
@@ -693,6 +758,7 @@
       "writeRoutes": [
         "PUT /repos/{owner}/{repo}/topics"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-metadata-read"
@@ -725,6 +791,7 @@
       "writeRoutes": [
         "PATCH /repos/{owner}/{repo}"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-administration-read"
@@ -759,6 +826,7 @@
         "DELETE /repos/{owner}/{repo}/vulnerability-alerts",
         "PUT /repos/{owner}/{repo}/vulnerability-alerts"
       ],
+      "writeMutations": [],
       "readPermissions": [
         "classic-repo",
         "repository-administration-read"

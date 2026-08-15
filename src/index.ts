@@ -136,6 +136,7 @@ export type {
   RepoSelector,
   RepoState,
   RepoStructure,
+  RepositoryVisibility,
   ResolvedConfig,
   Risk,
   RulesetPolicy,

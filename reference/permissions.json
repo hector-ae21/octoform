@@ -46,6 +46,7 @@
         "repository-discussions",
         "repository-features",
         "repository-graphql-settings",
+        "repository-guarded-changes",
         "repository-inventory",
         "repository-metadata",
         "repository-rulesets",
@@ -133,6 +134,7 @@
         "repository-discussions",
         "repository-features",
         "repository-graphql-settings",
+        "repository-guarded-changes",
         "repository-metadata",
         "repository-rulesets",
         "repository-topics",
@@ -179,6 +181,7 @@
         "merge-settings",
         "repository-discussions",
         "repository-features",
+        "repository-guarded-changes",
         "repository-inventory",
         "repository-metadata",
         "repository-topics"
@@ -283,6 +286,7 @@
         "merge-settings",
         "repository-discussions",
         "repository-features",
+        "repository-guarded-changes",
         "repository-inventory",
         "repository-metadata",
         "repository-topics",
@@ -492,6 +496,7 @@
       "capabilityIds": [
         "merge-settings",
         "repository-features",
+        "repository-guarded-changes",
         "repository-metadata",
         "secret-scanning-settings"
       ],

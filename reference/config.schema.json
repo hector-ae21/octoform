@@ -519,6 +519,51 @@
               "type": "null"
             }
           ]
+        },
+        "visibility": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RepositoryVisibility"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "archived": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether the repository is archived. Archiving is reversible, but while it lasts GitHub refuses every write, so it is applied after everything else and only when everything else succeeded."
+        },
+        "template": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether the repository can be used as a template for new ones."
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Desired name of the repository, renamed only from one of  {@link  RepoPolicy.rename_from } .\n\nRepositories are declared under `repos.<name>`, so a rename outlives the entry that asked for it: once it happens, that entry no longer matches anything. The plan says so before it happens rather than leaving it to be discovered on the next run."
+        },
+        "rename_from": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Rename to `name` only when the repository currently has one of these."
         }
       },
       "additionalProperties": false,
@@ -531,6 +576,14 @@
         "COLLABORATORS_ONLY"
       ],
       "description": "Who may open an issue or a pull request on the repository.\n\n`COLLABORATORS_ONLY` still leaves the feature enabled and its history readable; it narrows who can add to it. Turning the feature off entirely is a different setting."
+    },
+    "RepositoryVisibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private"
+      ],
+      "description": "A visibility a repository can be set to.\n\n`internal` is deliberately absent. GitHub reports it on a repository but its update endpoint does not accept it, so octoform can observe an internal repository and never restore one — a policy that could name it would be offering a door that only opens one way."
     },
     "DefaultBranchPolicy": {
       "type": "object",

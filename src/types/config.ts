@@ -106,6 +106,16 @@ export interface SecurityPolicy {
   immutable_releases?: Toggle;
 }
 
+/**
+ * A visibility a repository can be set to.
+ *
+ * `internal` is deliberately absent. GitHub reports it on a repository but its
+ * update endpoint does not accept it, so octoform can observe an internal
+ * repository and never restore one — a policy that could name it would be
+ * offering a door that only opens one way.
+ */
+export type RepositoryVisibility = 'public' | 'private';
+
 /** Desired state for repository metadata and access settings. */
 export interface RepoPolicy {
   description?: Managed<string>;
@@ -115,6 +125,27 @@ export interface RepoPolicy {
   web_commit_signoff_required?: Toggle;
   issue_creation?: Managed<CreationPolicy>;
   pull_request_creation?: Managed<CreationPolicy>;
+  visibility?: Managed<RepositoryVisibility>;
+  /**
+   * Whether the repository is archived. Archiving is reversible, but while it
+   * lasts GitHub refuses every write, so it is applied after everything else
+   * and only when everything else succeeded.
+   */
+  archived?: Toggle;
+  /** Whether the repository can be used as a template for new ones. */
+  template?: Toggle;
+  /**
+   * Desired name of the repository, renamed only from one of
+   * {@link RepoPolicy.rename_from}.
+   *
+   * Repositories are declared under `repos.<name>`, so a rename outlives the
+   * entry that asked for it: once it happens, that entry no longer matches
+   * anything. The plan says so before it happens rather than leaving it to be
+   * discovered on the next run.
+   */
+  name?: Managed<string>;
+  /** Rename to `name` only when the repository currently has one of these. */
+  rename_from?: Managed<string[]>;
 }
 
 /** Desired default-branch name and guarded rename sources. */

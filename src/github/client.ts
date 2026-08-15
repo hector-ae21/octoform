@@ -277,6 +277,10 @@ export async function getRepoDetail(
     'repo.description': data.description ?? null,
     'repo.homepage': data.homepage ?? null,
     'repo.topics': data.topics ?? [],
+    'repo.name': data.name,
+    'repo.visibility': data.visibility ?? (data.private ? 'private' : 'public'),
+    'repo.archived': data.archived ?? null,
+    'repo.template': (data as { is_template?: boolean }).is_template ?? null,
     'repo.allow_forking': data.allow_forking ?? null,
     'repo.web_commit_signoff_required':
       (data as { web_commit_signoff_required?: boolean }).web_commit_signoff_required ?? null,
