@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/%40hector21%2Foctoform.svg?logo=npm)](https://www.npmjs.com/package/@hector21/octoform)
 [![CI](https://img.shields.io/github/actions/workflow/status/hector-ae21/octoform/ci.yml?branch=v0.x&logo=github&label=CI)](https://github.com/hector-ae21/octoform/actions/workflows/ci.yml)
-[![Documentation](https://img.shields.io/badge/docs-versioned-59d5e0)](https://hector-ae21.github.io/octoform-docs/0.4/)
+[![Documentation](https://img.shields.io/badge/docs-versioned-59d5e0)](https://hector-ae21.github.io/octoform-docs/0.5/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-20%20%7C%2022%20%7C%2024-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/en/about/previous-releases)
 
@@ -16,9 +16,9 @@ properties and the rulesets it aims at the repositories it owns. It derives
 availability from the authenticated owner, repository, token, and GitHub API
 evidence instead of hard-coding commercial plan names.
 
-[Read the documentation](https://hector-ae21.github.io/octoform-docs/0.4/)
-· [Start safely](https://hector-ae21.github.io/octoform-docs/0.4/getting-started/)
-· [Browse validated examples](https://hector-ae21.github.io/octoform-docs/0.4/examples/)
+[Read the documentation](https://hector-ae21.github.io/octoform-docs/0.5/)
+· [Start safely](https://hector-ae21.github.io/octoform-docs/0.5/getting-started/)
+· [Browse validated examples](https://hector-ae21.github.io/octoform-docs/0.5/examples/)
 
 ## Why Octoform
 
@@ -63,7 +63,7 @@ a command that asks first rather than a line in a file a schedule reconciles.
 
 Unsupported, unavailable, and intentionally excluded operations remain visible
 in the plan. See the
-[capability boundary](https://hector-ae21.github.io/octoform-docs/0.4/reference/)
+[capability boundary](https://hector-ae21.github.io/octoform-docs/0.5/reference/)
 for the exact versioned contract and known limitations.
 
 ## Install
@@ -108,10 +108,10 @@ The apply command plans again, displays the result, and requests confirmation.
 Use `--yes` only inside an independently protected automation boundary.
 
 Continue with the complete
-[installation](https://hector-ae21.github.io/octoform-docs/0.4/getting-started/installation/),
-[authentication](https://hector-ae21.github.io/octoform-docs/0.4/getting-started/authentication/),
-[first-plan](https://hector-ae21.github.io/octoform-docs/0.4/getting-started/first-plan/),
-and [safe-apply](https://hector-ae21.github.io/octoform-docs/0.4/getting-started/safe-apply/)
+[installation](https://hector-ae21.github.io/octoform-docs/0.5/getting-started/installation/),
+[authentication](https://hector-ae21.github.io/octoform-docs/0.5/getting-started/authentication/),
+[first-plan](https://hector-ae21.github.io/octoform-docs/0.5/getting-started/first-plan/),
+and [safe-apply](https://hector-ae21.github.io/octoform-docs/0.5/getting-started/safe-apply/)
 guides.
 
 ## Configuration model
@@ -141,7 +141,7 @@ Pass `--strict` to fail on them instead.
 
 For complete field shapes, precedence, selectors, capability behavior, and
 examples, use the versioned
-[configuration reference](https://hector-ae21.github.io/octoform-docs/0.4/configuration/).
+[configuration reference](https://hector-ae21.github.io/octoform-docs/0.5/configuration/).
 
 ## Commands
 
@@ -182,7 +182,7 @@ envelope. Exit status is a frozen set of classes: `0` success, `1` drift found
 or apply declined, `2` usage or configuration error, `3` authentication or
 permission failure, `4` an operation was blocked, `5` an operation or the run
 itself failed. The
-[command reference](https://hector-ae21.github.io/octoform-docs/0.4/commands/)
+[command reference](https://hector-ae21.github.io/octoform-docs/0.5/commands/)
 documents every flag and output.
 
 ## Security and automation
@@ -236,8 +236,8 @@ identity could not be read. Everything else is REST, and a GraphQL failure
 narrows to the same unreadable state a REST failure does, so the planner blocks
 it for the same reason without knowing which transport observed it.
 
-- [Security and trust](https://hector-ae21.github.io/octoform-docs/0.4/security/)
-- [CI/CD automation](https://hector-ae21.github.io/octoform-docs/0.4/automation/)
+- [Security and trust](https://hector-ae21.github.io/octoform-docs/0.5/security/)
+- [CI/CD automation](https://hector-ae21.github.io/octoform-docs/0.5/automation/)
 - [Private vulnerability reporting](https://github.com/hector-ae21/octoform/security/advisories/new)
 
 ## Programmatic API
@@ -247,7 +247,7 @@ classification, and reporting building blocks used by the CLI. Octoform is ESM
 only and publishes TypeScript declarations.
 
 See the
-[programmatic API overview](https://hector-ae21.github.io/octoform-docs/0.4/reference/#programmatic-api)
+[programmatic API overview](https://hector-ae21.github.io/octoform-docs/0.5/reference/#programmatic-api)
 for the supported export surface and stability boundary.
 
 ## Versions and support
@@ -257,9 +257,9 @@ suffixes. During `0.x`, a breaking contract change increments the minor
 version; compatible fixes increment the patch version. Version branches use
 `vMAJOR.x` and the highest supported line is the default branch.
 
-The `0.4` documentation URL follows the newest published `0.4.x` package while
+The `0.5` documentation URL follows the newest published `0.5.x` package while
 immutable patch URLs remain available. Review the
-[version policy](https://hector-ae21.github.io/octoform-docs/0.4/releases/)
+[version policy](https://hector-ae21.github.io/octoform-docs/0.5/releases/)
 and [changelog](CHANGELOG.md) before updating.
 
 ## Contributing
