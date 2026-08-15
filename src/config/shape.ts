@@ -176,6 +176,26 @@ const RULE_SETTINGS: Readonly<Record<string, Field>> = {
   restricted_file_extensions: scalarList,
   max_file_size: scalar,
   max_file_path_length: scalar,
+  required_workflows: objectList(() => WORKFLOW_REQUIREMENT),
+  workflows_not_enforced_on_create: scalar,
+};
+
+const WORKFLOW_REQUIREMENT: ObjectShape = {
+  name: 'WorkflowRequirement',
+  fields: { path: scalar, repository: scalar, repository_id: scalar, ref: scalar, sha: scalar },
+};
+
+const RULESET_BYPASS: ObjectShape = {
+  name: 'RulesetBypass',
+  fields: {
+    mode: enumeration('always', 'pull_request', 'exempt'),
+    users: scalarList,
+    teams: scalarList,
+    apps: scalarList,
+    roles: scalarList,
+    deploy_keys: scalar,
+    organization_admins: scalar,
+  },
 };
 
 const RULESET_POLICY: ObjectShape = {
@@ -187,6 +207,7 @@ const RULESET_POLICY: ObjectShape = {
     target_pushes: scalar,
     exclude: scalarList,
     enforcement: enumeration('active', 'evaluate', 'disabled'),
+    bypass: objectList(() => RULESET_BYPASS),
     ...RULE_SETTINGS,
   },
 };

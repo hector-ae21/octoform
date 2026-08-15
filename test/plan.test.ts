@@ -13,7 +13,7 @@ import type {
 
 const SUPPORTED = capability('supported', 'available in this fixture', 'resource-state');
 const FORBIDDEN = capability('forbidden', 'not available in this fixture', 'permission');
-const OPTIONS = { rulesetCapability: SUPPORTED };
+const OPTIONS: PlanOptions = { rulesetCapability: SUPPORTED, ownerKind: 'org' };
 
 /**
  * Every case here is about one repository under one policy, so the owner is
@@ -35,6 +35,7 @@ const stored = (over: Partial<ExistingRuleset> = {}): ExistingRuleset => ({
   enforcement: 'active',
   include: [],
   exclude: [],
+  bypass: [],
   unmodelled: [],
   ...over,
   rules: {
@@ -194,6 +195,7 @@ test('rulesets on a private repository are blocked when the owner and token cann
   };
   const changes = planned(repo({ visibility: 'private' }), policy, {
     rulesetCapability: FORBIDDEN,
+    ownerKind: 'org',
   });
   assert.equal(changes.length, 1);
   assert.match(String(changes[0]?.blocked), /not available in this fixture/);
@@ -205,6 +207,7 @@ test('a public repository is not blocked for that reason, and a missing ruleset 
   };
   const changes = planned(repo({ structure: { rulesets: [] } }), policy, {
     rulesetCapability: FORBIDDEN,
+    ownerKind: 'org',
   });
   assert.equal(changes.length, 1);
   assert.equal(changes[0]?.key, 'rulesets.protect');
@@ -255,7 +258,12 @@ test('a ruleset that differs is updated in place, carrying the id it already has
   const state = repo({ structure: { rulesets: [existing] } });
   const changes = planned(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
-  assert.deepEqual(changes[0]?.payload, { ruleset: policy.rulesets?.[0], id: 7, existing });
+  assert.deepEqual(changes[0]?.payload, {
+    ruleset: policy.rulesets?.[0],
+    id: 7,
+    existing,
+    context: { resolution: new Map(), repository: 'account/thing' },
+  });
 });
 
 test('rulesets that could not be read are blocked rather than assumed missing', () => {
@@ -738,4 +746,64 @@ test('a ruleset governing other refs is not a conflict', () => {
   };
 
   assert.ok(planned(state, policy, OPTIONS).every((change) => change.blocked === undefined));
+});
+
+test('a bypass naming a team nobody can find blocks the whole ruleset', () => {
+  const state = repo({
+    structure: {
+      rulesets: [],
+      resolved: new Map([['team:ghosts', null]]),
+    },
+  });
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], bypass: [{ teams: ['ghosts'] }] }],
+  };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /no team called "ghosts"/u);
+});
+
+test('a bypass on a personal repository is blocked before anything is sent', () => {
+  const state = repo({ structure: { rulesets: [], resolved: new Map([['team:reviewers', 22]]) } });
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], bypass: [{ teams: ['reviewers'] }] }],
+  };
+  const [change] = planned(state, policy, { rulesetCapability: SUPPORTED, ownerKind: 'user' });
+
+  assert.match(String(change?.blocked), /no teams on a personal repository/u);
+});
+
+test('a bypass that already matches is not planned again', () => {
+  const state = repo({
+    structure: {
+      rulesets: [
+        stored({
+          include: ['main'],
+          bypass: [{ actor_type: 'Team', actor_id: 22, bypass_mode: 'always' }],
+        }),
+      ],
+      resolved: new Map([['team:reviewers', 22]]),
+    },
+  });
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], bypass: [{ teams: ['reviewers'] }] }],
+  };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('changing who bypasses is a change on its own, with nothing else touched', () => {
+  const state = repo({
+    structure: {
+      rulesets: [stored({ include: ['main'] })],
+      resolved: new Map([['user:hector', 11]]),
+    },
+  });
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], bypass: [{ users: ['hector'] }] }],
+  };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.blocked, undefined);
+  assert.match(String(change?.to), /bypass: user:hector/u);
 });

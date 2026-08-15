@@ -4,6 +4,7 @@ import { capability, errorMessage, errorStatus } from './capabilities.js';
 import { graphqlRequest, valueOrUnreadable } from './graphql.js';
 import { readProtection } from '../core/branch-protection.js';
 import { readRuleset } from '../core/rulesets.js';
+import { identityKey, namesToResolve } from '../core/identity.js';
 import { CHANGED_BY_MUTATION } from '../core/plan.js';
 import type {
   BranchProtectionSettings,
@@ -18,6 +19,8 @@ import type {
   RepoDetail,
   RepoState,
   RepoStructure,
+  Resolution,
+  Resolvable,
   SettingValue,
   TokenProvider,
 } from '../types/index.js';
@@ -417,6 +420,8 @@ async function getRepoStructure(
   if (policy.rulesets?.length) {
     asked = true;
     structure.rulesets = await listRulesets(octokit, owner, base.name);
+    const names = namesToResolve(policy, `${owner}/${base.name}`);
+    if (names.length > 0) structure.resolved = await resolveIdentities(octokit, owner, names);
   }
 
   if (policy.branch_protection?.length) {
@@ -615,6 +620,62 @@ async function listRulesets(
     return full;
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * Look up every name a ruleset policy has to send as a number.
+ *
+ * Done while reading so that a name nobody can find is a blocked line in the
+ * plan rather than an exception raised mid-apply, and so that a team named by
+ * three rulesets costs one request rather than three.
+ *
+ * The three answers stay apart on purpose: an id, `null` for a name GitHub
+ * does not know, and `UNREADABLE` for a lookup that failed. Reading the last
+ * as the middle one would report a perfectly good team as nonexistent because
+ * a request timed out.
+ */
+async function resolveIdentities(
+  octokit: Octokit,
+  owner: string,
+  names: readonly Resolvable[],
+): Promise<Resolution> {
+  const entries = await Promise.all(
+    names.map(
+      async (resolvable) =>
+        [identityKey(resolvable), await lookupIdentity(octokit, owner, resolvable)] as const,
+    ),
+  );
+  return new Map(entries);
+}
+
+async function lookupIdentity(
+  octokit: Octokit,
+  owner: string,
+  resolvable: Resolvable,
+): Promise<number | null | typeof UNREADABLE> {
+  const [route, parameters] = identityRequest(owner, resolvable);
+  try {
+    const { data } = await octokit.request(route, parameters);
+    const id = (data as { id?: unknown }).id;
+    return typeof id === 'number' ? id : UNREADABLE;
+  } catch (error) {
+    return errorStatus(error) === 404 ? null : UNREADABLE;
+  }
+}
+
+function identityRequest(owner: string, resolvable: Resolvable): [string, Record<string, string>] {
+  switch (resolvable.kind) {
+    case 'user':
+      return ['GET /users/{username}', { username: resolvable.name }];
+    case 'team':
+      return ['GET /orgs/{org}/teams/{team_slug}', { org: owner, team_slug: resolvable.name }];
+    case 'app':
+      return ['GET /apps/{app_slug}', { app_slug: resolvable.name }];
+    case 'repository': {
+      const [repoOwner = owner, repoName = resolvable.name] = resolvable.name.split('/');
+      return ['GET /repos/{owner}/{repo}', { owner: repoOwner, repo: repoName }];
+    }
   }
 }
 

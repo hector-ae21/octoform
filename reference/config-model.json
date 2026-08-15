@@ -281,6 +281,26 @@
       "merge": "replace"
     },
     {
+      "shape": "RulesetBypass",
+      "field": "apps",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetBypass",
+      "field": "roles",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetBypass",
+      "field": "teams",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetBypass",
+      "field": "users",
+      "merge": "replace"
+    },
+    {
       "shape": "RulesetPolicy",
       "field": "allowed_merge_methods",
       "merge": "replace"
@@ -289,6 +309,11 @@
       "shape": "RulesetPolicy",
       "field": "branch_name_pattern",
       "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "bypass",
+      "merge": "replace"
     },
     {
       "shape": "RulesetPolicy",
@@ -333,6 +358,11 @@
     {
       "shape": "RulesetPolicy",
       "field": "required_deployments",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "required_workflows",
       "merge": "replace"
     },
     {

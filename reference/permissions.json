@@ -52,6 +52,8 @@
         "repository-metadata",
         "repository-rulesets",
         "repository-topics",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows",
         "secret-scanning-settings",
         "vulnerability-alerts"
       ]
@@ -114,6 +116,8 @@
         "private-vulnerability-reporting",
         "repository-graphql-settings",
         "repository-rulesets",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows",
         "secret-scanning-settings",
         "vulnerability-alerts"
       ]
@@ -141,6 +145,8 @@
         "repository-metadata",
         "repository-rulesets",
         "repository-topics",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows",
         "secret-scanning-settings",
         "vulnerability-alerts"
       ]
@@ -248,6 +254,17 @@
       ]
     },
     {
+      "route": "GET /apps/{app_slug}",
+      "access": "read",
+      "capabilityIds": [
+        "ruleset-bypass-actors"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
       "route": "GET /orgs/{org}",
       "access": "read",
       "capabilityIds": [
@@ -292,6 +309,17 @@
       ]
     },
     {
+      "route": "GET /orgs/{org}/teams/{team_slug}",
+      "access": "read",
+      "capabilityIds": [
+        "ruleset-bypass-actors"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
       "route": "GET /repos/{owner}/{repo}",
       "access": "read",
       "capabilityIds": [
@@ -304,6 +332,7 @@
         "repository-inventory",
         "repository-metadata",
         "repository-topics",
+        "ruleset-required-workflows",
         "secret-scanning-settings"
       ],
       "permissionProfiles": [
@@ -433,7 +462,9 @@
       "route": "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}",
       "access": "read",
       "capabilityIds": [
-        "repository-rulesets"
+        "repository-rulesets",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -477,7 +508,8 @@
       "access": "read",
       "capabilityIds": [
         "deployment-environments",
-        "owner-kind"
+        "owner-kind",
+        "ruleset-bypass-actors"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -570,7 +602,9 @@
       "route": "POST /repos/{owner}/{repo}/rulesets",
       "access": "write",
       "capabilityIds": [
-        "repository-rulesets"
+        "repository-rulesets",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -659,7 +693,9 @@
       "route": "PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}",
       "access": "write",
       "capabilityIds": [
-        "repository-rulesets"
+        "repository-rulesets",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows"
       ],
       "permissionProfiles": [
         "classic-repo",

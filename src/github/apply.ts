@@ -3,6 +3,7 @@ import type { Octokit } from '@octokit/rest';
 import { graphqlRequest } from './graphql.js';
 import { blockedByPrerequisite, orderByDependency } from '../core/dependencies.js';
 import { protectionBody } from '../core/branch-protection.js';
+import type { RuleContext } from '../core/rulesets.js';
 import { rulesetBody } from '../core/rulesets.js';
 import type {
   AppliedChange,
@@ -314,11 +315,12 @@ export async function applyRepoChanges(
   for (const change of changes.filter((c) => c.key.startsWith('rulesets.'))) {
     if (stopped(change)) continue;
     const payload = change.payload as
-      { ruleset: RulesetPolicy; id?: number; existing?: ExistingRuleset } | undefined;
+      | { ruleset: RulesetPolicy; id?: number; existing?: ExistingRuleset; context?: RuleContext }
+      | undefined;
     record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no ruleset to apply');
-        const body = rulesetBody(payload.ruleset, payload.existing);
+        const body = rulesetBody(payload.ruleset, payload.existing, payload.context);
         const route: string =
           payload.id === undefined
             ? 'POST /repos/{owner}/{repo}/rulesets'

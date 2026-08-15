@@ -809,6 +809,84 @@
       "limitations": []
     },
     {
+      "id": "ruleset-bypass-actors",
+      "area": "rules",
+      "support": "supported",
+      "configPaths": [
+        "rulesets[].bypass"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization",
+        "personal"
+      ],
+      "readRoutes": [
+        "GET /apps/{app_slug}",
+        "GET /orgs/{org}/teams/{team_slug}",
+        "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}",
+        "GET /users/{username}"
+      ],
+      "writeRoutes": [
+        "POST /repos/{owner}/{repo}/rulesets",
+        "PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-repo",
+        "repository-administration-read"
+      ],
+      "writePermissions": [
+        "classic-repo",
+        "repository-administration-write"
+      ],
+      "limitations": [
+        "Names are resolved while reading, so a name GitHub does not know blocks the ruleset in plan instead of failing during apply.",
+        "Repository roles are declared by numeric id: the REST surface has no route mapping a repository-role name to one.",
+        "Teams and organization admins are blocked on a personal repository, and pull_request bypass on deploy keys or non-branch rulesets.",
+        "Omitting bypass preserves the stored actors, since updating a ruleset replaces the whole list."
+      ]
+    },
+    {
+      "id": "ruleset-required-workflows",
+      "area": "rules",
+      "support": "supported",
+      "configPaths": [
+        "rulesets[].required_workflows"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization",
+        "personal"
+      ],
+      "readRoutes": [
+        "GET /repos/{owner}/{repo}",
+        "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}"
+      ],
+      "writeRoutes": [
+        "POST /repos/{owner}/{repo}/rulesets",
+        "PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-repo",
+        "repository-administration-read"
+      ],
+      "writePermissions": [
+        "classic-repo",
+        "repository-administration-write"
+      ],
+      "limitations": [
+        "A workflow's repository is declared by name and resolved to the id GitHub stores; writing repository_id directly skips the lookup.",
+        "A declared workflow is compared against the stored one through that id, so the same path in another repository is a different requirement."
+      ]
+    },
+    {
       "id": "secret-scanning-settings",
       "area": "security",
       "support": "supported",

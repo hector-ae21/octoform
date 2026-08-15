@@ -27,6 +27,7 @@ after(() => rmSync(dir, { recursive: true, force: true }));
 
 const OPTIONS = {
   rulesetCapability: capability('supported', 'assumed in this suite', 'permission'),
+  ownerKind: 'org' as const,
 };
 
 /** Synthetic values with the shape of a real token and none of the access. */

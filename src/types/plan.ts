@@ -1,12 +1,18 @@
 /** Types describing what `plan` needs and what it returns. */
 
 import type { CapabilityResult } from './capabilities.js';
-import type { Change } from './repository.js';
+import type { Change, OwnerKind } from './repository.js';
 
 /** Capability evidence required to plan one repository safely. */
 export interface PlanOptions {
   /** Whether rulesets can be managed on this repository, and why. */
   rulesetCapability: CapabilityResult;
+  /**
+   * Whether the owner is an organisation. Teams and organisation owners can be
+   * granted a ruleset bypass and neither exists on a personal account, so this
+   * decides whether such a policy is a change or a blocked one.
+   */
+  ownerKind: OwnerKind;
 }
 
 /** A repository whose plan could not even be computed. */
