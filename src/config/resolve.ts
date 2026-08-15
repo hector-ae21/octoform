@@ -4,6 +4,7 @@ import { parse } from 'yaml';
 import { CONFIG } from './shape.js';
 import { sourceDigest } from './digest.js';
 import { findCredentialShapedValue } from './credential-scan.js';
+import { ownerLoginProblem } from './identifier.js';
 import type {
   AuditConfig,
   ClassifyConfig,
@@ -436,6 +437,17 @@ function normalize(draft: Config, path: string): ResolvedConfig {
         `owners.${login}.`,
       ])
     : [[draft.owner ?? '', shared, '']];
+
+  for (const [login, , prefix] of blocks) {
+    const problem = ownerLoginProblem(login);
+    if (problem) {
+      throw new ConfigError(
+        `${path}: ${prefix ? prefix.slice(0, -1) : '"owner"'} is not a GitHub account login — ` +
+          `${problem}. Every declared owner is asked of the API by login, so one that cannot ` +
+          `exist is a mistake worth catching here rather than as a 404 later.`,
+      );
+    }
+  }
 
   return {
     version: draft.version ?? CONFIG_VERSION,

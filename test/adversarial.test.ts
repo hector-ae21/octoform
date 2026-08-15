@@ -116,8 +116,9 @@ owners:
   assert.deepEqual(resolvePolicy(scopeFor(resolved, 'account'), repo('thing')), {});
 });
 
-test('a login that is only visually confusable is not the login it resembles', () => {
+test('a login that is only visually confusable is rejected, not quietly accepted', () => {
   const cyrillic = 'аccount';
+  assert.notEqual(cyrillic, 'account', 'the fixture must actually differ from the ASCII login');
   const path = config(`
 version: 1
 owners:
@@ -125,12 +126,42 @@ owners:
   ${cyrillic}: {}
 `);
 
-  const resolved = loadConfig(path);
-  assert.equal(resolved.owners.length, 2, 'the two logins must not collapse into one');
-  assert.deepEqual(
-    selectOwners(resolved, [cyrillic]).map((scope) => scope.owner),
-    [cyrillic],
+  assert.throws(
+    () => loadConfig(path),
+    (error: Error) => {
+      assert.ok(error instanceof ConfigError);
+      assert.match(error.message, /is not a GitHub account login/);
+      assert.match(error.message, /letters, digits and single hyphens/);
+      return true;
+    },
   );
+});
+
+test('a login shaped like something else entirely is rejected with the reason', () => {
+  const cases: ReadonlyArray<[string, RegExp]> = [
+    ['owner/repo', /probably an "owner\/repo" by mistake/],
+    ['-leading', /cannot start or end with "-"/],
+    ['trailing-', /cannot start or end with "-"/],
+    ['double--hyphen', /two hyphens in a row/],
+    ['a'.repeat(40), /40 characters long/],
+  ];
+
+  for (const [login, reason] of cases) {
+    const path = config(`version: 1\nowners:\n  "${login}": {}\n`);
+    assert.throws(() => loadConfig(path), reason, `"${login}" was accepted`);
+  }
+});
+
+test('a selector for an owner the configuration does not declare is rejected', () => {
+  const path = config(`
+version: 1
+owners:
+  account: {}
+  other-account: {}
+`);
+
+  const resolved = loadConfig(path);
+  assert.equal(resolved.owners.length, 2);
   assert.throws(() => selectOwners(resolved, ['account-typo']), ConfigError);
 });
 

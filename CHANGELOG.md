@@ -132,6 +132,14 @@ a zero major means. Security fixes are always a patch bump. See
 
 ### Security
 
+- A declared owner is now checked against GitHub's own login format when the
+  configuration loads, and rejected with the reason when it cannot be one: a
+  path separator, a control character, a leading or trailing hyphen, a length
+  over 39, or a character GitHub does not issue. Every declared owner is asked
+  of the API by login, so this turns an unusable value into one error naming
+  the file and the path instead of an opaque `404` several requests later. No
+  configuration that previously worked is affected — a login this rejects
+  could not have resolved to an account.
 - Repository names, descriptions, topics, custom-property values and API error
   text are writable by anyone with access to the account being audited, which
   is not always the person running octoform. Control characters in any of them
