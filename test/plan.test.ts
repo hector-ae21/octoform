@@ -350,3 +350,43 @@ test('a repository that already matches its whole policy plans nothing', () => {
 
   assert.deepEqual(planned(state, policy, OPTIONS), []);
 });
+
+test('enabling the code scanning default setup warns about the workflow it would disable', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.code_scanning_default_setup': false },
+    structure: { workflowsUploadingCodeScanning: ['.github/workflows/security.yml'] },
+  });
+  const policy: PolicySet = { security: { code_scanning_default_setup: true } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.match(String(change?.warning), /security\.yml/u);
+  assert.match(String(change?.warning), /refuses those uploads/u);
+  assert.equal(change?.blocked, undefined, 'the change still happens; it is a consequence');
+});
+
+test('no warning when the repository has no workflow that uploads code scanning', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.code_scanning_default_setup': false },
+    structure: { workflowsUploadingCodeScanning: [] },
+  });
+  const policy: PolicySet = { security: { code_scanning_default_setup: true } };
+  assert.equal(planned(state, policy, OPTIONS)[0]?.warning, undefined);
+});
+
+test('unreadable workflows are reported as unknown, not as none', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.code_scanning_default_setup': false },
+    structure: {},
+  });
+  const policy: PolicySet = { security: { code_scanning_default_setup: true } };
+  assert.match(String(planned(state, policy, OPTIONS)[0]?.warning), /could not be read/u);
+});
+
+test('turning the default setup off cannot disable a workflow, so it carries no warning', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.code_scanning_default_setup': true },
+    structure: { workflowsUploadingCodeScanning: ['.github/workflows/security.yml'] },
+  });
+  const policy: PolicySet = { security: { code_scanning_default_setup: false } };
+  assert.equal(planned(state, policy, OPTIONS)[0]?.warning, undefined);
+});

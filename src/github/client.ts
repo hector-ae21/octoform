@@ -438,6 +438,21 @@ async function getRepoStructure(
     );
   }
 
+  /**
+   * Only worth a request when a policy would switch the default setup on.
+   * Turning it off cannot disable a workflow, and leaving it alone changes
+   * nothing either way.
+   */
+  if (policy.security?.code_scanning_default_setup === true) {
+    asked = true;
+    structure.workflowsUploadingCodeScanning = await workflowsMatching(
+      octokit,
+      owner,
+      base.name,
+      /github\/codeql-action\/(analyze|upload-sarif)/,
+    );
+  }
+
   return asked ? structure : undefined;
 }
 
@@ -569,6 +584,28 @@ async function workflowsNaming(
   repo: string,
   branch: string,
 ): Promise<string[] | undefined> {
+  return await workflowsMatching(octokit, owner, repo, new RegExp(`\\b${escapeRegExp(branch)}\\b`));
+}
+
+/**
+ * Workflow files whose text matches a pattern.
+ *
+ * A repository's workflows are the one place octoform can see a consequence
+ * that GitHub will not report: a change to repository settings can stop a
+ * workflow doing its job without either of them failing. Reading them is how
+ * a warning gets evidence instead of being a guess.
+ *
+ * `undefined` means the workflows could not be read, which is not the same as
+ * there being none — a caller has to keep those apart, the same way an
+ * unreadable setting is kept apart from an absent one. A repository with no
+ * workflows directory answers `404`, and that genuinely is none.
+ */
+async function workflowsMatching(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  pattern: RegExp,
+): Promise<string[] | undefined> {
   try {
     const { data } = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
       owner,
@@ -578,7 +615,7 @@ async function workflowsNaming(
     const entries = data as Array<{ name: string; path: string; type: string }>;
     const files = entries.filter((e) => e.type === 'file' && /\.ya?ml$/.test(e.name));
 
-    const naming = await Promise.all(
+    const matching = await Promise.all(
       files.map(async (file) => {
         try {
           const res = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
@@ -588,14 +625,13 @@ async function workflowsNaming(
           });
           const content = (res.data as { content?: string }).content ?? '';
           const text = Buffer.from(content, 'base64').toString('utf8');
-          const mentions = new RegExp(`\\b${escapeRegExp(branch)}\\b`).test(text);
-          return mentions ? file.path : undefined;
+          return pattern.test(text) ? file.path : undefined;
         } catch {
           return undefined;
         }
       }),
     );
-    return naming.filter((path): path is string => path !== undefined);
+    return matching.filter((path): path is string => path !== undefined);
   } catch (error) {
     if (errorStatus(error) === 404) return [];
     return undefined;
