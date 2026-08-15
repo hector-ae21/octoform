@@ -1,0 +1,22 @@
+name: Octoform CodeQL configuration
+
+queries:
+  - uses: security-extended
+
+# Octoform reads a configuration file that names GitHub accounts and
+# repositories, and then asks the GitHub API about exactly those names. It also
+# seeds a declared repository file from a local path, which uploads that file's
+# content on purpose. Both are the product, not a leak: the only destination is
+# one authenticated API host, and nothing is transmitted beyond the identifiers
+# and content the operator declared for that purpose.
+#
+# js/file-access-to-http reports that data flow as possible unauthorized
+# disclosure. In this codebase every instance of it is one of the two cases
+# above, so the rule carries no signal here and is excluded at the source
+# rather than triaged away one alert at a time. The properties it would
+# otherwise stand in for are covered directly and are tested: credential-shaped
+# values are rejected when configuration loads, owner logins are validated
+# against GitHub's own format, and no output surface prints an unescaped value.
+query-filters:
+  - exclude:
+      id: js/file-access-to-http
