@@ -23,6 +23,7 @@ import type {
   ExistingRole,
   ExistingRuleset,
   ExistingTeam,
+  OrganizationPeople,
   OwnerDiscovery,
   OwnerKind,
   PlanLimits,
@@ -1401,6 +1402,70 @@ export async function readOrganizationRoles(
   }
 
   return roles;
+}
+
+/**
+ * Read the organisation's people: who owns it, who belongs to it, who works on
+ * its repositories from outside it, and who has been asked to join.
+ *
+ * The two-factor listing is asked for separately and allowed to fail on its
+ * own. GitHub answers it only for an organisation owner, and a token that
+ * governs repositories perfectly well may not be one — losing the rest of the
+ * report over a question it was never going to be allowed to ask would be the
+ * wrong trade.
+ */
+export async function readOrganizationPeople(
+  octokit: Octokit,
+  org: string,
+): Promise<OrganizationPeople> {
+  const logins = async (role: 'admin' | 'member'): Promise<string[]> => {
+    const pages = (await octokit.paginate('GET /orgs/{org}/members', {
+      org,
+      role,
+      per_page: 100,
+    })) as Array<{ login?: string }>;
+    return pages.map((entry) => entry.login).filter((login): login is string => !!login);
+  };
+
+  const outside = (await octokit.paginate('GET /orgs/{org}/outside_collaborators', {
+    org,
+    per_page: 100,
+  })) as Array<{ login?: string }>;
+
+  const pending = (await octokit.paginate('GET /orgs/{org}/invitations', {
+    org,
+    per_page: 100,
+  })) as OrganizationPeople['pending'];
+
+  const failed = (await octokit.paginate('GET /orgs/{org}/failed_invitations', {
+    org,
+    per_page: 100,
+  })) as OrganizationPeople['failed'];
+
+  let withoutTwoFactor: string[] | undefined;
+  try {
+    const pages = (await octokit.paginate('GET /orgs/{org}/members', {
+      org,
+      filter: '2fa_disabled',
+      per_page: 100,
+    })) as Array<{ login?: string }>;
+    withoutTwoFactor = pages
+      .map((entry) => entry.login)
+      .filter((login): login is string => !!login);
+  } catch {
+    withoutTwoFactor = undefined;
+  }
+
+  return {
+    admins: await logins('admin'),
+    members: await logins('member'),
+    outsideCollaborators: outside
+      .map((entry) => entry.login)
+      .filter((login): login is string => !!login),
+    ...(withoutTwoFactor === undefined ? {} : { withoutTwoFactor }),
+    pending,
+    failed,
+  };
 }
 
 /**

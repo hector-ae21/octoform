@@ -428,6 +428,38 @@
       ]
     },
     {
+      "id": "organization-member-inventory",
+      "area": "discovery",
+      "support": "organization-only",
+      "configPaths": [],
+      "commands": [
+        "inspect members"
+      ],
+      "ownerKinds": [
+        "organization"
+      ],
+      "readRoutes": [
+        "GET /orgs/{org}/failed_invitations",
+        "GET /orgs/{org}/invitations",
+        "GET /orgs/{org}/members",
+        "GET /orgs/{org}/outside_collaborators"
+      ],
+      "writeRoutes": [],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-read-org",
+        "organization-members-read"
+      ],
+      "writePermissions": [],
+      "limitations": [
+        "Read-only: it reports and changes nothing.",
+        "Refused on a personal account, which has no members, outside collaborators or invitations.",
+        "The two-factor listing is only answered for an organization owner, so it is reported as not visible rather than as nobody when the token cannot ask.",
+        "An outside collaborator and an already-invited person both count as known, so neither is reported as missing from the organization.",
+        "Invitation age is reported in whole days, which is what makes a stale invitation visible."
+      ]
+    },
+    {
       "id": "organization-member-policies",
       "area": "organization",
       "support": "supported",

@@ -25,6 +25,14 @@
       "description": "Additional classic scope required before organization custom-property writes."
     },
     {
+      "id": "classic-read-org",
+      "tokenType": "classic-pat",
+      "scope": "organization",
+      "name": "read:org",
+      "access": "read",
+      "description": "Classic scope for reading the organization's members, outside collaborators and invitations."
+    },
+    {
       "id": "repository-metadata-read",
       "tokenType": "fine-grained",
       "scope": "repository",
@@ -158,6 +166,22 @@
       "classic-repo",
       "classic-admin-org",
       "organization-administration-write"
+    ],
+    "GET /orgs/{org}/members": [
+      "classic-read-org",
+      "organization-members-read"
+    ],
+    "GET /orgs/{org}/outside_collaborators": [
+      "classic-read-org",
+      "organization-members-read"
+    ],
+    "GET /orgs/{org}/invitations": [
+      "classic-read-org",
+      "organization-members-read"
+    ],
+    "GET /orgs/{org}/failed_invitations": [
+      "classic-read-org",
+      "organization-members-read"
     ],
     "GET /orgs/{org}/organization-roles": [
       "classic-admin-org",
@@ -617,6 +641,31 @@
         "Deleting a team is destructive: GitHub deletes its child teams with it, so a parent whose children the file declares is refused.",
         "The permission field is not modelled: GitHub documents it as closing down.",
         "The listing is what the token can see, so a secret team it cannot see reads as absent."
+      ]
+    },
+    {
+      "id": "organization-member-inventory",
+      "area": "discovery",
+      "support": "organization-only",
+      "configPaths": [],
+      "commands": ["inspect members"],
+      "ownerKinds": ["organization"],
+      "readRoutes": [
+        "GET /orgs/{org}/members",
+        "GET /orgs/{org}/outside_collaborators",
+        "GET /orgs/{org}/invitations",
+        "GET /orgs/{org}/failed_invitations"
+      ],
+      "writeRoutes": [],
+      "writeMutations": [],
+      "readPermissions": ["classic-read-org", "organization-members-read"],
+      "writePermissions": [],
+      "limitations": [
+        "Read-only: it reports and changes nothing.",
+        "Refused on a personal account, which has no members, outside collaborators or invitations.",
+        "The two-factor listing is only answered for an organization owner, so it is reported as not visible rather than as nobody when the token cannot ask.",
+        "An outside collaborator and an already-invited person both count as known, so neither is reported as missing from the organization.",
+        "Invitation age is reported in whole days, which is what makes a stale invitation visible."
       ]
     },
     {

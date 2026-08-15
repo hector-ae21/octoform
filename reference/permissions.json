@@ -29,6 +29,17 @@
       ]
     },
     {
+      "id": "classic-read-org",
+      "tokenType": "classic-pat",
+      "scope": "organization",
+      "name": "read:org",
+      "access": "read",
+      "description": "Classic scope for reading the organization's members, outside collaborators and invitations.",
+      "capabilityIds": [
+        "organization-member-inventory"
+      ]
+    },
+    {
       "id": "classic-repo",
       "tokenType": "classic-pat",
       "scope": "account",
@@ -142,6 +153,7 @@
       "access": "read",
       "description": "Reading the organization's teams.",
       "capabilityIds": [
+        "organization-member-inventory",
         "organization-teams",
         "team-membership"
       ]
@@ -498,6 +510,39 @@
       ]
     },
     {
+      "route": "GET /orgs/{org}/failed_invitations",
+      "access": "read",
+      "capabilityIds": [
+        "organization-member-inventory"
+      ],
+      "permissionProfiles": [
+        "classic-read-org",
+        "organization-members-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/invitations",
+      "access": "read",
+      "capabilityIds": [
+        "organization-member-inventory"
+      ],
+      "permissionProfiles": [
+        "classic-read-org",
+        "organization-members-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/members",
+      "access": "read",
+      "capabilityIds": [
+        "organization-member-inventory"
+      ],
+      "permissionProfiles": [
+        "classic-read-org",
+        "organization-members-read"
+      ]
+    },
+    {
       "route": "GET /orgs/{org}/organization-roles",
       "access": "read",
       "capabilityIds": [
@@ -528,6 +573,17 @@
       "permissionProfiles": [
         "classic-admin-org",
         "organization-administration-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/outside_collaborators",
+      "access": "read",
+      "capabilityIds": [
+        "organization-member-inventory"
+      ],
+      "permissionProfiles": [
+        "classic-read-org",
+        "organization-members-read"
       ]
     },
     {

@@ -176,6 +176,24 @@
       "classicScopes": [
         "repo"
       ]
+    },
+    {
+      "path": [
+        "inspect",
+        "members"
+      ],
+      "usage": "octoform inspect members      [--config <path>] [--owner <login>]... [--format <text|json>]",
+      "summary": "Print who owns, belongs to and collaborates on the organisation, which invitations are waiting or failed, and which people the configuration names are not in it. Organisations only. Changes nothing.",
+      "mode": "read-only",
+      "options": [
+        "config",
+        "owner",
+        "format",
+        "help"
+      ],
+      "classicScopes": [
+        "read:org"
+      ]
     }
   ],
   "options": [

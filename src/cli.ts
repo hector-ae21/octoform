@@ -8,8 +8,10 @@ import { validateConfig, migrateConfig } from './commands/config.js';
 import {
   inspectCapabilities,
   inspectConfig,
+  inspectMembers,
   reportInspectedCapabilities,
   reportInspectedConfig,
+  reportInspectedMembers,
 } from './commands/inspect.js';
 import { buildPlanArtifact, readPlanArtifact, verifyPlanArtifact } from './config/plan-artifact.js';
 import {
@@ -28,7 +30,7 @@ import { plan, summarizePlan } from './commands/plan.js';
 import { apply } from './commands/apply.js';
 import { classify } from './commands/classify.js';
 import { propertiesSync } from './commands/properties.js';
-import { formatChange, groupByRepo } from './report/format.js';
+import { formatChange, groupByRepo, printable } from './report/format.js';
 import { renderUsage } from './cli-contract.js';
 import {
   EXIT_AUTH_ERROR,
@@ -290,11 +292,34 @@ export async function main(argv: string[]): Promise<number> {
         }));
       }
       case 'inspect': {
+        if (args.subcommand === 'members') {
+          await enter(['read:org']);
+          return await each(async (scope) => {
+            /**
+             * A personal account has no members, no outside collaborators and
+             * no invitations. Printing empty listings for it would look like
+             * an answer rather than a category error.
+             */
+            if ((await detectOwnerKind(octokit, scope.owner)) !== 'org') {
+              console.error(
+                `"${printable(scope.owner)}" is a personal account, which has no members to inspect.`,
+              );
+              return { status: EXIT_USAGE_ERROR };
+            }
+            const report = await inspectMembers(octokit, scope);
+            if (args.format === 'json') {
+              console.log(JSON.stringify(envelope('inspect members', report), null, 2));
+            } else {
+              reportInspectedMembers(report);
+            }
+            return { status: EXIT_SUCCESS };
+          });
+        }
         if (args.subcommand !== 'capabilities') {
           console.error(
             args.subcommand
               ? `Unknown subcommand: inspect ${args.subcommand}\n`
-              : 'inspect needs a subcommand: inspect config | inspect capabilities\n',
+              : 'inspect needs a subcommand: inspect config | inspect capabilities | inspect members\n',
           );
           console.error(USAGE);
           return EXIT_USAGE_ERROR;

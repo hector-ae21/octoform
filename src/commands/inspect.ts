@@ -1,9 +1,17 @@
 import type { Octokit } from '@octokit/rest';
-import { detectLimits, detectRulesetCapability, discoverOwner } from '../github/client.js';
+import {
+  detectLimits,
+  detectRulesetCapability,
+  discoverOwner,
+  readOrganizationPeople,
+} from '../github/client.js';
 import { capability } from '../github/capabilities.js';
 import { describeNotApplicable, notApplicable } from '../config/applicability.js';
+import { notInTheOrganization, peopleNamedBy, readInvitation } from '../core/members.js';
+import { printable } from '../report/format.js';
 import type {
   InspectedCapabilities,
+  InspectedMembers,
   InspectedOwner,
   InspectedRepository,
   OwnerScope,
@@ -89,6 +97,96 @@ export function reportInspectedConfig(entries: InspectedOwner[]): void {
     console.log(JSON.stringify(entry.resolved, null, 2));
     console.log('');
   }
+}
+
+/**
+ * Who is in the organisation, and which of the people the configuration names
+ * are not.
+ *
+ * Read-only and organisation-only. A personal account has no members, no
+ * outside collaborators and no invitations, so there is nothing here to report
+ * rather than an empty version of it.
+ *
+ * @param scope - The resolved configuration, read for the people it names.
+ * @param now - The moment invitation ages are measured against.
+ */
+export async function inspectMembers(
+  octokit: Octokit,
+  scope: OwnerScope,
+  now: Date = new Date(),
+): Promise<InspectedMembers> {
+  const people = await readOrganizationPeople(octokit, scope.owner);
+  const pendingInvitations = people.pending.map((raw) => readInvitation(raw, now));
+
+  /**
+   * Everyone the organisation knows in any capacity. Being an outside
+   * collaborator counts, and so does having been invited: neither is a person
+   * the configuration is about to introduce.
+   */
+  const known = new Set([
+    ...people.admins,
+    ...people.members,
+    ...people.outsideCollaborators,
+    ...pendingInvitations.map((invitation) => invitation.login).filter((login) => login !== null),
+  ]);
+
+  return {
+    owner: scope.owner,
+    admins: [...people.admins].sort(),
+    members: [...people.members].sort(),
+    outsideCollaborators: [...people.outsideCollaborators].sort(),
+    ...(people.withoutTwoFactor === undefined
+      ? {}
+      : { withoutTwoFactor: [...people.withoutTwoFactor].sort() }),
+    pendingInvitations,
+    failedInvitations: people.failed.map((raw) => readInvitation(raw, now)),
+    notInTheOrganization: notInTheOrganization(peopleNamedBy(scope), known),
+  };
+}
+
+/** Print one organisation's membership report as text. */
+export function reportInspectedMembers(report: InspectedMembers): void {
+  console.log(`Organisation: ${printable(report.owner)}`);
+  console.log(`  owners: ${list(report.admins)}`);
+  console.log(`  members: ${list(report.members)}`);
+  console.log(`  outside collaborators: ${list(report.outsideCollaborators)}`);
+  console.log(
+    report.withoutTwoFactor === undefined
+      ? '  without two-factor authentication: not visible to this token'
+      : `  without two-factor authentication: ${list(report.withoutTwoFactor)}`,
+  );
+
+  if (report.pendingInvitations.length > 0) {
+    console.log('  invited and waiting:');
+    for (const invitation of report.pendingInvitations) {
+      console.log(
+        `    ${printable(invitation.login ?? invitation.email ?? 'unnamed')} as ${printable(invitation.role)}, ${invitation.waitingDays} day(s)`,
+      );
+    }
+  }
+
+  if (report.failedInvitations.length > 0) {
+    console.log('  invitations that failed:');
+    for (const invitation of report.failedInvitations) {
+      console.log(
+        `    ${printable(invitation.login ?? invitation.email ?? 'unnamed')}: ${printable(invitation.failedReason ?? 'no reason recorded')}`,
+      );
+    }
+  }
+
+  if (report.notInTheOrganization.length === 0) {
+    console.log('  everybody the configuration names is already known here');
+  } else {
+    console.log('  named by the configuration but not in the organisation:');
+    for (const person of report.notInTheOrganization) {
+      console.log(`    ${printable(person.login)}: ${person.named.map(printable).join(', ')}`);
+    }
+  }
+  console.log('');
+}
+
+function list(logins: readonly string[]): string {
+  return logins.length === 0 ? 'none' : logins.map(printable).join(', ');
 }
 
 /** Print one owner's capability report as text. */
