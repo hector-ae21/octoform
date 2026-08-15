@@ -27,7 +27,16 @@ import {
   sameMilestone,
 } from '../src/core/collections.js';
 import { readRuleset, rulesetBody, sameRuleset } from '../src/core/rulesets.js';
-import type { BranchProtectionPolicy, RulesetPolicy } from '../src/types/index.js';
+import { definitionBody, readDefinition, sameDefinition } from '../src/core/properties.js';
+import { readTeam, sameTeam, teamBody } from '../src/core/teams.js';
+import { repositoryConditions, sameRepositories } from '../src/core/organization-rulesets.js';
+import type {
+  BranchProtectionPolicy,
+  PropertyDefinition,
+  RulesetPolicy,
+  RulesetRepositories,
+  TeamPolicy,
+} from '../src/types/index.js';
 
 interface Adapter {
   resource: string;
@@ -127,6 +136,48 @@ function asProtectionResponse(body: Record<string, unknown>): Parameters<typeof 
   };
 }
 
+const DEFINITION: PropertyDefinition = {
+  value_type: 'single_select',
+  description: 'How closely this repository is watched',
+  required: true,
+  default_value: 'bronze',
+  allowed_values: ['bronze', 'silver', 'gold'],
+  values_editable_by: 'org_actors',
+  require_explicit_values: true,
+};
+
+const TEAM: TeamPolicy = {
+  name: 'Platform On-call',
+  description: 'Carries the pager',
+  privacy: 'closed',
+  notifications: false,
+  parent: 'platform',
+};
+
+const SELECTION: RulesetRepositories = {
+  properties: [{ name: 'tier', values: ['gold', 'silver'] }],
+  exclude_properties: [{ name: 'tier', values: ['retired'] }],
+};
+
+/**
+ * A team's request and response disagree in one place, the way branch
+ * protection's do: the parent goes out as a slug on `parent_team_slug` and
+ * comes back as an object on `parent`. Bridging it here is what keeps that
+ * asymmetry a stated fact rather than something rediscovered later.
+ */
+function asTeamResponse(body: Record<string, unknown>): Parameters<typeof readTeam>[0] {
+  const parent = body.parent_team_slug;
+  return {
+    id: 1,
+    slug: 'platform-oncall',
+    name: body.name as string,
+    description: body.description as string,
+    privacy: body.privacy as string,
+    notification_setting: body.notification_setting as string,
+    parent: typeof parent === 'string' ? { slug: parent } : null,
+  };
+}
+
 const ADAPTERS: readonly Adapter[] = [
   {
     resource: 'ruleset',
@@ -205,6 +256,46 @@ const ADAPTERS: readonly Adapter[] = [
     empty: () => ({ permission: grantLevel('read') }),
     required: ['permission'],
   },
+  {
+    resource: 'property definition',
+    roundTrip: () => {
+      const body = definitionBody(DEFINITION, undefined);
+      const stored = readDefinition({ property_name: 'tier', ...body });
+      return stored !== undefined && sameDefinition(stored, DEFINITION);
+    },
+    twice: () => [definitionBody(DEFINITION, undefined), definitionBody(DEFINITION, undefined)],
+    empty: () => definitionBody({ value_type: 'string' }, undefined),
+    /** The endpoint refuses a definition with no type, so this one field is not a value nobody asked for. */
+    required: ['value_type'],
+  },
+  {
+    resource: 'team',
+    roundTrip: () => {
+      const stored = readTeam(asTeamResponse(teamBody('platform-oncall', TEAM, true)));
+      return stored !== undefined && sameTeam(stored, 'platform-oncall', TEAM);
+    },
+    twice: () => [teamBody('platform-oncall', TEAM, true), teamBody('platform-oncall', TEAM, true)],
+    /** Updating a team that declares nothing sends nothing at all, since this endpoint patches. */
+    empty: () => teamBody('platform-oncall', {}, false),
+    required: [],
+  },
+  {
+    resource: 'organisation ruleset selection',
+    roundTrip: () => {
+      const stored = readRuleset({
+        id: 1,
+        name: 'protect',
+        conditions: repositoryConditions(SELECTION) as Parameters<
+          typeof readRuleset
+        >[0]['conditions'],
+      });
+      return sameRepositories(stored.repositories, SELECTION);
+    },
+    twice: () => [repositoryConditions(SELECTION), repositoryConditions(SELECTION)],
+    empty: () => repositoryConditions({}),
+    /** A selection that names nothing is refused while planning; the shape still has to be the one the endpoint takes. */
+    required: ['repository_name'],
+  },
 ];
 
 for (const adapter of ADAPTERS) {
@@ -240,5 +331,14 @@ test('every adapter between the model and GitHub is covered above', () => {
    */
   const covered = ADAPTERS.map((adapter) => adapter.resource).sort();
 
-  assert.deepEqual(covered, ['access level', 'branch protection', 'label', 'milestone', 'ruleset']);
+  assert.deepEqual(covered, [
+    'access level',
+    'branch protection',
+    'label',
+    'milestone',
+    'organisation ruleset selection',
+    'property definition',
+    'ruleset',
+    'team',
+  ]);
 });
