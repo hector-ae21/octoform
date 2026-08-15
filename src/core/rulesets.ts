@@ -21,6 +21,8 @@ import type {
   RuleSettings,
   RulesetEnforcement,
   RulesetPolicy,
+  RulesetPropertyMatch,
+  RulesetRepositories,
   RulesetTarget,
   StoredActor,
   WorkflowRequirement,
@@ -30,6 +32,52 @@ import type {
 interface RawRule {
   type: string;
   parameters?: Record<string, unknown>;
+}
+
+/** A property condition as GitHub stores it. */
+interface RawPropertyMatch {
+  name?: string;
+  property_values?: string[];
+  source?: string;
+}
+
+/**
+ * Which repositories a stored ruleset reaches, or nothing when it says.
+ *
+ * A repository's own ruleset carries no such condition — it is on the
+ * repository it governs — so the absence is meaningful rather than empty, and
+ * an empty object here would read as "reaches nothing".
+ */
+function readRepositories(
+  conditions:
+    | {
+        repository_name?: { include?: string[]; exclude?: string[]; protected?: boolean };
+        repository_property?: { include?: RawPropertyMatch[]; exclude?: RawPropertyMatch[] };
+      }
+    | undefined,
+): RulesetRepositories | undefined {
+  const byName = conditions?.repository_name;
+  const byProperty = conditions?.repository_property;
+  if (!byName && !byProperty) return undefined;
+
+  const matches = (raw: RawPropertyMatch[] | undefined): RulesetPropertyMatch[] =>
+    (raw ?? [])
+      .filter((entry): entry is RawPropertyMatch & { name: string } => Boolean(entry.name))
+      .map((entry) => ({
+        name: entry.name,
+        values: entry.property_values ?? [],
+        ...(entry.source === 'system' ? { source: 'system' as const } : {}),
+      }));
+
+  return {
+    ...(byName?.include === undefined ? {} : { include: byName.include }),
+    ...(byName?.exclude === undefined ? {} : { exclude: byName.exclude }),
+    ...(byName?.protected === undefined ? {} : { protected: byName.protected }),
+    ...(byProperty?.include === undefined ? {} : { properties: matches(byProperty.include) }),
+    ...(byProperty?.exclude === undefined
+      ? {}
+      : { exclude_properties: matches(byProperty.exclude) }),
+  };
 }
 
 /**
@@ -265,7 +313,14 @@ export function readRuleset(raw: {
   name: string;
   target?: string;
   enforcement?: string;
-  conditions?: { ref_name?: { include?: string[]; exclude?: string[] } };
+  conditions?: {
+    ref_name?: { include?: string[]; exclude?: string[] };
+    repository_name?: { include?: string[]; exclude?: string[]; protected?: boolean };
+    repository_property?: {
+      include?: RawPropertyMatch[];
+      exclude?: RawPropertyMatch[];
+    };
+  };
   bypass_actors?: StoredActor[];
   rules?: RawRule[];
 }): ExistingRuleset {
@@ -291,6 +346,8 @@ export function readRuleset(raw: {
     if (rules[key] === undefined) Object.assign(rules, { [key]: false });
   }
 
+  const repositories = readRepositories(raw.conditions);
+
   return {
     id: raw.id,
     name: raw.name,
@@ -298,6 +355,7 @@ export function readRuleset(raw: {
     enforcement: (raw.enforcement ?? 'active') as RulesetEnforcement,
     include: (raw.conditions?.ref_name?.include ?? []).map(fromRefName),
     exclude: (raw.conditions?.ref_name?.exclude ?? []).map(fromRefName),
+    ...(repositories === undefined ? {} : { repositories }),
     bypass: (raw.bypass_actors ?? []).map((actor) => ({
       actor_type: actor.actor_type,
       actor_id: actor.actor_id ?? null,

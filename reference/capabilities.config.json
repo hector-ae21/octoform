@@ -143,6 +143,21 @@
       "classic-admin-org",
       "organization-administration-write"
     ],
+    "GET /orgs/{org}/rulesets/{ruleset_id}": [
+      "classic-repo",
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "POST /orgs/{org}/rulesets": [
+      "classic-repo",
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "PUT /orgs/{org}/rulesets/{ruleset_id}": [
+      "classic-repo",
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
     "GET /orgs/{org}/properties/schema": [
       "classic-repo",
       "classic-admin-org",
@@ -496,6 +511,28 @@
       "limitations": [
         "Private repositories require positive owner, repository, token, and API evidence; unknown remote rule types are not removed.",
         "That evidence can be gathered before it matters with octoform inspect capabilities --repo <name>, which probes a private repository and reports the answer with its source."
+      ]
+    },
+    {
+      "id": "organization-rulesets",
+      "area": "rules",
+      "support": "supported",
+      "configPaths": ["organization.rulesets"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": ["GET /orgs/{org}/rulesets", "GET /orgs/{org}/rulesets/{ruleset_id}"],
+      "writeRoutes": ["POST /orgs/{org}/rulesets", "PUT /orgs/{org}/rulesets/{ruleset_id}"],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-administration-read"],
+      "writePermissions": ["classic-admin-org", "organization-administration-write"],
+      "limitations": [
+        "Blocked on a personal account, which has no rulesets of its own to aim at repositories.",
+        "Every one is reported as sensitive: it reaches whatever its condition matches, including repositories no configuration names.",
+        "Repositories are selected by name or by custom property, never both, because GitHub takes one repository condition beside the refs.",
+        "A merge queue rule is refused: it is in GitHub's repository rule list and not in its organization one.",
+        "A required workflow must name the repository it comes from, since there is no current repository to default to.",
+        "Applied after the property definitions, so a condition can name a property the same run defines.",
+        "A ruleset nobody declared is left alone, and none is ever deleted."
       ]
     },
     {

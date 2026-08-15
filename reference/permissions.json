@@ -21,7 +21,8 @@
         "organization-custom-properties",
         "organization-member-policies",
         "organization-profile",
-        "organization-property-definitions"
+        "organization-property-definitions",
+        "organization-rulesets"
       ]
     },
     {
@@ -75,7 +76,8 @@
       "description": "Reading the organization's own profile and member policies.",
       "capabilityIds": [
         "organization-member-policies",
-        "organization-profile"
+        "organization-profile",
+        "organization-rulesets"
       ]
     },
     {
@@ -87,7 +89,8 @@
       "description": "Organization ruleset capability discovery, and writing the organization's own profile and member policies.",
       "capabilityIds": [
         "organization-member-policies",
-        "organization-profile"
+        "organization-profile",
+        "organization-rulesets"
       ]
     },
     {
@@ -459,7 +462,20 @@
       "route": "GET /orgs/{org}/rulesets",
       "access": "read",
       "capabilityIds": [
+        "organization-rulesets",
         "repository-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-administration-write"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/rulesets/{ruleset_id}",
+      "access": "read",
+      "capabilityIds": [
+        "organization-rulesets"
       ],
       "permissionProfiles": [
         "classic-admin-org",
@@ -849,6 +865,18 @@
       ]
     },
     {
+      "route": "POST /orgs/{org}/rulesets",
+      "access": "write",
+      "capabilityIds": [
+        "organization-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-administration-write"
+      ]
+    },
+    {
       "route": "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
       "access": "write",
       "capabilityIds": [
@@ -927,6 +955,18 @@
         "classic-admin-org",
         "classic-repo",
         "organization-custom-properties-admin"
+      ]
+    },
+    {
+      "route": "PUT /orgs/{org}/rulesets/{ruleset_id}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-administration-write"
       ]
     },
     {

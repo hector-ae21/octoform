@@ -348,6 +348,56 @@ export interface RulesetPolicy extends RuleSettings {
 }
 
 /**
+ * A custom property a repository must carry for a ruleset to reach it.
+ *
+ * `source` distinguishes a property the organisation defined from one GitHub
+ * maintains itself, and defaults to the organisation's own — which is the only
+ * kind anything else in this configuration can declare.
+ */
+export interface RulesetPropertyMatch {
+  name: string;
+  /** Any one of these values matches. */
+  values: string[];
+  source?: 'custom' | 'system';
+}
+
+/**
+ * Which repositories an organisation ruleset reaches.
+ *
+ * By name or by property, never both: GitHub's conditions take one repository
+ * form beside the refs, and a ruleset declaring two would be a question the
+ * API has already answered by refusing it.
+ */
+export interface RulesetRepositories {
+  /** Names or patterns. `~ALL` is GitHub's word for every repository. */
+  include?: string[];
+  /** Names or patterns the ruleset does not reach, whatever else matched. */
+  exclude?: string[];
+  /** Repositories carrying all of these property values. */
+  properties?: RulesetPropertyMatch[];
+  /** Repositories carrying any of these are exempt. */
+  exclude_properties?: RulesetPropertyMatch[];
+  /**
+   * Prevent the repositories this reaches from being renamed. A field of the
+   * name condition, so it cannot be asked for alongside property targeting.
+   */
+  protected?: boolean;
+}
+
+/**
+ * A ruleset an organisation applies to repositories it selects, rather than
+ * one a repository carries.
+ *
+ * The rules are the same rules, which is why this extends the repository
+ * policy instead of restating it. What it adds is the only thing an
+ * organisation ruleset has that a repository's cannot: a way of saying which
+ * repositories it is about.
+ */
+export interface OrganizationRulesetPolicy extends RulesetPolicy {
+  repositories: RulesetRepositories;
+}
+
+/**
  * Who a branch-protection restriction names.
  *
  * Users are logins, teams are slugs and apps are slugs — GitHub's protection
@@ -677,6 +727,14 @@ export interface OrganizationPolicy {
    * answer, and no repository can answer a property nobody defined.
    */
   properties?: Record<string, Managed<PropertyDefinition>>;
+  /**
+   * Rulesets the organisation applies to repositories it selects.
+   *
+   * The same rules a repository can carry, aimed from above. A repository can
+   * neither weaken nor remove one, which is what makes this the level at which
+   * a rule is actually a rule rather than a default.
+   */
+  rulesets?: OrganizationRulesetPolicy[];
 }
 
 /** A condition used to infer a repository's type when it has none recorded. */

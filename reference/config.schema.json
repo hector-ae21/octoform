@@ -121,6 +121,13 @@
             "$ref": "#/definitions/Managed%3CPropertyDefinition%3E"
           },
           "description": "Custom property definitions, by name.\n\nThe organisation defines a property; a repository gives it a value under its own `properties`. The same word twice is GitHub's, and the two are not interchangeable: nothing can be declared here that a repository could answer, and no repository can answer a property nobody defined."
+        },
+        "rulesets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OrganizationRulesetPolicy"
+          },
+          "description": "Rulesets the organisation applies to repositories it selects.\n\nThe same rules a repository can carry, aimed from above. A repository can neither weaken nor remove one, which is what makes this the level at which a rule is actually a rule rather than a default."
         }
       },
       "additionalProperties": false,
@@ -378,6 +385,466 @@
         "absent"
       ],
       "description": "Whether an entry of a collection should exist at all.\n\n`absent` is how a collection entry is removed, because leaving it out of the file means \"not managed\" everywhere else and cannot mean \"delete\" here without making an incomplete file dangerous."
+    },
+    "OrganizationRulesetPolicy": {
+      "type": "object",
+      "properties": {
+        "require_pull_request": {
+          "type": "boolean",
+          "description": "Require a pull request. The keys below configure it and imply it."
+        },
+        "required_approvals": {
+          "type": "number"
+        },
+        "dismiss_stale_reviews": {
+          "type": "boolean"
+        },
+        "require_code_owner_review": {
+          "type": "boolean"
+        },
+        "require_last_push_approval": {
+          "type": "boolean"
+        },
+        "require_thread_resolution": {
+          "type": "boolean"
+        },
+        "allowed_merge_methods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "merge",
+              "squash",
+              "rebase"
+            ]
+          }
+        },
+        "required_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "strict_required_checks": {
+          "type": "boolean"
+        },
+        "checks_not_enforced_on_create": {
+          "type": "boolean",
+          "description": "Let a branch be created without the required checks having run."
+        },
+        "required_deployments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "block_creation": {
+          "type": "boolean",
+          "description": "Refuse creating a matching ref."
+        },
+        "block_update": {
+          "type": "boolean",
+          "description": "Refuse updating a matching ref."
+        },
+        "allow_fetch_and_merge": {
+          "type": "boolean",
+          "description": "Allow an otherwise blocked update when it is a fetch and merge."
+        },
+        "block_deletion": {
+          "type": "boolean"
+        },
+        "block_force_push": {
+          "type": "boolean"
+        },
+        "require_linear_history": {
+          "type": "boolean"
+        },
+        "require_signatures": {
+          "type": "boolean"
+        },
+        "merge_queue": {
+          "$ref": "#/definitions/MergeQueueRule"
+        },
+        "required_code_scanning": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeScanningRule"
+          }
+        },
+        "require_license_compliance_scanning": {
+          "type": "boolean"
+        },
+        "copilot_code_review": {
+          "type": "object",
+          "properties": {
+            "review_draft_pull_requests": {
+              "type": "boolean"
+            },
+            "review_on_push": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "commit_message_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "commit_author_email_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "committer_email_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "branch_name_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "tag_name_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "restricted_file_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "restricted_file_extensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "max_file_size": {
+          "type": "number"
+        },
+        "max_file_path_length": {
+          "type": "number"
+        },
+        "required_workflows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowRequirement"
+          }
+        },
+        "workflows_not_enforced_on_create": {
+          "type": "boolean",
+          "description": "Let a branch be created without the required workflows having run."
+        },
+        "name": {
+          "type": "string"
+        },
+        "target_branches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Branch names or patterns, including `~DEFAULT_BRANCH` and `~ALL`."
+        },
+        "target_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tag names or patterns."
+        },
+        "target_pushes": {
+          "type": "boolean",
+          "description": "A push ruleset, which governs the whole repository and matches no refs."
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Refs matching any of these are exempt, whatever the target matched."
+        },
+        "enforcement": {
+          "$ref": "#/definitions/RulesetEnforcement"
+        },
+        "bypass": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RulesetBypass"
+          },
+          "description": "Who may bypass these rules. Omitting this keeps whoever GitHub already lets past; an empty list is what removes them."
+        },
+        "repositories": {
+          "$ref": "#/definitions/RulesetRepositories"
+        }
+      },
+      "required": [
+        "name",
+        "repositories"
+      ],
+      "additionalProperties": false,
+      "description": "A ruleset an organisation applies to repositories it selects, rather than one a repository carries.\n\nThe rules are the same rules, which is why this extends the repository policy instead of restating it. What it adds is the only thing an organisation ruleset has that a repository's cannot: a way of saying which repositories it is about."
+    },
+    "MergeQueueRule": {
+      "type": "object",
+      "properties": {
+        "merge_method": {
+          "type": "string",
+          "enum": [
+            "MERGE",
+            "SQUASH",
+            "REBASE"
+          ]
+        },
+        "grouping_strategy": {
+          "type": "string",
+          "enum": [
+            "ALLGREEN",
+            "HEADGREEN"
+          ]
+        },
+        "max_entries_to_build": {
+          "type": "number"
+        },
+        "max_entries_to_merge": {
+          "type": "number"
+        },
+        "min_entries_to_merge": {
+          "type": "number"
+        },
+        "min_entries_to_merge_wait_minutes": {
+          "type": "number"
+        },
+        "check_response_timeout_minutes": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired merge queue behaviour, when a ruleset requires one."
+    },
+    "CodeScanningRule": {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "type": "string"
+        },
+        "alerts_threshold": {
+          "type": "string",
+          "enum": [
+            "none",
+            "errors",
+            "errors_and_warnings",
+            "all"
+          ]
+        },
+        "security_alerts_threshold": {
+          "type": "string",
+          "enum": [
+            "none",
+            "critical",
+            "high_or_higher",
+            "medium_or_higher",
+            "all"
+          ]
+        }
+      },
+      "required": [
+        "tool",
+        "alerts_threshold",
+        "security_alerts_threshold"
+      ],
+      "additionalProperties": false,
+      "description": "How much of a code scanning tool's output blocks a merge."
+    },
+    "PatternRule": {
+      "type": "object",
+      "properties": {
+        "operator": {
+          "$ref": "#/definitions/PatternOperator"
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "negate": {
+          "type": "boolean",
+          "description": "Match everything the pattern does not, instead of what it does."
+        },
+        "name": {
+          "type": "string",
+          "description": "Shown by GitHub when the rule rejects a push."
+        }
+      },
+      "required": [
+        "operator",
+        "pattern"
+      ],
+      "additionalProperties": false,
+      "description": "A rule matching some piece of commit or ref text against a pattern."
+    },
+    "PatternOperator": {
+      "type": "string",
+      "enum": [
+        "starts_with",
+        "ends_with",
+        "contains",
+        "regex"
+      ],
+      "description": "How a pattern rule compares the text it is given."
+    },
+    "WorkflowRequirement": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to the workflow file from the root of its repository."
+        },
+        "repository": {
+          "type": "string",
+          "description": "`owner/name` of the repository holding it. Defaults to this repository."
+        },
+        "repository_id": {
+          "type": "number",
+          "description": "The id of  {@link  WorkflowRequirement.repository } , resolved or written."
+        },
+        "ref": {
+          "type": "string",
+          "description": "Branch or tag to take the file from."
+        },
+        "sha": {
+          "type": "string",
+          "description": "Commit to take the file from."
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false,
+      "description": "A workflow that has to pass before a change reaches a targeted ref.\n\nGitHub identifies the workflow's repository by numeric id, not by name, so `repository` is resolved before the rule can be sent, and `repository_id` is the form the rule comes back in. A policy normally writes the name; writing the number instead is allowed and skips the lookup, which is the only way to name a repository the token cannot read."
+    },
+    "RulesetEnforcement": {
+      "type": "string",
+      "enum": [
+        "active",
+        "evaluate",
+        "disabled"
+      ],
+      "description": "How strictly a ruleset is applied. `evaluate` reports what would have been blocked without blocking it, and GitHub offers it only on some plans."
+    },
+    "RulesetBypass": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "$ref": "#/definitions/BypassMode",
+          "description": "Defaults to `always`."
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "GitHub logins."
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Team slugs. Organisation repositories only."
+        },
+        "apps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "GitHub App slugs."
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "Repository role ids."
+        },
+        "deploy_keys": {
+          "type": "boolean",
+          "description": "Every deploy key on the repository, which GitHub grants as one actor."
+        },
+        "organization_admins": {
+          "type": "boolean",
+          "description": "Organisation owners. Organisation repositories only."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Actors that may bypass a ruleset, grouped by the mode they bypass in.\n\nGrouping by mode rather than listing each actor with its own is what keeps the common case — one exception, granted to several people at once — from repeating the mode on every line. A policy that needs two modes writes two groups.\n\nEverything here is named except `roles`. GitHub's ruleset endpoints take a repository role as a numeric id, and its REST surface has no route that maps a repository-role name to one: only *organisation* roles can be listed. So the number is what a policy writes, rather than a name octoform would have to translate through a table it cannot verify."
+    },
+    "BypassMode": {
+      "type": "string",
+      "enum": [
+        "always",
+        "pull_request",
+        "exempt"
+      ],
+      "description": "When an actor may bypass a ruleset.\n\n`pull_request` only lets the actor past on a pull request, and GitHub accepts it on branch rulesets only. `exempt` skips the rules entirely and writes no bypass entry to the audit log, so it is the one mode that leaves no trace of having been used."
+    },
+    "RulesetRepositories": {
+      "type": "object",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Names or patterns. `~ALL` is GitHub's word for every repository."
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Names or patterns the ruleset does not reach, whatever else matched."
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RulesetPropertyMatch"
+          },
+          "description": "Repositories carrying all of these property values."
+        },
+        "exclude_properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RulesetPropertyMatch"
+          },
+          "description": "Repositories carrying any of these are exempt."
+        },
+        "protected": {
+          "type": "boolean",
+          "description": "Prevent the repositories this reaches from being renamed. A field of the name condition, so it cannot be asked for alongside property targeting."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Which repositories an organisation ruleset reaches.\n\nBy name or by property, never both: GitHub's conditions take one repository form beside the refs, and a ruleset declaring two would be a question the API has already answered by refusing it."
+    },
+    "RulesetPropertyMatch": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Any one of these values matches."
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "custom",
+            "system"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "values"
+      ],
+      "additionalProperties": false,
+      "description": "A custom property a repository must carry for a ruleset to reach it.\n\n`source` distinguishes a property the organisation defined from one GitHub maintains itself, and defaults to the organisation's own — which is the only kind anything else in this configuration can declare."
     },
     "ClassifyConfig": {
       "type": "object",
@@ -1211,207 +1678,6 @@
       ],
       "additionalProperties": false,
       "description": "A desired ruleset.\n\nExactly one of the three target keys says what the ruleset governs, and the key names which. A single `target` field plus a shared list of patterns would let a file say `target: tag` beside `target_branches`, which is a disagreement nothing could resolve."
-    },
-    "MergeQueueRule": {
-      "type": "object",
-      "properties": {
-        "merge_method": {
-          "type": "string",
-          "enum": [
-            "MERGE",
-            "SQUASH",
-            "REBASE"
-          ]
-        },
-        "grouping_strategy": {
-          "type": "string",
-          "enum": [
-            "ALLGREEN",
-            "HEADGREEN"
-          ]
-        },
-        "max_entries_to_build": {
-          "type": "number"
-        },
-        "max_entries_to_merge": {
-          "type": "number"
-        },
-        "min_entries_to_merge": {
-          "type": "number"
-        },
-        "min_entries_to_merge_wait_minutes": {
-          "type": "number"
-        },
-        "check_response_timeout_minutes": {
-          "type": "number"
-        }
-      },
-      "additionalProperties": false,
-      "description": "Desired merge queue behaviour, when a ruleset requires one."
-    },
-    "CodeScanningRule": {
-      "type": "object",
-      "properties": {
-        "tool": {
-          "type": "string"
-        },
-        "alerts_threshold": {
-          "type": "string",
-          "enum": [
-            "none",
-            "errors",
-            "errors_and_warnings",
-            "all"
-          ]
-        },
-        "security_alerts_threshold": {
-          "type": "string",
-          "enum": [
-            "none",
-            "critical",
-            "high_or_higher",
-            "medium_or_higher",
-            "all"
-          ]
-        }
-      },
-      "required": [
-        "tool",
-        "alerts_threshold",
-        "security_alerts_threshold"
-      ],
-      "additionalProperties": false,
-      "description": "How much of a code scanning tool's output blocks a merge."
-    },
-    "PatternRule": {
-      "type": "object",
-      "properties": {
-        "operator": {
-          "$ref": "#/definitions/PatternOperator"
-        },
-        "pattern": {
-          "type": "string"
-        },
-        "negate": {
-          "type": "boolean",
-          "description": "Match everything the pattern does not, instead of what it does."
-        },
-        "name": {
-          "type": "string",
-          "description": "Shown by GitHub when the rule rejects a push."
-        }
-      },
-      "required": [
-        "operator",
-        "pattern"
-      ],
-      "additionalProperties": false,
-      "description": "A rule matching some piece of commit or ref text against a pattern."
-    },
-    "PatternOperator": {
-      "type": "string",
-      "enum": [
-        "starts_with",
-        "ends_with",
-        "contains",
-        "regex"
-      ],
-      "description": "How a pattern rule compares the text it is given."
-    },
-    "WorkflowRequirement": {
-      "type": "object",
-      "properties": {
-        "path": {
-          "type": "string",
-          "description": "Path to the workflow file from the root of its repository."
-        },
-        "repository": {
-          "type": "string",
-          "description": "`owner/name` of the repository holding it. Defaults to this repository."
-        },
-        "repository_id": {
-          "type": "number",
-          "description": "The id of  {@link  WorkflowRequirement.repository } , resolved or written."
-        },
-        "ref": {
-          "type": "string",
-          "description": "Branch or tag to take the file from."
-        },
-        "sha": {
-          "type": "string",
-          "description": "Commit to take the file from."
-        }
-      },
-      "required": [
-        "path"
-      ],
-      "additionalProperties": false,
-      "description": "A workflow that has to pass before a change reaches a targeted ref.\n\nGitHub identifies the workflow's repository by numeric id, not by name, so `repository` is resolved before the rule can be sent, and `repository_id` is the form the rule comes back in. A policy normally writes the name; writing the number instead is allowed and skips the lookup, which is the only way to name a repository the token cannot read."
-    },
-    "RulesetEnforcement": {
-      "type": "string",
-      "enum": [
-        "active",
-        "evaluate",
-        "disabled"
-      ],
-      "description": "How strictly a ruleset is applied. `evaluate` reports what would have been blocked without blocking it, and GitHub offers it only on some plans."
-    },
-    "RulesetBypass": {
-      "type": "object",
-      "properties": {
-        "mode": {
-          "$ref": "#/definitions/BypassMode",
-          "description": "Defaults to `always`."
-        },
-        "users": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "GitHub logins."
-        },
-        "teams": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Team slugs. Organisation repositories only."
-        },
-        "apps": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "GitHub App slugs."
-        },
-        "roles": {
-          "type": "array",
-          "items": {
-            "type": "number"
-          },
-          "description": "Repository role ids."
-        },
-        "deploy_keys": {
-          "type": "boolean",
-          "description": "Every deploy key on the repository, which GitHub grants as one actor."
-        },
-        "organization_admins": {
-          "type": "boolean",
-          "description": "Organisation owners. Organisation repositories only."
-        }
-      },
-      "additionalProperties": false,
-      "description": "Actors that may bypass a ruleset, grouped by the mode they bypass in.\n\nGrouping by mode rather than listing each actor with its own is what keeps the common case — one exception, granted to several people at once — from repeating the mode on every line. A policy that needs two modes writes two groups.\n\nEverything here is named except `roles`. GitHub's ruleset endpoints take a repository role as a numeric id, and its REST surface has no route that maps a repository-role name to one: only *organisation* roles can be listed. So the number is what a policy writes, rather than a name octoform would have to translate through a table it cannot verify."
-    },
-    "BypassMode": {
-      "type": "string",
-      "enum": [
-        "always",
-        "pull_request",
-        "exempt"
-      ],
-      "description": "When an actor may bypass a ruleset.\n\n`pull_request` only lets the actor past on a pull request, and GitHub accepts it on branch rulesets only. `exempt` skips the rules entirely and writes no bypass entry to the audit log, so it is the one mode that leaves no trace of having been used."
     },
     "AccessPolicy": {
       "type": "object",

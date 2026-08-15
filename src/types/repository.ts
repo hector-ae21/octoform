@@ -8,6 +8,7 @@ import type {
   PropertyValueType,
   RuleSettings,
   RulesetEnforcement,
+  RulesetRepositories,
   RulesetTarget,
 } from './config.js';
 import type { Resolution, StoredActor } from './identity.js';
@@ -48,6 +49,15 @@ export interface ExistingRuleset {
   enforcement: RulesetEnforcement;
   include: string[];
   exclude: string[];
+  /**
+   * Which repositories the ruleset reaches, for an organisation's.
+   *
+   * Absent on a repository's own ruleset, which reaches the repository it is
+   * on and has no condition saying so. Kept for the same reason the bypass
+   * list is: an update replaces the conditions, so a policy that says nothing
+   * about them must still send back what is there.
+   */
+  repositories?: RulesetRepositories;
   /**
    * Who GitHub currently lets past these rules, by id.
    *
@@ -142,6 +152,10 @@ export interface OrganizationState {
   settings?: Record<string, SettingValue>;
   /** Custom property definitions, by name. */
   properties?: Record<string, ExistingProperty>;
+  /** Rulesets the organisation applies to its repositories. */
+  rulesets?: ExistingRuleset[];
+  /** The names a ruleset has to send as numbers, already looked up. */
+  resolved?: Resolution;
 }
 
 /** A repository invitation that has been sent and not yet answered. */

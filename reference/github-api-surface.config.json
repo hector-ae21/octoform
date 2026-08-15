@@ -409,7 +409,10 @@
         "PATCH /repos/{owner}/{repo}/properties/values",
         "PATCH /orgs/{org}",
         "GET /orgs/{org}/properties/schema",
-        "DELETE /orgs/{org}/properties/schema/{custom_property_name}"
+        "DELETE /orgs/{org}/properties/schema/{custom_property_name}",
+        "GET /orgs/{org}/rulesets/{ruleset_id}",
+        "POST /orgs/{org}/rulesets",
+        "PUT /orgs/{org}/rulesets/{ruleset_id}"
       ]
     },
     "reviewedOperations": [

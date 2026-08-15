@@ -7,6 +7,7 @@ import { REVOKED, grantLevel, invitationLevel } from '../core/access.js';
 import { labelBody, milestoneBody } from '../core/collections.js';
 import { ORGANIZATION_FIELDS } from '../core/organization.js';
 import { batchPropertyValues } from '../core/properties.js';
+import { repositoryConditions } from '../core/organization-rulesets.js';
 import { deletePropertySchema, putPropertySchema, setPropertyValues } from './client.js';
 import type { RuleContext } from '../core/rulesets.js';
 import { rulesetBody } from '../core/rulesets.js';
@@ -20,6 +21,7 @@ import type {
   FilePolicy,
   LabelPolicy,
   MilestonePolicy,
+  OrganizationRulesetPolicy,
   RulesetPolicy,
 } from '../types/index.js';
 
@@ -659,6 +661,7 @@ export async function applyOrganizationChanges(
 
   const settings = changes.filter((change) => ORGANIZATION_FIELDS[change.key] !== undefined);
   const definitions = changes.filter((change) => change.key.startsWith('organization.properties.'));
+  const rulesets = changes.filter((change) => change.key.startsWith('organization.rulesets.'));
 
   const results: AppliedChange[] = [];
 
@@ -687,6 +690,46 @@ export async function applyOrganizationChanges(
           return;
         }
         await putPropertySchema(octokit, owner, payload.property, payload.body ?? {});
+      }),
+    );
+  }
+
+  /**
+   * Rulesets come after the definitions, because one can select repositories
+   * by a property the same run is about to define. The other order would send
+   * a condition naming a property that does not exist yet.
+   */
+  for (const change of rulesets) {
+    const payload = change.payload as
+      | {
+          ruleset: OrganizationRulesetPolicy;
+          id?: number;
+          existing?: ExistingRuleset;
+          context: RuleContext;
+        }
+      | undefined;
+    results.push(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no ruleset to apply');
+        const body = rulesetBody(payload.ruleset, payload.existing, payload.context);
+        body.conditions = {
+          ...(body.conditions as Record<string, unknown>),
+          ...repositoryConditions(payload.ruleset.repositories ?? {}),
+        };
+
+        /**
+         * The routes are held in variables so their typing does not fix the
+         * body's shape here: it is assembled by `rulesetBody` from the policy
+         * and whatever the stored ruleset had, which is the only place that
+         * knows what belongs in it.
+         */
+        if (payload.id === undefined) {
+          const create: string = 'POST /orgs/{org}/rulesets';
+          await octokit.request(create, { org: owner, ...body });
+          return;
+        }
+        const update: string = 'PUT /orgs/{org}/rulesets/{ruleset_id}';
+        await octokit.request(update, { org: owner, ruleset_id: payload.id, ...body });
       }),
     );
   }
