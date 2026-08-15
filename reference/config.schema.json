@@ -128,6 +128,13 @@
             "$ref": "#/definitions/OrganizationRulesetPolicy"
           },
           "description": "Rulesets the organisation applies to repositories it selects.\n\nThe same rules a repository can carry, aimed from above. A repository can neither weaken nor remove one, which is what makes this the level at which a rule is actually a rule rather than a default."
+        },
+        "teams": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CTeamPolicy%3E"
+          },
+          "description": "Teams, by the slug GitHub addresses each one by.\n\nA map rather than a list because a team is referred to by that slug from elsewhere — a child names its parent by it — and a list would make the reference point at a position instead of at a name."
         }
       },
       "additionalProperties": false,
@@ -845,6 +852,60 @@
       ],
       "additionalProperties": false,
       "description": "A custom property a repository must carry for a ruleset to reach it.\n\n`source` distinguishes a property the organisation defined from one GitHub maintains itself, and defaults to the organisation's own — which is the only kind anything else in this configuration can declare."
+    },
+    "Managed<TeamPolicy>": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/TeamPolicy"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "not": {}
+        }
+      ],
+      "description": "A managed setting is tri-state:\n\n  true       enforce it on   false      enforce it off   undefined  not managed at all, leave whatever the repository has\n\n`null` is accepted as an explicit \"stop managing this\", which is how a repository-level entry cancels a policy it would otherwise inherit from its type or from the defaults. Both collapse to `undefined` once resolved."
+    },
+    "TeamPolicy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name. Defaults to the slug it is declared under."
+        },
+        "description": {
+          "type": "string"
+        },
+        "privacy": {
+          "type": "string",
+          "enum": [
+            "secret",
+            "closed"
+          ],
+          "description": "`secret` is visible only to its own members and the owners; `closed` is visible to the whole organisation. A nested team cannot be secret, and neither can a team that has children."
+        },
+        "notifications": {
+          "type": "boolean",
+          "description": "Whether members are notified when the team is mentioned."
+        },
+        "parent": {
+          "type": "string",
+          "description": "Slug of the team this one sits under. Empty lifts it back to the top."
+        },
+        "rename_from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Slugs this team may currently have, for a rename. Without it a renamed team reads as missing, and creating it again would leave two."
+        },
+        "mode": {
+          "$ref": "#/definitions/CollectionMode"
+        }
+      },
+      "additionalProperties": false,
+      "description": "A desired team, declared under the slug GitHub addresses it by.\n\nThe slug is the key rather than a field because it is the handle every endpoint takes and the handle another team names as its parent. `name` is what the team is called, which GitHub re-slugs when it changes — so a rename says which slug the team currently has, the same way a label does."
     },
     "ClassifyConfig": {
       "type": "object",

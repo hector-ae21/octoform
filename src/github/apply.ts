@@ -650,6 +650,12 @@ function describeError(error: unknown): string {
  * Custom property definitions are the exception, and not by preference: each
  * one has its own endpoint. One request each also means one outcome each,
  * which is worth having for an operation that replaces a definition wholesale.
+ *
+ * Teams are the first thing at this level that can depend on another thing at
+ * this level, so they go through the dependency graph rather than a written
+ * order: a child team is attempted after the parent this run is creating, and
+ * a child whose parent failed is blocked instead of sent somewhere that does
+ * not exist.
  */
 export async function applyOrganizationChanges(
   octokit: Octokit,
@@ -662,27 +668,34 @@ export async function applyOrganizationChanges(
   const settings = changes.filter((change) => ORGANIZATION_FIELDS[change.key] !== undefined);
   const definitions = changes.filter((change) => change.key.startsWith('organization.properties.'));
   const rulesets = changes.filter((change) => change.key.startsWith('organization.rulesets.'));
+  const teams = orderByDependency(
+    changes.filter((change) => change.key.startsWith('organization.teams.')),
+  );
 
   const results: AppliedChange[] = [];
+  const failed = new Set<string>();
+  const record = (result: AppliedChange): AppliedChange => {
+    if (result.outcome !== 'applied') failed.add(result.id);
+    results.push(result);
+    return result;
+  };
 
   if (settings.length > 0) {
     const body: Record<string, unknown> = {};
     for (const change of settings) body[ORGANIZATION_FIELDS[change.key] as string] = change.to;
     try {
       await octokit.request('PATCH /orgs/{org}', { org: owner, ...body });
-      results.push(...settings.map((change) => ({ ...change, outcome: 'applied' as const })));
+      for (const change of settings) record({ ...change, outcome: 'applied' });
     } catch (error) {
       const message = describeError(error);
-      results.push(
-        ...settings.map((change) => ({ ...change, outcome: 'failed' as const, error: message })),
-      );
+      for (const change of settings) record({ ...change, outcome: 'failed', error: message });
     }
   }
 
   for (const change of definitions) {
     const payload = change.payload as
       { property: string; body?: Record<string, unknown>; remove?: boolean } | undefined;
-    results.push(
+    record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no property definition to write');
         if (payload.remove) {
@@ -690,6 +703,46 @@ export async function applyOrganizationChanges(
           return;
         }
         await putPropertySchema(octokit, owner, payload.property, payload.body ?? {});
+      }),
+    );
+  }
+
+  /**
+   * Teams are already ordered so a parent comes before its children. A child
+   * whose parent failed is recorded as blocked rather than attempted, which is
+   * the difference between a run that reports what it did and one that reports
+   * an error GitHub raised about a team nobody can see in the plan.
+   */
+  for (const change of teams) {
+    const reason = blockedByPrerequisite(change, failed);
+    if (reason !== undefined) {
+      record({ ...change, outcome: 'blocked', error: reason });
+      continue;
+    }
+
+    const payload = change.payload as
+      { team: string; body?: Record<string, unknown>; remove?: boolean } | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no team to change');
+        if (payload.remove) {
+          await octokit.request('DELETE /orgs/{org}/teams/{team_slug}', {
+            org: owner,
+            team_slug: payload.team,
+          });
+          return;
+        }
+        if (change.operation === 'create') {
+          const create: string = 'POST /orgs/{org}/teams';
+          await octokit.request(create, { org: owner, ...(payload.body ?? {}) });
+          return;
+        }
+        const update: string = 'PATCH /orgs/{org}/teams/{team_slug}';
+        await octokit.request(update, {
+          org: owner,
+          team_slug: payload.team,
+          ...(payload.body ?? {}),
+        });
       }),
     );
   }
@@ -708,7 +761,7 @@ export async function applyOrganizationChanges(
           context: RuleContext;
         }
       | undefined;
-    results.push(
+    record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no ruleset to apply');
         const body = rulesetBody(payload.ruleset, payload.existing, payload.context);

@@ -22,7 +22,8 @@
         "organization-member-policies",
         "organization-profile",
         "organization-property-definitions",
-        "organization-rulesets"
+        "organization-rulesets",
+        "organization-teams"
       ]
     },
     {
@@ -127,6 +128,28 @@
       "capabilityIds": [
         "organization-custom-properties",
         "repository-property-values"
+      ]
+    },
+    {
+      "id": "organization-members-read",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Members",
+      "access": "read",
+      "description": "Reading the organization's teams.",
+      "capabilityIds": [
+        "organization-teams"
+      ]
+    },
+    {
+      "id": "organization-members-write",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Members",
+      "access": "write",
+      "description": "Creating, updating and deleting the organization's teams.",
+      "capabilityIds": [
+        "organization-teams"
       ]
     },
     {
@@ -287,6 +310,17 @@
         "classic-admin-org",
         "classic-repo",
         "organization-custom-properties-admin"
+      ]
+    },
+    {
+      "route": "DELETE /orgs/{org}/teams/{team_slug}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-teams"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
       ]
     },
     {
@@ -481,6 +515,17 @@
         "classic-admin-org",
         "classic-repo",
         "organization-administration-write"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/teams",
+      "access": "read",
+      "capabilityIds": [
+        "organization-teams"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-read"
       ]
     },
     {
@@ -794,6 +839,17 @@
       ]
     },
     {
+      "route": "PATCH /orgs/{org}/teams/{team_slug}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-teams"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
+      ]
+    },
+    {
       "route": "PATCH /repos/{owner}/{repo}",
       "access": "write",
       "capabilityIds": [
@@ -874,6 +930,17 @@
         "classic-admin-org",
         "classic-repo",
         "organization-administration-write"
+      ]
+    },
+    {
+      "route": "POST /orgs/{org}/teams",
+      "access": "write",
+      "capabilityIds": [
+        "organization-teams"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
       ]
     },
     {

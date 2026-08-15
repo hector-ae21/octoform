@@ -10,6 +10,7 @@ import {
   readOrganizationRulesets,
   readPropertyDefinitions,
   readPropertyValues,
+  readTeams,
   resolveOwnerNames,
 } from '../github/client.js';
 import { capability } from '../github/capabilities.js';
@@ -155,6 +156,7 @@ async function readOrganization(
   const rulesets = policy.rulesets?.length
     ? await readOrganizationRulesets(octokit, owner)
     : undefined;
+  const teams = policy.teams ? await readTeams(octokit, owner) : undefined;
   /**
    * The names a ruleset has to send as numbers are looked up once for the
    * whole organisation, so a team named by three rulesets costs one request
@@ -169,6 +171,7 @@ async function readOrganization(
     ...(settings === undefined ? {} : { settings }),
     ...(properties === undefined ? {} : { properties }),
     ...(rulesets === undefined ? {} : { rulesets }),
+    ...(teams === undefined ? {} : { teams }),
     ...(resolved === undefined ? {} : { resolved }),
   };
 }
