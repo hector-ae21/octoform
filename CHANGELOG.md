@@ -9,6 +9,19 @@ a zero major means. Security fixes are always a patch bump. See
 
 ## [Unreleased]
 
+### Added
+
+- A GraphQL transport, normalized against the REST one. A GraphQL response can
+  carry data and errors together under HTTP `200`, so a request reports what
+  arrived alongside what failed instead of letting a partial observation read
+  as a complete one. Failures are reduced to the same vocabulary a REST status
+  carries, an unrecognized error type is treated as unavailable rather than as
+  a confirmed absence, and one failed field narrows to the same `UNREADABLE`
+  sentinel a REST read produces — so the planner blocks it for the same reason
+  and cannot tell which transport observed it. Reads are retried only while
+  every failure is transient and nothing arrived; a mutation is never retried.
+  Internal in this release: no command uses it yet.
+
 ## [0.4.1] - 2026-08-15
 
 Found by running `0.4.0` against real multi-account configurations rather than
