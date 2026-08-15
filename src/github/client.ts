@@ -2,9 +2,11 @@ import { Octokit } from '@octokit/rest';
 import { UNREADABLE } from '../config/sentinels.js';
 import { capability, errorMessage, errorStatus } from './capabilities.js';
 import { graphqlRequest, valueOrUnreadable } from './graphql.js';
+import { readProtection } from '../core/branch-protection.js';
 import { readRuleset } from '../core/rulesets.js';
 import { CHANGED_BY_MUTATION } from '../core/plan.js';
 import type {
+  BranchProtectionSettings,
   CapabilityResult,
   ExistingEnvironment,
   ExistingRuleset,
@@ -417,6 +419,28 @@ async function getRepoStructure(
     structure.rulesets = await listRulesets(octokit, owner, base.name);
   }
 
+  if (policy.branch_protection?.length) {
+    asked = true;
+    const entries = await Promise.all(
+      policy.branch_protection.map(
+        async (declared) =>
+          [
+            declared.branch,
+            await readBranchProtection(octokit, owner, base.name, declared.branch),
+          ] as const,
+      ),
+    );
+    if (entries.every(([, protection]) => protection !== UNREADABLE)) {
+      /** A branch that does not exist is left out, not recorded as unprotected. */
+      structure.branchProtection = Object.fromEntries(
+        entries.filter(
+          (entry): entry is readonly [string, BranchProtectionSettings | null] =>
+            entry[1] !== undefined && entry[1] !== UNREADABLE,
+        ),
+      );
+    }
+  }
+
   if (policy.ensure_branches?.length) {
     asked = true;
     const entries = await Promise.all(
@@ -526,6 +550,39 @@ function reviewerLogins(environment: RawEnvironment): string[] | typeof UNREADAB
   const reviewers = rule?.reviewers ?? [];
   if (reviewers.some((r) => r.type !== 'User')) return UNREADABLE;
   return reviewers.map((r) => r.reviewer?.login).filter((login): login is string => Boolean(login));
+}
+
+/**
+ * Classic protection on one branch.
+ *
+ * `null` is a branch with no protection, which GitHub answers with a 404
+ * carrying the message "Branch not protected" — the same distinction
+ * `detectRulesetCapability` relies on. Any other failure is `UNREADABLE`,
+ * including an unexplained 404, because a branch nobody can see is not a
+ * branch nobody protected. A branch that does not exist is left out of the
+ * map entirely, which the planner reports separately.
+ */
+async function readBranchProtection(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  branch: string,
+): Promise<BranchProtectionSettings | null | typeof UNREADABLE | undefined> {
+  try {
+    const { data } = await octokit.request(
+      'GET /repos/{owner}/{repo}/branches/{branch}/protection',
+      { owner, repo, branch },
+    );
+    return readProtection(data as Parameters<typeof readProtection>[0]);
+  } catch (error) {
+    if (errorStatus(error) !== 404) return UNREADABLE;
+    if (/^branch not protected$/i.test(errorMessage(error).trim())) return null;
+    return (await probe(octokit, 'GET /repos/{owner}/{repo}/branches/{branch}', owner, repo, {
+      branch,
+    })) === false
+      ? undefined
+      : UNREADABLE;
+  }
 }
 
 /**

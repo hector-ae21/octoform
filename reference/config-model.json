@@ -21,6 +21,41 @@
       "merge": "replace"
     },
     {
+      "shape": "BranchProtectionPolicy",
+      "field": "bypass_pull_request_allowances",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "BranchProtectionPolicy",
+      "field": "dismissal_restrictions",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "BranchProtectionPolicy",
+      "field": "required_checks",
+      "merge": "replace"
+    },
+    {
+      "shape": "BranchProtectionPolicy",
+      "field": "restrict_pushes",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "BranchRestrictions",
+      "field": "apps",
+      "merge": "replace"
+    },
+    {
+      "shape": "BranchRestrictions",
+      "field": "teams",
+      "merge": "replace"
+    },
+    {
+      "shape": "BranchRestrictions",
+      "field": "users",
+      "merge": "replace"
+    },
+    {
       "shape": "ClassifyConfig",
       "field": "rules",
       "merge": "ordered-append"
@@ -127,6 +162,11 @@
     },
     {
       "shape": "PolicySet",
+      "field": "branch_protection",
+      "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
       "field": "default_branch",
       "merge": "merge-by-key"
     },
@@ -174,6 +214,11 @@
       "shape": "PolicySet",
       "field": "security",
       "merge": "merge-by-key"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "branch_protection",
+      "merge": "replace"
     },
     {
       "shape": "RepoEntry",

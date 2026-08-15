@@ -32,6 +32,7 @@
         "audit-expectations",
         "authenticated-identity",
         "automated-security-fixes",
+        "branch-protection",
         "code-scanning-default-setup",
         "create-if-missing-files",
         "default-branch-rename",
@@ -106,6 +107,7 @@
       "description": "Administrative settings, rulesets, environments, and security configuration state.",
       "capabilityIds": [
         "automated-security-fixes",
+        "branch-protection",
         "code-scanning-default-setup",
         "deployment-environments",
         "immutable-releases",
@@ -125,6 +127,7 @@
       "description": "Repository settings, branch rename, rulesets, environments, and supported security configuration changes.",
       "capabilityIds": [
         "automated-security-fixes",
+        "branch-protection",
         "code-scanning-default-setup",
         "default-branch-rename",
         "deployment-environments",
@@ -194,6 +197,17 @@
       "access": "write",
       "capabilityIds": [
         "automated-security-fixes"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
+      "access": "write",
+      "capabilityIds": [
+        "branch-protection"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -314,10 +328,12 @@
       "route": "GET /repos/{owner}/{repo}/branches/{branch}",
       "access": "read",
       "capabilityIds": [
+        "branch-protection",
         "ensured-branches"
       ],
       "permissionProfiles": [
         "classic-repo",
+        "repository-administration-read",
         "repository-contents-read"
       ]
     },
@@ -325,6 +341,7 @@
       "route": "GET /repos/{owner}/{repo}/branches/{branch}/protection",
       "access": "read",
       "capabilityIds": [
+        "branch-protection",
         "repository-rulesets"
       ],
       "permissionProfiles": [
@@ -517,6 +534,17 @@
       ]
     },
     {
+      "route": "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
+      "access": "write",
+      "capabilityIds": [
+        "branch-protection"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
       "route": "POST /repos/{owner}/{repo}/branches/{branch}/rename",
       "access": "write",
       "capabilityIds": [
@@ -566,6 +594,17 @@
       "access": "write",
       "capabilityIds": [
         "automated-security-fixes"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/branches/{branch}/protection",
+      "access": "write",
+      "capabilityIds": [
+        "branch-protection"
       ],
       "permissionProfiles": [
         "classic-repo",

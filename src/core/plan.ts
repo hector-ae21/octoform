@@ -1,6 +1,13 @@
 import { isManaged } from '../config/resolve.js';
 import { UNREADABLE } from '../config/sentinels.js';
-import { describeExistingRuleset, describeRuleset, sameRuleset, targetOf } from './rulesets.js';
+import { describeProtection, sameProtection } from './branch-protection.js';
+import {
+  coversBranch,
+  describeExistingRuleset,
+  describeRuleset,
+  sameRuleset,
+  targetOf,
+} from './rulesets.js';
 import { withPrerequisites } from './dependencies.js';
 import type {
   Change,
@@ -27,6 +34,7 @@ type ChangeDraft = Omit<Change, 'id' | 'owner' | 'operation' | 'risk' | 'prerequ
  */
 const RISK_BY_PREFIX: ReadonlyArray<readonly [string, Risk]> = [
   ['default_branch.', 'sensitive'],
+  ['branch_protection.', 'sensitive'],
   ['rulesets.', 'sensitive'],
   ['environments.', 'sensitive'],
   ['repo.visibility', 'sensitive'],
@@ -185,7 +193,9 @@ export function planRepo(
   planRename(repo, policy, drafts);
   planDefaultBranch(repo, policy, drafts);
   planEnsureBranches(repo, policy, drafts);
+  planBranchProtection(repo, policy, drafts);
   planRulesets(repo, policy, options, drafts);
+  refuseOverlappingProtection(repo, policy, drafts);
   planEnvironments(repo, policy, drafts);
   planFiles(repo, policy, drafts);
 
@@ -448,6 +458,105 @@ function planEnsureBranches(repo: RepoDetail, policy: PolicySet, changes: Change
       payload: { branch, from: source },
     });
   }
+}
+
+/**
+ * Classic branch protection, one entry per branch.
+ *
+ * Protection is never removed here: a branch the policy stops mentioning keeps
+ * whatever it has. Taking protection off a branch because a line was deleted
+ * from a file is not a change anybody asked for.
+ */
+function planBranchProtection(repo: RepoDetail, policy: PolicySet, changes: ChangeDraft[]): void {
+  if (!policy.branch_protection?.length) return;
+
+  const existing = repo.structure?.branchProtection;
+
+  for (const declared of policy.branch_protection) {
+    const key = `branch_protection.${declared.branch}`;
+    if (existing === undefined) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: UNREADABLE,
+        to: describeProtection(declared),
+        blocked: 'could not read the current branch protection',
+      });
+      continue;
+    }
+
+    const current = existing[declared.branch];
+    if (current === undefined) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: null,
+        to: describeProtection(declared),
+        blocked: `there is no branch called "${declared.branch}" to protect`,
+      });
+      continue;
+    }
+    if (sameProtection(current, declared)) continue;
+
+    changes.push({
+      repo: repo.name,
+      key,
+      from: current === null ? null : describeProtection(current),
+      to: describeProtection(declared),
+      payload: { protection: declared, existing: current },
+    });
+  }
+}
+
+/**
+ * Refuse to govern one branch through both classic protection and a ruleset.
+ *
+ * GitHub applies both, and the stricter of the two wins per rule, so the
+ * effective protection is neither of the two things the file says. Worse, each
+ * run would report the half it is looking at as correct. Both sides are
+ * blocked rather than one, because there is no basis for deciding which of the
+ * two the author meant.
+ */
+function refuseOverlappingProtection(
+  repo: RepoDetail,
+  policy: PolicySet,
+  changes: ChangeDraft[],
+): void {
+  if (!policy.branch_protection?.length || !policy.rulesets?.length) return;
+
+  for (const protection of policy.branch_protection) {
+    for (const ruleset of policy.rulesets) {
+      const target = targetOf(ruleset);
+      if (target?.target !== 'branch') continue;
+      if (!coversBranch(target.include, protection.branch, repo.default_branch)) continue;
+
+      const contested = `both govern "${protection.branch}"; GitHub applies both and the stricter wins per rule, so neither block describes what is enforced`;
+      block(
+        changes,
+        repo.name,
+        `branch_protection.${protection.branch}`,
+        `the ruleset "${ruleset.name}" ${contested}`,
+      );
+      block(changes, repo.name, `rulesets.${ruleset.name}`, `branch_protection ${contested}`);
+    }
+  }
+}
+
+/**
+ * Mark a change blocked, recording the refusal even when nothing was planned
+ * for that key.
+ *
+ * A ruleset that already matches produces no change, and a conflict that only
+ * showed up when something happened to differ would be a conflict nobody was
+ * told about on the runs where it mattered least.
+ */
+function block(changes: ChangeDraft[], repo: string, key: string, reason: string): void {
+  const planned = changes.find((change) => change.key === key);
+  if (planned) {
+    planned.blocked = reason;
+    return;
+  }
+  changes.push({ repo, key, from: null, to: 'left as it is', blocked: reason });
 }
 
 function planRulesets(

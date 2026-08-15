@@ -381,7 +381,10 @@
       "0.5.0": [
         "GET /repos/{owner}/{repo}/immutable-releases",
         "PUT /repos/{owner}/{repo}/immutable-releases",
-        "DELETE /repos/{owner}/{repo}/immutable-releases"
+        "DELETE /repos/{owner}/{repo}/immutable-releases",
+        "PUT /repos/{owner}/{repo}/branches/{branch}/protection",
+        "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
+        "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures"
       ]
     },
     "reviewedOperations": [

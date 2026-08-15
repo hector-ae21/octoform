@@ -2,9 +2,12 @@ import { readFileSync } from 'node:fs';
 import type { Octokit } from '@octokit/rest';
 import { graphqlRequest } from './graphql.js';
 import { blockedByPrerequisite, orderByDependency } from '../core/dependencies.js';
+import { protectionBody } from '../core/branch-protection.js';
 import { rulesetBody } from '../core/rulesets.js';
 import type {
   AppliedChange,
+  BranchProtectionPolicy,
+  BranchProtectionSettings,
   Change,
   EnvironmentPolicy,
   ExistingRuleset,
@@ -274,6 +277,36 @@ export async function applyRepoChanges(
           environment_name: payload.environment.name,
           reviewers,
         });
+      }),
+    );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('branch_protection.'))) {
+    if (stopped(change)) continue;
+    const payload = change.payload as
+      | { protection: BranchProtectionPolicy; existing?: BranchProtectionSettings | null }
+      | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no protection to apply');
+        const route: string = 'PUT /repos/{owner}/{repo}/branches/{branch}/protection';
+        await octokit.request(route, {
+          owner,
+          repo,
+          branch: payload.protection.branch,
+          ...protectionBody(payload.protection, payload.existing),
+        });
+        /**
+         * Required signatures is the one protection with an endpoint of its
+         * own, and it is left alone unless the policy says something: sending
+         * a `DELETE` for an undeclared key would turn silence into a removal.
+         */
+        const signatures = payload.protection.require_signatures;
+        if (signatures === undefined) return;
+        await octokit.request(
+          `${signatures ? 'POST' : 'DELETE'} /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures`,
+          { owner, repo, branch: payload.protection.branch },
+        );
       }),
     );
   }

@@ -226,6 +226,12 @@
             "type": "string"
           }
         },
+        "branch_protection": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BranchProtectionPolicy"
+          }
+        },
         "rulesets": {
           "type": "array",
           "items": {
@@ -613,6 +619,110 @@
       "additionalProperties": false,
       "description": "Desired default-branch name and guarded rename sources."
     },
+    "BranchProtectionPolicy": {
+      "type": "object",
+      "properties": {
+        "required_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "strict_required_checks": {
+          "type": "boolean"
+        },
+        "enforce_admins": {
+          "type": "boolean",
+          "description": "Apply every rule here to administrators too."
+        },
+        "require_pull_request": {
+          "type": "boolean",
+          "description": "Require a pull request. The review keys below configure it and imply it."
+        },
+        "required_approvals": {
+          "type": "number"
+        },
+        "dismiss_stale_reviews": {
+          "type": "boolean"
+        },
+        "require_code_owner_review": {
+          "type": "boolean"
+        },
+        "require_last_push_approval": {
+          "type": "boolean"
+        },
+        "dismissal_restrictions": {
+          "$ref": "#/definitions/BranchRestrictions",
+          "description": "Who may dismiss a review."
+        },
+        "bypass_pull_request_allowances": {
+          "$ref": "#/definitions/BranchRestrictions",
+          "description": "Who may merge without the required reviews."
+        },
+        "restrict_pushes": {
+          "$ref": "#/definitions/BranchRestrictions",
+          "description": "Who may push at all. Organisation repositories only."
+        },
+        "require_linear_history": {
+          "type": "boolean"
+        },
+        "allow_force_pushes": {
+          "type": "boolean"
+        },
+        "allow_deletions": {
+          "type": "boolean"
+        },
+        "block_creations": {
+          "type": "boolean"
+        },
+        "require_conversation_resolution": {
+          "type": "boolean"
+        },
+        "lock_branch": {
+          "type": "boolean",
+          "description": "Make the branch read-only, for everyone."
+        },
+        "allow_fork_syncing": {
+          "type": "boolean"
+        },
+        "require_signatures": {
+          "type": "boolean"
+        },
+        "branch": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "branch"
+      ],
+      "additionalProperties": false,
+      "description": "Classic branch protection for one branch, named."
+    },
+    "BranchRestrictions": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "apps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Who a branch-protection restriction names.\n\nUsers are logins, teams are slugs and apps are slugs — GitHub's protection endpoint takes them by name rather than by id, unlike its ruleset bypass actors, so nothing here has to be resolved before it can be sent."
+    },
     "RulesetPolicy": {
       "type": "object",
       "properties": {
@@ -983,6 +1093,12 @@
           "type": "array",
           "items": {
             "type": "string"
+          }
+        },
+        "branch_protection": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BranchProtectionPolicy"
           }
         },
         "rulesets": {

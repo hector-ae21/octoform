@@ -1,7 +1,12 @@
 /** The shape of a repository as octoform observes and reconciles it. */
 
 import type { UNREADABLE } from '../config/sentinels.js';
-import type { RuleSettings, RulesetEnforcement, RulesetTarget } from './config.js';
+import type {
+  BranchProtectionSettings,
+  RuleSettings,
+  RulesetEnforcement,
+  RulesetTarget,
+} from './config.js';
 
 /**
  * Whether `owner` turned out to be an organisation or a personal account.
@@ -81,6 +86,12 @@ export interface RepoStructure {
   /** Environments that exist, each with its current required reviewers. */
   environments?: ExistingEnvironment[];
   rulesets?: ExistingRuleset[];
+  /**
+   * Classic protection by branch, for the branches a policy names. `null` is a
+   * branch that exists with no protection on it, which is a different answer
+   * from the whole map being absent because a read failed.
+   */
+  branchProtection?: Record<string, BranchProtectionSettings | null>;
   /** Existence state by path for the paths named by a `files` policy. */
   files?: Record<string, boolean>;
   /** Existence state by branch for the branches named by `ensure_branches`. */

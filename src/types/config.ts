@@ -275,6 +275,62 @@ export interface RulesetPolicy extends RuleSettings {
   enforcement?: RulesetEnforcement;
 }
 
+/**
+ * Who a branch-protection restriction names.
+ *
+ * Users are logins, teams are slugs and apps are slugs — GitHub's protection
+ * endpoint takes them by name rather than by id, unlike its ruleset bypass
+ * actors, so nothing here has to be resolved before it can be sent.
+ */
+export interface BranchRestrictions {
+  users?: string[];
+  teams?: string[];
+  apps?: string[];
+}
+
+/**
+ * Everything classic branch protection can enforce on one branch.
+ *
+ * GitHub's own model spells several of these as permissions rather than
+ * restrictions — `allow_force_pushes` rather than `block_force_push`, which is
+ * how the ruleset model spells the same idea. Both spellings are kept as their
+ * own API uses them: a file that governs a branch through protection and a
+ * file that governs it through a ruleset are talking to different features,
+ * and making them look identical would hide which one is in force.
+ */
+export interface BranchProtectionSettings {
+  required_checks?: string[];
+  strict_required_checks?: boolean;
+  /** Apply every rule here to administrators too. */
+  enforce_admins?: boolean;
+  /** Require a pull request. The review keys below configure it and imply it. */
+  require_pull_request?: boolean;
+  required_approvals?: number;
+  dismiss_stale_reviews?: boolean;
+  require_code_owner_review?: boolean;
+  require_last_push_approval?: boolean;
+  /** Who may dismiss a review. */
+  dismissal_restrictions?: BranchRestrictions;
+  /** Who may merge without the required reviews. */
+  bypass_pull_request_allowances?: BranchRestrictions;
+  /** Who may push at all. Organisation repositories only. */
+  restrict_pushes?: BranchRestrictions;
+  require_linear_history?: boolean;
+  allow_force_pushes?: boolean;
+  allow_deletions?: boolean;
+  block_creations?: boolean;
+  require_conversation_resolution?: boolean;
+  /** Make the branch read-only, for everyone. */
+  lock_branch?: boolean;
+  allow_fork_syncing?: boolean;
+  require_signatures?: boolean;
+}
+
+/** Classic branch protection for one branch, named. */
+export interface BranchProtectionPolicy extends BranchProtectionSettings {
+  branch: string;
+}
+
 /** Desired deployment environment and its user reviewers. */
 export interface EnvironmentPolicy {
   name: string;
@@ -316,6 +372,7 @@ export interface PolicySet {
   repo?: RepoPolicy;
   default_branch?: DefaultBranchPolicy;
   ensure_branches?: string[];
+  branch_protection?: BranchProtectionPolicy[];
   rulesets?: RulesetPolicy[];
   environments?: EnvironmentPolicy[];
   files?: FilePolicy[];
