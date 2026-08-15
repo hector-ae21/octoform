@@ -523,6 +523,49 @@
       ]
     },
     {
+      "id": "repository-collaborators",
+      "area": "access",
+      "support": "supported",
+      "configPaths": [
+        "access.users"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization",
+        "personal"
+      ],
+      "readRoutes": [
+        "GET /repos/{owner}/{repo}/collaborators",
+        "GET /repos/{owner}/{repo}/invitations"
+      ],
+      "writeRoutes": [
+        "DELETE /repos/{owner}/{repo}/collaborators/{username}",
+        "DELETE /repos/{owner}/{repo}/invitations/{invitation_id}",
+        "PATCH /repos/{owner}/{repo}/invitations/{invitation_id}",
+        "PUT /repos/{owner}/{repo}/collaborators/{username}"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-repo",
+        "repository-administration-read"
+      ],
+      "writePermissions": [
+        "classic-repo",
+        "repository-administration-write"
+      ],
+      "limitations": [
+        "Only direct collaborators are managed; access reaching the repository through a team or an organization base permission is left alone.",
+        "Granting access to someone who is not a collaborator yet creates an invitation, so the change reports an invitation rather than a grant.",
+        "A pending invitation is amended rather than re-sent, and cannot be amended to a custom repository role.",
+        "A personal repository grants collaborators write access only; any other level is blocked.",
+        "The account octoform authenticates as cannot revoke its own admin access.",
+        "A login the policy does not name is never revoked; revoking is spelled none."
+      ]
+    },
+    {
       "id": "repository-discussions",
       "area": "repository",
       "support": "supported",
@@ -919,6 +962,41 @@
       ],
       "limitations": [
         "An omitted security_and_analysis field is unreadable and blocks mutation instead of being treated as disabled."
+      ]
+    },
+    {
+      "id": "team-repository-access",
+      "area": "access",
+      "support": "supported",
+      "configPaths": [
+        "access.teams"
+      ],
+      "commands": [
+        "apply",
+        "plan"
+      ],
+      "ownerKinds": [
+        "organization"
+      ],
+      "readRoutes": [
+        "GET /repos/{owner}/{repo}/teams"
+      ],
+      "writeRoutes": [
+        "DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}",
+        "PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}"
+      ],
+      "writeMutations": [],
+      "readPermissions": [
+        "classic-repo",
+        "repository-administration-read"
+      ],
+      "writePermissions": [
+        "classic-repo",
+        "repository-administration-write"
+      ],
+      "limitations": [
+        "Blocked on a personal repository, which has no teams.",
+        "A team the policy does not name keeps whatever access it has; revoking is spelled none."
       ]
     },
     {

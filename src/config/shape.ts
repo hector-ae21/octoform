@@ -32,6 +32,11 @@ function objectList(of: () => ObjectShape, merge: MergeSemantics = 'replace'): F
   return { shape: { kind: 'object-list', of }, merge };
 }
 
+const mapOfScalars: Field = {
+  shape: { kind: 'map', of: () => ({ kind: 'scalar' }) },
+  merge: 'merge-by-key',
+};
+
 function mapOfObjects(of: () => ObjectShape): Field {
   return { shape: { kind: 'map', of: () => ({ kind: 'object', of }) }, merge: 'merge-by-key' };
 }
@@ -243,6 +248,11 @@ const BRANCH_PROTECTION_POLICY: ObjectShape = {
   },
 };
 
+const ACCESS_POLICY: ObjectShape = {
+  name: 'AccessPolicy',
+  fields: { users: mapOfScalars, teams: mapOfScalars },
+};
+
 const ENVIRONMENT_POLICY: ObjectShape = {
   name: 'EnvironmentPolicy',
   fields: { name: scalar, reviewers: scalarList },
@@ -266,6 +276,7 @@ const POLICY_SET: ObjectShape = {
     ensure_branches: scalarList,
     branch_protection: objectList(() => BRANCH_PROTECTION_POLICY),
     rulesets: objectList(() => RULESET_POLICY),
+    access: object(() => ACCESS_POLICY),
     environments: objectList(() => ENVIRONMENT_POLICY),
     files: objectList(() => FILE_POLICY),
   },

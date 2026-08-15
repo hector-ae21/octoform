@@ -3,6 +3,7 @@ import type { Octokit } from '@octokit/rest';
 import { graphqlRequest } from './graphql.js';
 import { blockedByPrerequisite, orderByDependency } from '../core/dependencies.js';
 import { protectionBody } from '../core/branch-protection.js';
+import { REVOKED, grantLevel, invitationLevel } from '../core/access.js';
 import type { RuleContext } from '../core/rulesets.js';
 import { rulesetBody } from '../core/rulesets.js';
 import type {
@@ -260,6 +261,83 @@ export async function applyRepoChanges(
           repo,
           ref: `refs/heads/${payload.branch}`,
           sha: (data as { object: { sha: string } }).object.sha,
+        });
+      }),
+    );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('access.users.'))) {
+    if (stopped(change)) continue;
+    const payload = change.payload as
+      { login: string; level: string; invitation?: number } | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no collaborator to change');
+        const { login, level, invitation } = payload;
+
+        if (level === REVOKED) {
+          /**
+           * An invitation is withdrawn through its own endpoint; removing the
+           * collaborator would not touch one that has never been accepted.
+           */
+          if (invitation !== undefined) {
+            await octokit.request('DELETE /repos/{owner}/{repo}/invitations/{invitation_id}', {
+              owner,
+              repo,
+              invitation_id: invitation,
+            });
+            return;
+          }
+          await octokit.request('DELETE /repos/{owner}/{repo}/collaborators/{username}', {
+            owner,
+            repo,
+            username: login,
+          });
+          return;
+        }
+
+        /**
+         * Amending the pending invitation rather than re-sending it: the
+         * second one would be refused, and cancelling to re-invite would throw
+         * away an invitation somebody may be about to accept.
+         */
+        if (invitation !== undefined) {
+          const amend: string = 'PATCH /repos/{owner}/{repo}/invitations/{invitation_id}';
+          await octokit.request(amend, {
+            owner,
+            repo,
+            invitation_id: invitation,
+            permissions: invitationLevel(level),
+          });
+          return;
+        }
+
+        await octokit.request('PUT /repos/{owner}/{repo}/collaborators/{username}', {
+          owner,
+          repo,
+          username: login,
+          permission: grantLevel(level),
+        });
+      }),
+    );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('access.teams.'))) {
+    if (stopped(change)) continue;
+    const payload = change.payload as { slug: string; level: string } | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no team grant to change');
+        const route =
+          payload.level === REVOKED
+            ? 'DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}'
+            : 'PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}';
+        await octokit.request(route, {
+          org: owner,
+          team_slug: payload.slug,
+          owner,
+          repo,
+          ...(payload.level === REVOKED ? {} : { permission: grantLevel(payload.level) }),
         });
       }),
     );

@@ -1,6 +1,7 @@
 import type { Octokit } from '@octokit/rest';
 import { isExcluded, resolvePolicy } from '../config/resolve.js';
 import {
+  authenticatedLogin,
   detectOwnerKind,
   detectRulesetCapability,
   getRepoDetail,
@@ -31,6 +32,11 @@ export async function plan(
   opts?: { quiet?: boolean },
 ): Promise<PlanResult> {
   const kind = await detectOwnerKind(octokit, scope.owner);
+  /**
+   * Read once for the whole run: every repository asks the same question of
+   * it, and the answer cannot change while the run is in progress.
+   */
+  const actor = await authenticatedLogin(octokit);
   const all = await listRepos(octokit, scope.owner, kind);
 
   const property = scope.classify?.property;
@@ -73,7 +79,11 @@ export async function plan(
       const detail = await getRepoDetail(octokit, scope.owner, repo, policy);
       return {
         repo: repo.name,
-        changes: planRepo(scope.owner, detail, policy, { rulesetCapability, ownerKind: kind }),
+        changes: planRepo(scope.owner, detail, policy, {
+          rulesetCapability,
+          ownerKind: kind,
+          ...(actor === undefined ? {} : { actor }),
+        }),
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

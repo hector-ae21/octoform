@@ -44,6 +44,7 @@
         "owner-kind",
         "private-vulnerability-reporting",
         "repository-classification",
+        "repository-collaborators",
         "repository-discussions",
         "repository-features",
         "repository-graphql-settings",
@@ -55,6 +56,7 @@
         "ruleset-bypass-actors",
         "ruleset-required-workflows",
         "secret-scanning-settings",
+        "team-repository-access",
         "vulnerability-alerts"
       ]
     },
@@ -114,11 +116,13 @@
         "deployment-environments",
         "immutable-releases",
         "private-vulnerability-reporting",
+        "repository-collaborators",
         "repository-graphql-settings",
         "repository-rulesets",
         "ruleset-bypass-actors",
         "ruleset-required-workflows",
         "secret-scanning-settings",
+        "team-repository-access",
         "vulnerability-alerts"
       ]
     },
@@ -138,6 +142,7 @@
         "immutable-releases",
         "merge-settings",
         "private-vulnerability-reporting",
+        "repository-collaborators",
         "repository-discussions",
         "repository-features",
         "repository-graphql-settings",
@@ -148,6 +153,7 @@
         "ruleset-bypass-actors",
         "ruleset-required-workflows",
         "secret-scanning-settings",
+        "team-repository-access",
         "vulnerability-alerts"
       ]
     },
@@ -199,6 +205,17 @@
   ],
   "operations": [
     {
+      "route": "DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}",
+      "access": "write",
+      "capabilityIds": [
+        "team-repository-access"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
       "route": "DELETE /repos/{owner}/{repo}/automated-security-fixes",
       "access": "write",
       "capabilityIds": [
@@ -221,10 +238,32 @@
       ]
     },
     {
+      "route": "DELETE /repos/{owner}/{repo}/collaborators/{username}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-collaborators"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
       "route": "DELETE /repos/{owner}/{repo}/immutable-releases",
       "access": "write",
       "capabilityIds": [
         "immutable-releases"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/invitations/{invitation_id}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-collaborators"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -390,6 +429,17 @@
       ]
     },
     {
+      "route": "GET /repos/{owner}/{repo}/collaborators",
+      "access": "read",
+      "capabilityIds": [
+        "repository-collaborators"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
       "route": "GET /repos/{owner}/{repo}/contents/{path}",
       "access": "read",
       "capabilityIds": [
@@ -437,6 +487,17 @@
       ]
     },
     {
+      "route": "GET /repos/{owner}/{repo}/invitations",
+      "access": "read",
+      "capabilityIds": [
+        "repository-collaborators"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
       "route": "GET /repos/{owner}/{repo}/private-vulnerability-reporting",
       "access": "read",
       "capabilityIds": [
@@ -465,6 +526,17 @@
         "repository-rulesets",
         "ruleset-bypass-actors",
         "ruleset-required-workflows"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/teams",
+      "access": "read",
+      "capabilityIds": [
+        "team-repository-access"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -566,6 +638,17 @@
       ]
     },
     {
+      "route": "PATCH /repos/{owner}/{repo}/invitations/{invitation_id}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-collaborators"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
       "route": "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
       "access": "write",
       "capabilityIds": [
@@ -624,6 +707,17 @@
       ]
     },
     {
+      "route": "PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}",
+      "access": "write",
+      "capabilityIds": [
+        "team-repository-access"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
       "route": "PUT /repos/{owner}/{repo}/automated-security-fixes",
       "access": "write",
       "capabilityIds": [
@@ -639,6 +733,17 @@
       "access": "write",
       "capabilityIds": [
         "branch-protection"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/collaborators/{username}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-collaborators"
       ],
       "permissionProfiles": [
         "classic-repo",

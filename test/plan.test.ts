@@ -807,3 +807,147 @@ test('changing who bypasses is a change on its own, with nothing else touched', 
   assert.equal(change?.blocked, undefined);
   assert.match(String(change?.to), /bypass: user:hector/u);
 });
+
+test('a collaborator nobody wrote down is not a difference to correct', () => {
+  const state = repo({
+    structure: { collaborators: { stranger: 'admin' }, invitations: {} },
+  });
+  const policy: PolicySet = { access: { users: { hector: 'admin' } } };
+  const changes = planned(state, policy, OPTIONS);
+
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0]?.key, 'access.users.hector');
+});
+
+test('a level held under GitHub other name for it is not a change', () => {
+  const state = repo({ structure: { collaborators: { hector: 'write' }, invitations: {} } });
+  const policy: PolicySet = { access: { users: { hector: 'push' } } };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('a pending invitation for the level asked for is not planned again', () => {
+  const state = repo({
+    structure: { collaborators: {}, invitations: { hector: { id: 3, level: 'write' } } },
+  });
+  const policy: PolicySet = { access: { users: { hector: 'write' } } };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('a pending invitation offering the wrong level is amended, not sent again', () => {
+  const state = repo({
+    structure: { collaborators: {}, invitations: { hector: { id: 3, level: 'read' } } },
+  });
+  const policy: PolicySet = { access: { users: { hector: 'admin' } } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.from, 'invited as read');
+  assert.deepEqual(change?.payload, { login: 'hector', level: 'admin', invitation: 3 });
+});
+
+test('a custom role cannot be reached by amending an invitation, and says so', () => {
+  const state = repo({
+    structure: { collaborators: {}, invitations: { hector: { id: 3, level: 'read' } } },
+  });
+  const policy: PolicySet = { access: { users: { hector: 'security-reviewer' } } };
+
+  assert.match(String(planned(state, policy, OPTIONS)[0]?.blocked), /answered or withdrawn/u);
+});
+
+test('granting and revoking are attach and detach, and revoking is destructive', () => {
+  const state = repo({ structure: { collaborators: { leaver: 'write' }, invitations: {} } });
+  const policy: PolicySet = { access: { users: { joiner: 'read', leaver: 'none' } } };
+  const changes = planned(state, policy, OPTIONS);
+  const joiner = changes.find((c) => c.key === 'access.users.joiner');
+  const leaver = changes.find((c) => c.key === 'access.users.leaver');
+
+  assert.equal(joiner?.operation, 'attach');
+  assert.equal(joiner?.risk, 'sensitive');
+  assert.equal(leaver?.operation, 'detach');
+  assert.equal(leaver?.risk, 'destructive');
+});
+
+test('revoking somebody who has no access and no invitation is not a change', () => {
+  const state = repo({ structure: { collaborators: {}, invitations: {} } });
+  const policy: PolicySet = { access: { users: { nobody: 'none' } } };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('revoking a pending invitation withdraws it rather than removing a collaborator', () => {
+  const state = repo({
+    structure: { collaborators: {}, invitations: { hector: { id: 3, level: 'read' } } },
+  });
+  const policy: PolicySet = { access: { users: { hector: 'none' } } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.deepEqual(change?.payload, { login: 'hector', level: 'none', invitation: 3 });
+});
+
+test('the account octoform runs as cannot revoke its own admin access', () => {
+  const state = repo({ structure: { collaborators: { hector: 'admin' }, invitations: {} } });
+  const policy: PolicySet = { access: { users: { hector: 'none' } } };
+  const [change] = planned(state, policy, {
+    rulesetCapability: SUPPORTED,
+    ownerKind: 'org',
+    actor: 'hector',
+  });
+
+  assert.match(String(change?.blocked), /lock the run out/u);
+});
+
+test('a personal repository has one collaborator level and cannot be asked for another', () => {
+  const state = repo({ structure: { collaborators: {}, invitations: {} } });
+  const options: PlanOptions = { rulesetCapability: SUPPORTED, ownerKind: 'user' };
+
+  assert.match(
+    String(planned(state, { access: { users: { hector: 'admin' } } }, options)[0]?.blocked),
+    /grants collaborators write access and nothing else/u,
+  );
+  assert.equal(
+    planned(state, { access: { users: { hector: 'push' } } }, options)[0]?.blocked,
+    undefined,
+    'write itself is fine',
+  );
+});
+
+test('a team cannot be granted access to a personal repository', () => {
+  const state = repo({ structure: { teamAccess: {} } });
+  const [change] = planned(
+    state,
+    { access: { teams: { reviewers: 'write' } } },
+    {
+      rulesetCapability: SUPPORTED,
+      ownerKind: 'user',
+    },
+  );
+
+  assert.match(String(change?.blocked), /no teams on a personal repository/u);
+});
+
+test('a team grant is compared and corrected like any other level', () => {
+  const state = repo({ structure: { teamAccess: { reviewers: 'read' } } });
+  const policy: PolicySet = { access: { teams: { reviewers: 'maintain' } } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.deepEqual(
+    { from: change?.from, to: change?.to, payload: change?.payload },
+    { from: 'read', to: 'maintain', payload: { slug: 'reviewers', level: 'maintain' } },
+  );
+});
+
+test('access that could not be read blocks rather than being planned over', () => {
+  const policy: PolicySet = { access: { users: { hector: 'admin' } } };
+
+  assert.match(
+    String(planned(repo({ structure: {} }), policy, OPTIONS)[0]?.blocked),
+    /could not read who already has access/u,
+  );
+});
+
+test('a cancelled access entry is not a change', () => {
+  const state = repo({ structure: { collaborators: {}, invitations: {} } });
+
+  assert.deepEqual(planned(state, { access: { users: { hector: null } } }, OPTIONS), []);
+});

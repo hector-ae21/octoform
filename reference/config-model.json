@@ -11,6 +11,16 @@
   ],
   "semantics": [
     {
+      "shape": "AccessPolicy",
+      "field": "teams",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "AccessPolicy",
+      "field": "users",
+      "merge": "merge-by-key"
+    },
+    {
       "shape": "AuditConfig",
       "field": "require_description",
       "merge": "replace"
@@ -162,6 +172,11 @@
     },
     {
       "shape": "PolicySet",
+      "field": "access",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "PolicySet",
       "field": "branch_protection",
       "merge": "replace"
     },
@@ -213,6 +228,11 @@
     {
       "shape": "PolicySet",
       "field": "security",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "access",
       "merge": "merge-by-key"
     },
     {

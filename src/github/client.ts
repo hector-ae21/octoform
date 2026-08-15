@@ -4,12 +4,14 @@ import { capability, errorMessage, errorStatus } from './capabilities.js';
 import { graphqlRequest, valueOrUnreadable } from './graphql.js';
 import { readProtection } from '../core/branch-protection.js';
 import { readRuleset } from '../core/rulesets.js';
+import { canonicalLevel, readLevel } from '../core/access.js';
 import { identityKey, namesToResolve } from '../core/identity.js';
 import { CHANGED_BY_MUTATION } from '../core/plan.js';
 import type {
   BranchProtectionSettings,
   CapabilityResult,
   ExistingEnvironment,
+  ExistingInvitation,
   ExistingRuleset,
   OwnerDiscovery,
   OwnerKind,
@@ -424,6 +426,20 @@ async function getRepoStructure(
     if (names.length > 0) structure.resolved = await resolveIdentities(octokit, owner, names);
   }
 
+  if (policy.access?.users) {
+    asked = true;
+    const direct = await listCollaborators(octokit, owner, base.name);
+    if (direct !== undefined) structure.collaborators = direct;
+    const invitations = await listInvitations(octokit, owner, base.name);
+    if (invitations !== undefined) structure.invitations = invitations;
+  }
+
+  if (policy.access?.teams) {
+    asked = true;
+    const teams = await listRepositoryTeams(octokit, owner, base.name);
+    if (teams !== undefined) structure.teamAccess = teams;
+  }
+
   if (policy.branch_protection?.length) {
     asked = true;
     const entries = await Promise.all(
@@ -618,6 +634,104 @@ async function listRulesets(
       }),
     );
     return full;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Collaborators granted access on this repository itself, by login.
+ *
+ * `affiliation: direct` is the whole point of the call. The default listing
+ * also returns everyone who reaches the repository through a team or the
+ * organisation's base permission, and a policy reconciled against that would
+ * offer to revoke grants that were never made here — a request GitHub accepts
+ * and that changes nothing, reported as though it had.
+ */
+async function listCollaborators(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, string> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /repos/{owner}/{repo}/collaborators', {
+      owner,
+      repo,
+      affiliation: 'direct',
+      per_page: 100,
+    });
+    const held: Record<string, string> = {};
+    for (const entry of pages as Array<{
+      login?: string;
+      role_name?: string;
+      permissions?: Record<string, boolean>;
+    }>) {
+      const level = readLevel(entry.role_name, entry.permissions);
+      if (entry.login && level) held[entry.login] = level;
+    }
+    return held;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Invitations sent and not yet answered, by the login they were sent to.
+ *
+ * Adding a collaborator who is not one already creates one of these rather
+ * than access. Reading them is what stops a plan re-sending the same
+ * invitation on every run until somebody happens to accept it.
+ */
+async function listInvitations(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, ExistingInvitation> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /repos/{owner}/{repo}/invitations', {
+      owner,
+      repo,
+      per_page: 100,
+    });
+    const pending: Record<string, ExistingInvitation> = {};
+    for (const entry of pages as Array<{
+      id?: number;
+      permissions?: string;
+      invitee?: { login?: string } | null;
+    }>) {
+      const login = entry.invitee?.login;
+      if (login && entry.id !== undefined) {
+        pending[login] = { id: entry.id, level: canonicalLevel(entry.permissions ?? '') };
+      }
+    }
+    return pending;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Teams with access to this repository, by slug. */
+async function listRepositoryTeams(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, string> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /repos/{owner}/{repo}/teams', {
+      owner,
+      repo,
+      per_page: 100,
+    });
+    const held: Record<string, string> = {};
+    for (const entry of pages as Array<{
+      slug?: string;
+      permission?: string;
+      permissions?: Record<string, boolean>;
+    }>) {
+      const level = readLevel(entry.permission, entry.permissions);
+      if (entry.slug && level) held[entry.slug] = level;
+    }
+    return held;
   } catch {
     return undefined;
   }

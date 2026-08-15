@@ -1,5 +1,6 @@
 import { isManaged } from '../config/resolve.js';
 import { UNREADABLE } from '../config/sentinels.js';
+import { REVOKED, canonicalLevel, isBuiltIn, sameLevel } from './access.js';
 import { describeProtection, sameProtection } from './branch-protection.js';
 import { bypassProblems, workflowProblems } from './identity.js';
 import type { RuleContext } from './rulesets.js';
@@ -42,16 +43,25 @@ const RISK_BY_PREFIX: ReadonlyArray<readonly [string, Risk]> = [
   ['repo.visibility', 'sensitive'],
   ['repo.archived', 'sensitive'],
   ['repo.name', 'sensitive'],
+  ['access.', 'sensitive'],
 ];
 
-function riskFor(key: string): Risk {
-  return RISK_BY_PREFIX.find(([prefix]) => key.startsWith(prefix))?.[1] ?? 'normal';
+/**
+ * Revoking access is the one change whose risk depends on its value rather
+ * than on its key: granting somebody `read` and taking away their `admin` are
+ * the same setting, and only one of them can lock a person out of work they
+ * were in the middle of.
+ */
+function riskFor(draft: ChangeDraft): Risk {
+  if (draft.key.startsWith('access.') && draft.to === REVOKED) return 'destructive';
+  return RISK_BY_PREFIX.find(([prefix]) => draft.key.startsWith(prefix))?.[1] ?? 'normal';
 }
 
 /**
- * `create` when nothing existed to compare against, `update` otherwise. Every
- * change this planner produces today is one or the other; `attach`, `detach`
- * and `delete` have no producer yet.
+ * `create` when nothing existed to compare against, `update` otherwise, and
+ * `attach`/`detach` for access — where the person and the team exist either
+ * way and what changes is whether they are linked to this repository. `delete`
+ * still has no producer.
  *
  * "Nothing existed" covers both a value that is explicitly unset and one the
  * observation never returned at all. The two are kept apart everywhere it
@@ -59,6 +69,7 @@ function riskFor(key: string): Risk {
  * neither is a thing to update.
  */
 function operationFor(draft: ChangeDraft): OperationKind {
+  if (draft.key.startsWith('access.')) return draft.to === REVOKED ? 'detach' : 'attach';
   return draft.from === null || draft.from === undefined ? 'create' : 'update';
 }
 
@@ -198,6 +209,7 @@ export function planRepo(
   planBranchProtection(repo, policy, drafts);
   planRulesets(owner, repo, policy, options, drafts);
   refuseOverlappingProtection(repo, policy, drafts);
+  planAccess(repo, policy, options, drafts);
   planEnvironments(repo, policy, drafts);
   planFiles(repo, policy, drafts);
 
@@ -207,7 +219,7 @@ export function planRepo(
       id: `${owner}/${draft.repo}#${draft.key}`,
       owner,
       operation: operationFor(draft),
-      risk: riskFor(draft.key),
+      risk: riskFor(draft),
       prerequisites: [],
     })),
   );
@@ -661,6 +673,196 @@ function planRulesets(
       from: describeExistingRuleset(current, context),
       to: describeRuleset(declared, context),
       payload: { ruleset: declared, id: current.id, existing: current, context },
+    });
+  }
+}
+
+/**
+ * Who may work on the repository.
+ *
+ * Only the logins and slugs the policy names are considered. Somebody with
+ * access nobody wrote down is not a difference to correct, which is why
+ * revoking is spelled `none` rather than expressed by leaving a line out — the
+ * alternative would make deleting a line from a file silently remove somebody's
+ * access, and make an incomplete file look like a complete one.
+ */
+function planAccess(
+  repo: RepoDetail,
+  policy: PolicySet,
+  options: PlanOptions,
+  changes: ChangeDraft[],
+): void {
+  planCollaborators(repo, policy, options, changes);
+  planTeamAccess(repo, policy, options, changes);
+}
+
+function planCollaborators(
+  repo: RepoDetail,
+  policy: PolicySet,
+  options: PlanOptions,
+  changes: ChangeDraft[],
+): void {
+  const declared = policy.access?.users;
+  if (!declared) return;
+
+  const current = repo.structure?.collaborators;
+  const invitations = repo.structure?.invitations;
+
+  for (const [login, wanted] of Object.entries(declared)) {
+    if (!isManaged(wanted)) continue;
+    const key = `access.users.${login}`;
+
+    if (current === undefined || invitations === undefined) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: UNREADABLE,
+        to: wanted,
+        blocked: 'could not read who already has access',
+      });
+      continue;
+    }
+
+    /**
+     * A personal repository has one level of collaborator and no way to name
+     * another: GitHub documents the permission field as valid on
+     * organisation-owned repositories only.
+     */
+    if (options.ownerKind === 'user' && wanted !== REVOKED && canonicalLevel(wanted) !== 'write') {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: current[login] ?? null,
+        to: wanted,
+        blocked:
+          'a personal repository grants collaborators write access and nothing else, so no other level can be asked for',
+      });
+      continue;
+    }
+
+    const held = current[login];
+    const invited = invitations[login];
+
+    if (wanted === REVOKED) {
+      if (held === undefined && invited === undefined) continue;
+      if (held !== undefined && options.actor === login && held === 'admin') {
+        changes.push({
+          repo: repo.name,
+          key,
+          from: held,
+          to: wanted,
+          blocked:
+            'this is the account octoform is authenticated as, and removing its own admin access would lock the run out of the repository',
+        });
+        continue;
+      }
+      changes.push({
+        repo: repo.name,
+        key,
+        from: held ?? `invited as ${invited?.level ?? ''}`,
+        to: wanted,
+        payload: { login, level: wanted, ...(invited ? { invitation: invited.id } : {}) },
+      });
+      continue;
+    }
+
+    if (held !== undefined) {
+      if (sameLevel(held, wanted)) continue;
+      changes.push({
+        repo: repo.name,
+        key,
+        from: held,
+        to: canonicalLevel(wanted),
+        payload: { login, level: wanted },
+      });
+      continue;
+    }
+
+    /**
+     * An invitation already offering the right level is the whole reason these
+     * are read. Treating a pending invitation as "no access" would make every
+     * run plan the same invitation again, and the plan would never converge on
+     * a repository whose invitee has simply not answered yet.
+     */
+    if (invited !== undefined) {
+      if (sameLevel(invited.level, wanted)) continue;
+      if (!isBuiltIn(wanted)) {
+        changes.push({
+          repo: repo.name,
+          key,
+          from: `invited as ${invited.level}`,
+          to: wanted,
+          blocked:
+            'an invitation can only be amended to one of the built-in levels, so this one has to be answered or withdrawn before a custom role can be granted',
+        });
+        continue;
+      }
+      changes.push({
+        repo: repo.name,
+        key,
+        from: `invited as ${invited.level}`,
+        to: canonicalLevel(wanted),
+        payload: { login, level: wanted, invitation: invited.id },
+      });
+      continue;
+    }
+
+    changes.push({
+      repo: repo.name,
+      key,
+      from: null,
+      to: canonicalLevel(wanted),
+      payload: { login, level: wanted },
+    });
+  }
+}
+
+function planTeamAccess(
+  repo: RepoDetail,
+  policy: PolicySet,
+  options: PlanOptions,
+  changes: ChangeDraft[],
+): void {
+  const declared = policy.access?.teams;
+  if (!declared) return;
+
+  const current = repo.structure?.teamAccess;
+
+  for (const [slug, wanted] of Object.entries(declared)) {
+    if (!isManaged(wanted)) continue;
+    const key = `access.teams.${slug}`;
+
+    if (options.ownerKind === 'user') {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: null,
+        to: wanted,
+        blocked: `there are no teams on a personal repository, so "${slug}" cannot be granted access`,
+      });
+      continue;
+    }
+
+    if (current === undefined) {
+      changes.push({
+        repo: repo.name,
+        key,
+        from: UNREADABLE,
+        to: wanted,
+        blocked: 'could not read which teams have access',
+      });
+      continue;
+    }
+
+    const held = current[slug];
+    if (sameLevel(held, wanted)) continue;
+
+    changes.push({
+      repo: repo.name,
+      key,
+      from: held ?? null,
+      to: wanted === REVOKED ? wanted : canonicalLevel(wanted),
+      payload: { slug, level: wanted },
     });
   }
 }
