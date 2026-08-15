@@ -1,5 +1,5 @@
 {
-  "$id": "https://hector-ae21.github.io/octoform-docs/0.4/assets/config.schema.json",
+  "$id": "https://hector-ae21.github.io/octoform-docs/0.5/assets/config.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/Config",
   "definitions": {
@@ -34,6 +34,9 @@
             "$ref": "#/definitions/PolicySet"
           },
           "description": "Reusable policy fragments, keyed by a name of the author's choosing, that any layer folds in through its own `policies` list. A policy may reference other policies; a reference cycle is reported with the full chain."
+        },
+        "organization": {
+          "$ref": "#/definitions/OrganizationPolicy"
         },
         "classify": {
           "$ref": "#/definitions/ClassifyConfig"
@@ -72,6 +75,9 @@
     "OwnerBlock": {
       "type": "object",
       "properties": {
+        "organization": {
+          "$ref": "#/definitions/OrganizationPolicy"
+        },
         "classify": {
           "$ref": "#/definitions/ClassifyConfig"
         },
@@ -99,6 +105,881 @@
       },
       "additionalProperties": false,
       "description": "Everything one GitHub owner can declare under `owners`."
+    },
+    "OrganizationPolicy": {
+      "type": "object",
+      "properties": {
+        "profile": {
+          "$ref": "#/definitions/OrganizationProfile"
+        },
+        "members": {
+          "$ref": "#/definitions/OrganizationMemberPolicy"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CPropertyDefinition%3E"
+          },
+          "description": "Custom property definitions, by name.\n\nThe organisation defines a property; a repository gives it a value under its own `properties`. The same word twice is GitHub's, and the two are not interchangeable: nothing can be declared here that a repository could answer, and no repository can answer a property nobody defined."
+        },
+        "rulesets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OrganizationRulesetPolicy"
+          },
+          "description": "Rulesets the organisation applies to repositories it selects.\n\nThe same rules a repository can carry, aimed from above. A repository can neither weaken nor remove one, which is what makes this the level at which a rule is actually a rule rather than a default."
+        },
+        "teams": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CTeamPolicy%3E"
+          },
+          "description": "Teams, by the slug GitHub addresses each one by.\n\nA map rather than a list because a team is referred to by that slug from elsewhere — a child names its parent by it — and a list would make the reference point at a position instead of at a name."
+        },
+        "roles": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CRoleHolders%3E"
+          },
+          "description": "Who holds each organisation role, by the role's name.\n\nAssignment only. GitHub's description offers no endpoint that creates an organisation role and none at all for custom repository roles, so a name here is a role that already exists — naming one that does not is refused rather than treated as a request to define it."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired state for the organisation itself, rather than for its repositories.\n\nThe security defaults for new repositories are absent on purpose: GitHub documents every one of them as closing down on this endpoint, in favour of code security configurations, and a governance tool has no business writing a setting whose own API says to stop using it."
+    },
+    "OrganizationProfile": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Display name, which is not the login and does not change the login."
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "company": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "website": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Website, which GitHub's API calls `blog`."
+        },
+        "location": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "email": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Public contact address, distinct from the billing address."
+        },
+        "twitter_username": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired state for the organisation's public profile."
+    },
+    "OrganizationMemberPolicy": {
+      "type": "object",
+      "properties": {
+        "base_permission": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/BasePermission"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What every member gets on every repository, before any grant adds to it."
+        },
+        "create_repositories": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "create_public_repositories": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "create_private_repositories": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "create_internal_repositories": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Enterprise Cloud only; GitHub ignores it elsewhere."
+        },
+        "fork_private_repositories": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether a private repository of this organisation can be forked at all."
+        },
+        "create_pages": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "create_public_pages": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "create_private_pages": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "web_commit_signoff_required": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Require every web commit to be signed off, across the organisation."
+        },
+        "deploy_keys_enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether repositories may use deploy keys at all."
+        },
+        "organization_projects": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "repository_projects": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "What organisation members may do without being asked.\n\n`members_allowed_repository_creation_type` is deliberately absent. GitHub documents it as closing down, and says that using it overrides `create_repositories` — so a file that set both would have the field on its way out silently win. The three per-visibility switches say the same thing without that hazard."
+    },
+    "BasePermission": {
+      "type": "string",
+      "enum": [
+        "none",
+        "read",
+        "write",
+        "admin"
+      ],
+      "description": "The level of access every organisation member has to every repository the organisation owns, before any team or collaborator grant adds to it.\n\n`none` is the only value that makes a repository's own access policy the whole story; anything else is a floor no repository can go below."
+    },
+    "Managed<PropertyDefinition>": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/PropertyDefinition"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "not": {}
+        }
+      ],
+      "description": "A managed setting is tri-state:\n\n  true       enforce it on   false      enforce it off   undefined  not managed at all, leave whatever the repository has\n\n`null` is accepted as an explicit \"stop managing this\", which is how a repository-level entry cancels a policy it would otherwise inherit from its type or from the defaults. Both collapse to `undefined` once resolved."
+    },
+    "PropertyDefinition": {
+      "type": "object",
+      "properties": {
+        "value_type": {
+          "$ref": "#/definitions/PropertyValueType"
+        },
+        "description": {
+          "type": "string",
+          "description": "Short description, shown wherever the property is offered."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether every repository must carry a value for it."
+        },
+        "default_value": {
+          "$ref": "#/definitions/PropertyValue",
+          "description": "The value a repository gets when it states none. Empty means no default, since `null` already means \"stop managing this\"."
+        },
+        "allowed_values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The values a select may take, up to the 200 GitHub stores."
+        },
+        "values_editable_by": {
+          "$ref": "#/definitions/PropertyEditors"
+        },
+        "require_explicit_values": {
+          "type": "boolean",
+          "description": "Whether a repository must answer rather than inherit the default."
+        },
+        "mode": {
+          "$ref": "#/definitions/CollectionMode"
+        }
+      },
+      "required": [
+        "value_type"
+      ],
+      "additionalProperties": false,
+      "description": "A custom property as the organisation defines it, rather than as a repository answers it.\n\nEvery field is optional except the type, and an unstated field keeps whatever the organisation has: GitHub replaces the whole definition on write, so octoform reads the current one and sends the declared fields on top of it. Without that, correcting a description would reset who may edit the values, and the file would never mention either."
+    },
+    "PropertyValueType": {
+      "type": "string",
+      "enum": [
+        "string",
+        "url",
+        "true_false",
+        "single_select",
+        "multi_select"
+      ],
+      "description": "What kind of value a custom property holds."
+    },
+    "PropertyValue": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ],
+      "description": "A custom property value: one string, or several for a multi-select.\n\nAn empty string or an empty list unsets the property, which is the same absence an empty repository description means. `null` cannot be used for it: that already means \"stop managing this\" everywhere in the configuration."
+    },
+    "PropertyEditors": {
+      "type": "string",
+      "enum": [
+        "org_actors",
+        "org_and_repo_actors"
+      ],
+      "description": "Who may set a property's value on a repository.\n\nThis is the setting that decides which of GitHub's two endpoints can write the value at all: with `org_actors`, the repository's own endpoint is not open to the repository's admins."
+    },
+    "CollectionMode": {
+      "type": "string",
+      "enum": [
+        "present",
+        "absent"
+      ],
+      "description": "Whether an entry of a collection should exist at all.\n\n`absent` is how a collection entry is removed, because leaving it out of the file means \"not managed\" everywhere else and cannot mean \"delete\" here without making an incomplete file dangerous."
+    },
+    "OrganizationRulesetPolicy": {
+      "type": "object",
+      "properties": {
+        "require_pull_request": {
+          "type": "boolean",
+          "description": "Require a pull request. The keys below configure it and imply it."
+        },
+        "required_approvals": {
+          "type": "number"
+        },
+        "dismiss_stale_reviews": {
+          "type": "boolean"
+        },
+        "require_code_owner_review": {
+          "type": "boolean"
+        },
+        "require_last_push_approval": {
+          "type": "boolean"
+        },
+        "require_thread_resolution": {
+          "type": "boolean"
+        },
+        "allowed_merge_methods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "merge",
+              "squash",
+              "rebase"
+            ]
+          }
+        },
+        "required_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "strict_required_checks": {
+          "type": "boolean"
+        },
+        "checks_not_enforced_on_create": {
+          "type": "boolean",
+          "description": "Let a branch be created without the required checks having run."
+        },
+        "required_deployments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "block_creation": {
+          "type": "boolean",
+          "description": "Refuse creating a matching ref."
+        },
+        "block_update": {
+          "type": "boolean",
+          "description": "Refuse updating a matching ref."
+        },
+        "allow_fetch_and_merge": {
+          "type": "boolean",
+          "description": "Allow an otherwise blocked update when it is a fetch and merge."
+        },
+        "block_deletion": {
+          "type": "boolean"
+        },
+        "block_force_push": {
+          "type": "boolean"
+        },
+        "require_linear_history": {
+          "type": "boolean"
+        },
+        "require_signatures": {
+          "type": "boolean"
+        },
+        "merge_queue": {
+          "$ref": "#/definitions/MergeQueueRule"
+        },
+        "required_code_scanning": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeScanningRule"
+          }
+        },
+        "require_license_compliance_scanning": {
+          "type": "boolean"
+        },
+        "copilot_code_review": {
+          "type": "object",
+          "properties": {
+            "review_draft_pull_requests": {
+              "type": "boolean"
+            },
+            "review_on_push": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "commit_message_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "commit_author_email_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "committer_email_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "branch_name_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "tag_name_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "restricted_file_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "restricted_file_extensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "max_file_size": {
+          "type": "number"
+        },
+        "max_file_path_length": {
+          "type": "number"
+        },
+        "required_workflows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowRequirement"
+          }
+        },
+        "workflows_not_enforced_on_create": {
+          "type": "boolean",
+          "description": "Let a branch be created without the required workflows having run."
+        },
+        "name": {
+          "type": "string"
+        },
+        "target_branches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Branch names or patterns, including `~DEFAULT_BRANCH` and `~ALL`."
+        },
+        "target_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tag names or patterns."
+        },
+        "target_pushes": {
+          "type": "boolean",
+          "description": "A push ruleset, which governs the whole repository and matches no refs."
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Refs matching any of these are exempt, whatever the target matched."
+        },
+        "enforcement": {
+          "$ref": "#/definitions/RulesetEnforcement"
+        },
+        "bypass": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RulesetBypass"
+          },
+          "description": "Who may bypass these rules. Omitting this keeps whoever GitHub already lets past; an empty list is what removes them."
+        },
+        "repositories": {
+          "$ref": "#/definitions/RulesetRepositories"
+        }
+      },
+      "required": [
+        "name",
+        "repositories"
+      ],
+      "additionalProperties": false,
+      "description": "A ruleset an organisation applies to repositories it selects, rather than one a repository carries.\n\nThe rules are the same rules, which is why this extends the repository policy instead of restating it. What it adds is the only thing an organisation ruleset has that a repository's cannot: a way of saying which repositories it is about."
+    },
+    "MergeQueueRule": {
+      "type": "object",
+      "properties": {
+        "merge_method": {
+          "type": "string",
+          "enum": [
+            "MERGE",
+            "SQUASH",
+            "REBASE"
+          ]
+        },
+        "grouping_strategy": {
+          "type": "string",
+          "enum": [
+            "ALLGREEN",
+            "HEADGREEN"
+          ]
+        },
+        "max_entries_to_build": {
+          "type": "number"
+        },
+        "max_entries_to_merge": {
+          "type": "number"
+        },
+        "min_entries_to_merge": {
+          "type": "number"
+        },
+        "min_entries_to_merge_wait_minutes": {
+          "type": "number"
+        },
+        "check_response_timeout_minutes": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Desired merge queue behaviour, when a ruleset requires one."
+    },
+    "CodeScanningRule": {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "type": "string"
+        },
+        "alerts_threshold": {
+          "type": "string",
+          "enum": [
+            "none",
+            "errors",
+            "errors_and_warnings",
+            "all"
+          ]
+        },
+        "security_alerts_threshold": {
+          "type": "string",
+          "enum": [
+            "none",
+            "critical",
+            "high_or_higher",
+            "medium_or_higher",
+            "all"
+          ]
+        }
+      },
+      "required": [
+        "tool",
+        "alerts_threshold",
+        "security_alerts_threshold"
+      ],
+      "additionalProperties": false,
+      "description": "How much of a code scanning tool's output blocks a merge."
+    },
+    "PatternRule": {
+      "type": "object",
+      "properties": {
+        "operator": {
+          "$ref": "#/definitions/PatternOperator"
+        },
+        "pattern": {
+          "type": "string"
+        },
+        "negate": {
+          "type": "boolean",
+          "description": "Match everything the pattern does not, instead of what it does."
+        },
+        "name": {
+          "type": "string",
+          "description": "Shown by GitHub when the rule rejects a push."
+        }
+      },
+      "required": [
+        "operator",
+        "pattern"
+      ],
+      "additionalProperties": false,
+      "description": "A rule matching some piece of commit or ref text against a pattern."
+    },
+    "PatternOperator": {
+      "type": "string",
+      "enum": [
+        "starts_with",
+        "ends_with",
+        "contains",
+        "regex"
+      ],
+      "description": "How a pattern rule compares the text it is given."
+    },
+    "WorkflowRequirement": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to the workflow file from the root of its repository."
+        },
+        "repository": {
+          "type": "string",
+          "description": "`owner/name` of the repository holding it. Defaults to this repository."
+        },
+        "repository_id": {
+          "type": "number",
+          "description": "The id of  {@link  WorkflowRequirement.repository } , resolved or written."
+        },
+        "ref": {
+          "type": "string",
+          "description": "Branch or tag to take the file from."
+        },
+        "sha": {
+          "type": "string",
+          "description": "Commit to take the file from."
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false,
+      "description": "A workflow that has to pass before a change reaches a targeted ref.\n\nGitHub identifies the workflow's repository by numeric id, not by name, so `repository` is resolved before the rule can be sent, and `repository_id` is the form the rule comes back in. A policy normally writes the name; writing the number instead is allowed and skips the lookup, which is the only way to name a repository the token cannot read."
+    },
+    "RulesetEnforcement": {
+      "type": "string",
+      "enum": [
+        "active",
+        "evaluate",
+        "disabled"
+      ],
+      "description": "How strictly a ruleset is applied. `evaluate` reports what would have been blocked without blocking it, and GitHub offers it only on some plans."
+    },
+    "RulesetBypass": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "$ref": "#/definitions/BypassMode",
+          "description": "Defaults to `always`."
+        },
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "GitHub logins."
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Team slugs. Organisation repositories only."
+        },
+        "apps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "GitHub App slugs."
+        },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "description": "Repository role ids."
+        },
+        "deploy_keys": {
+          "type": "boolean",
+          "description": "Every deploy key on the repository, which GitHub grants as one actor."
+        },
+        "organization_admins": {
+          "type": "boolean",
+          "description": "Organisation owners. Organisation repositories only."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Actors that may bypass a ruleset, grouped by the mode they bypass in.\n\nGrouping by mode rather than listing each actor with its own is what keeps the common case — one exception, granted to several people at once — from repeating the mode on every line. A policy that needs two modes writes two groups.\n\nEverything here is named except `roles`. GitHub's ruleset endpoints take a repository role as a numeric id, and its REST surface has no route that maps a repository-role name to one: only *organisation* roles can be listed. So the number is what a policy writes, rather than a name octoform would have to translate through a table it cannot verify."
+    },
+    "BypassMode": {
+      "type": "string",
+      "enum": [
+        "always",
+        "pull_request",
+        "exempt"
+      ],
+      "description": "When an actor may bypass a ruleset.\n\n`pull_request` only lets the actor past on a pull request, and GitHub accepts it on branch rulesets only. `exempt` skips the rules entirely and writes no bypass entry to the audit log, so it is the one mode that leaves no trace of having been used."
+    },
+    "RulesetRepositories": {
+      "type": "object",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Names or patterns. `~ALL` is GitHub's word for every repository."
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Names or patterns the ruleset does not reach, whatever else matched."
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RulesetPropertyMatch"
+          },
+          "description": "Repositories carrying all of these property values."
+        },
+        "exclude_properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RulesetPropertyMatch"
+          },
+          "description": "Repositories carrying any of these are exempt."
+        },
+        "protected": {
+          "type": "boolean",
+          "description": "Prevent the repositories this reaches from being renamed. A field of the name condition, so it cannot be asked for alongside property targeting."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Which repositories an organisation ruleset reaches.\n\nBy name or by property, never both: GitHub's conditions take one repository form beside the refs, and a ruleset declaring two would be a question the API has already answered by refusing it."
+    },
+    "RulesetPropertyMatch": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Any one of these values matches."
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "custom",
+            "system"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "values"
+      ],
+      "additionalProperties": false,
+      "description": "A custom property a repository must carry for a ruleset to reach it.\n\n`source` distinguishes a property the organisation defined from one GitHub maintains itself, and defaults to the organisation's own — which is the only kind anything else in this configuration can declare."
+    },
+    "Managed<TeamPolicy>": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/TeamPolicy"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "not": {}
+        }
+      ],
+      "description": "A managed setting is tri-state:\n\n  true       enforce it on   false      enforce it off   undefined  not managed at all, leave whatever the repository has\n\n`null` is accepted as an explicit \"stop managing this\", which is how a repository-level entry cancels a policy it would otherwise inherit from its type or from the defaults. Both collapse to `undefined` once resolved."
+    },
+    "TeamPolicy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name. Defaults to the slug it is declared under."
+        },
+        "description": {
+          "type": "string"
+        },
+        "privacy": {
+          "type": "string",
+          "enum": [
+            "secret",
+            "closed"
+          ],
+          "description": "`secret` is visible only to its own members and the owners; `closed` is visible to the whole organisation. A nested team cannot be secret, and neither can a team that has children."
+        },
+        "notifications": {
+          "type": "boolean",
+          "description": "Whether members are notified when the team is mentioned."
+        },
+        "parent": {
+          "type": "string",
+          "description": "Slug of the team this one sits under. Empty lifts it back to the top."
+        },
+        "membership": {
+          "$ref": "#/definitions/TeamMembership"
+        },
+        "rename_from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Slugs this team may currently have, for a rename. Without it a renamed team reads as missing, and creating it again would leave two."
+        },
+        "mode": {
+          "$ref": "#/definitions/CollectionMode"
+        }
+      },
+      "additionalProperties": false,
+      "description": "A desired team, declared under the slug GitHub addresses it by.\n\nThe slug is the key rather than a field because it is the handle every endpoint takes and the handle another team names as its parent. `name` is what the team is called, which GitHub re-slugs when it changes — so a rename says which slug the team currently has, the same way a label does."
+    },
+    "TeamMembership": {
+      "type": "object",
+      "properties": {
+        "maintainers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Logins who administer the team."
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Logins who belong to it without administering it."
+        },
+        "authoritative": {
+          "type": "boolean",
+          "description": "Remove anyone the lists do not name.\n\nOff unless asked for, and refused when the lists are empty: an authoritative block naming nobody empties the team, and emptying a team is not something anyone says by leaving a section blank."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Who is on a team.\n\nAdditive unless the file says otherwise, for the reason absence means \"not managed\" everywhere else: deleting a line from a configuration file should not quietly take somebody's access away."
+    },
+    "Managed<RoleHolders>": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/RoleHolders"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "not": {}
+        }
+      ],
+      "description": "A managed setting is tri-state:\n\n  true       enforce it on   false      enforce it off   undefined  not managed at all, leave whatever the repository has\n\n`null` is accepted as an explicit \"stop managing this\", which is how a repository-level entry cancels a policy it would otherwise inherit from its type or from the defaults. Both collapse to `undefined` once resolved."
+    },
+    "RoleHolders": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Logins that hold the role directly."
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Team slugs whose members hold it."
+        },
+        "authoritative": {
+          "type": "boolean",
+          "description": "Revoke the role from anyone the lists do not name."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Who holds an organisation role.\n\nThe same shape and the same default as a team's membership, because it is the same question: additive unless the file says otherwise, so nobody loses a role for not being written down."
     },
     "ClassifyConfig": {
       "type": "object",
@@ -226,11 +1107,39 @@
             "type": "string"
           }
         },
+        "branch_protection": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BranchProtectionPolicy"
+          }
+        },
         "rulesets": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/RulesetPolicy"
           }
+        },
+        "access": {
+          "$ref": "#/definitions/AccessPolicy"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LabelPolicy"
+          }
+        },
+        "milestones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MilestonePolicy"
+          }
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CPropertyValue%3E"
+          },
+          "description": "Custom property values, by property name. Organisations only."
         },
         "environments": {
           "type": "array",
@@ -274,6 +1183,20 @@
             "boolean",
             "null"
           ]
+        },
+        "sponsorships": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether the repository shows a sponsor button."
+        },
+        "pull_requests": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether pull requests can be opened at all. Turning this off does not remove the ones that already exist."
         }
       },
       "additionalProperties": false,
@@ -317,10 +1240,84 @@
             "boolean",
             "null"
           ]
+        },
+        "squash_title": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SquashCommitTitle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "squash_message": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/SquashCommitMessage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "merge_commit_title": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MergeCommitTitle"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "merge_commit_message": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/MergeCommitMessage"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "additionalProperties": false,
-      "description": "Desired state for pull-request merge behavior."
+      "description": "Desired state for pull-request merge behavior.\n\nEach message default is named after the `allow_` switch it belongs to, since squash merges and merge commits carry their own independent pair. GitHub refuses a request that sets a message default without also stating the matching title, so declaring one without the other is reported rather than sent — see `planScalars`."
+    },
+    "SquashCommitTitle": {
+      "type": "string",
+      "enum": [
+        "PR_TITLE",
+        "COMMIT_OR_PR_TITLE"
+      ],
+      "description": "Where the title of a squash merge commit comes from by default.\n\n`PR_TITLE` always uses the pull request's title; `COMMIT_OR_PR_TITLE` uses the single commit's title when there is exactly one, and the pull request's title otherwise."
+    },
+    "SquashCommitMessage": {
+      "type": "string",
+      "enum": [
+        "PR_BODY",
+        "COMMIT_MESSAGES",
+        "BLANK"
+      ],
+      "description": "Where the body of a squash merge commit comes from by default."
+    },
+    "MergeCommitTitle": {
+      "type": "string",
+      "enum": [
+        "PR_TITLE",
+        "MERGE_MESSAGE"
+      ],
+      "description": "Where the title of a merge commit comes from by default. `MERGE_MESSAGE` is GitHub's own \"Merge pull request #123 from branch\" wording."
+    },
+    "MergeCommitMessage": {
+      "type": "string",
+      "enum": [
+        "PR_BODY",
+        "PR_TITLE",
+        "BLANK"
+      ],
+      "description": "Where the body of a merge commit comes from by default."
     },
     "SecurityPolicy": {
       "type": "object",
@@ -360,6 +1357,13 @@
             "boolean",
             "null"
           ]
+        },
+        "immutable_releases": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether published releases and their assets become immutable. An owner can enforce this across its repositories, in which case a repository cannot turn it off and octoform reports that instead of attempting it."
         }
       },
       "additionalProperties": false,
@@ -404,10 +1408,91 @@
             "boolean",
             "null"
           ]
+        },
+        "issue_creation": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CreationPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pull_request_creation": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CreationPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "visibility": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/RepositoryVisibility"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "archived": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether the repository is archived. Archiving is reversible, but while it lasts GitHub refuses every write, so it is applied after everything else and only when everything else succeeded."
+        },
+        "template": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether the repository can be used as a template for new ones."
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Desired name of the repository, renamed only from one of  {@link  RepoPolicy.rename_from } .\n\nRepositories are declared under `repos.<name>`, so a rename outlives the entry that asked for it: once it happens, that entry no longer matches anything. The plan says so before it happens rather than leaving it to be discovered on the next run."
+        },
+        "rename_from": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Rename to `name` only when the repository currently has one of these."
         }
       },
       "additionalProperties": false,
       "description": "Desired state for repository metadata and access settings."
+    },
+    "CreationPolicy": {
+      "type": "string",
+      "enum": [
+        "ALL",
+        "COLLABORATORS_ONLY"
+      ],
+      "description": "Who may open an issue or a pull request on the repository.\n\n`COLLABORATORS_ONLY` still leaves the feature enabled and its history readable; it narrows who can add to it. Turning the feature off entirely is a different setting."
+    },
+    "RepositoryVisibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private"
+      ],
+      "description": "A visibility a repository can be set to.\n\n`internal` is deliberately absent. GitHub reports it on a repository but its update endpoint does not accept it, so octoform can observe an internal repository and never restore one — a policy that could name it would be offering a door that only opens one way."
     },
     "DefaultBranchPolicy": {
       "type": "object",
@@ -437,20 +1522,142 @@
       "additionalProperties": false,
       "description": "Desired default-branch name and guarded rename sources."
     },
-    "RulesetPolicy": {
+    "BranchProtectionPolicy": {
       "type": "object",
       "properties": {
-        "name": {
-          "type": "string"
-        },
-        "target_branches": {
+        "required_checks": {
           "type": "array",
           "items": {
             "type": "string"
           }
         },
+        "strict_required_checks": {
+          "type": "boolean"
+        },
+        "enforce_admins": {
+          "type": "boolean",
+          "description": "Apply every rule here to administrators too."
+        },
+        "require_pull_request": {
+          "type": "boolean",
+          "description": "Require a pull request. The review keys below configure it and imply it."
+        },
         "required_approvals": {
           "type": "number"
+        },
+        "dismiss_stale_reviews": {
+          "type": "boolean"
+        },
+        "require_code_owner_review": {
+          "type": "boolean"
+        },
+        "require_last_push_approval": {
+          "type": "boolean"
+        },
+        "dismissal_restrictions": {
+          "$ref": "#/definitions/BranchRestrictions",
+          "description": "Who may dismiss a review."
+        },
+        "bypass_pull_request_allowances": {
+          "$ref": "#/definitions/BranchRestrictions",
+          "description": "Who may merge without the required reviews."
+        },
+        "restrict_pushes": {
+          "$ref": "#/definitions/BranchRestrictions",
+          "description": "Who may push at all. Organisation repositories only."
+        },
+        "require_linear_history": {
+          "type": "boolean"
+        },
+        "allow_force_pushes": {
+          "type": "boolean"
+        },
+        "allow_deletions": {
+          "type": "boolean"
+        },
+        "block_creations": {
+          "type": "boolean"
+        },
+        "require_conversation_resolution": {
+          "type": "boolean"
+        },
+        "lock_branch": {
+          "type": "boolean",
+          "description": "Make the branch read-only, for everyone."
+        },
+        "allow_fork_syncing": {
+          "type": "boolean"
+        },
+        "require_signatures": {
+          "type": "boolean"
+        },
+        "branch": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "branch"
+      ],
+      "additionalProperties": false,
+      "description": "Classic branch protection for one branch, named."
+    },
+    "BranchRestrictions": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "teams": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "apps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false,
+      "description": "Who a branch-protection restriction names.\n\nUsers are logins, teams are slugs and apps are slugs — GitHub's protection endpoint takes them by name rather than by id, unlike its ruleset bypass actors, so nothing here has to be resolved before it can be sent."
+    },
+    "RulesetPolicy": {
+      "type": "object",
+      "properties": {
+        "require_pull_request": {
+          "type": "boolean",
+          "description": "Require a pull request. The keys below configure it and imply it."
+        },
+        "required_approvals": {
+          "type": "number"
+        },
+        "dismiss_stale_reviews": {
+          "type": "boolean"
+        },
+        "require_code_owner_review": {
+          "type": "boolean"
+        },
+        "require_last_push_approval": {
+          "type": "boolean"
+        },
+        "require_thread_resolution": {
+          "type": "boolean"
+        },
+        "allowed_merge_methods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "merge",
+              "squash",
+              "rebase"
+            ]
+          }
         },
         "required_checks": {
           "type": "array",
@@ -458,19 +1665,275 @@
             "type": "string"
           }
         },
-        "block_force_push": {
+        "strict_required_checks": {
           "type": "boolean"
+        },
+        "checks_not_enforced_on_create": {
+          "type": "boolean",
+          "description": "Let a branch be created without the required checks having run."
+        },
+        "required_deployments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "block_creation": {
+          "type": "boolean",
+          "description": "Refuse creating a matching ref."
+        },
+        "block_update": {
+          "type": "boolean",
+          "description": "Refuse updating a matching ref."
+        },
+        "allow_fetch_and_merge": {
+          "type": "boolean",
+          "description": "Allow an otherwise blocked update when it is a fetch and merge."
         },
         "block_deletion": {
           "type": "boolean"
+        },
+        "block_force_push": {
+          "type": "boolean"
+        },
+        "require_linear_history": {
+          "type": "boolean"
+        },
+        "require_signatures": {
+          "type": "boolean"
+        },
+        "merge_queue": {
+          "$ref": "#/definitions/MergeQueueRule"
+        },
+        "required_code_scanning": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CodeScanningRule"
+          }
+        },
+        "require_license_compliance_scanning": {
+          "type": "boolean"
+        },
+        "copilot_code_review": {
+          "type": "object",
+          "properties": {
+            "review_draft_pull_requests": {
+              "type": "boolean"
+            },
+            "review_on_push": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "commit_message_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "commit_author_email_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "committer_email_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "branch_name_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "tag_name_pattern": {
+          "$ref": "#/definitions/PatternRule"
+        },
+        "restricted_file_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "restricted_file_extensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "max_file_size": {
+          "type": "number"
+        },
+        "max_file_path_length": {
+          "type": "number"
+        },
+        "required_workflows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowRequirement"
+          }
+        },
+        "workflows_not_enforced_on_create": {
+          "type": "boolean",
+          "description": "Let a branch be created without the required workflows having run."
+        },
+        "name": {
+          "type": "string"
+        },
+        "target_branches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Branch names or patterns, including `~DEFAULT_BRANCH` and `~ALL`."
+        },
+        "target_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tag names or patterns."
+        },
+        "target_pushes": {
+          "type": "boolean",
+          "description": "A push ruleset, which governs the whole repository and matches no refs."
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Refs matching any of these are exempt, whatever the target matched."
+        },
+        "enforcement": {
+          "$ref": "#/definitions/RulesetEnforcement"
+        },
+        "bypass": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/RulesetBypass"
+          },
+          "description": "Who may bypass these rules. Omitting this keeps whoever GitHub already lets past; an empty list is what removes them."
         }
       },
       "required": [
-        "name",
-        "target_branches"
+        "name"
       ],
       "additionalProperties": false,
-      "description": "Desired branch ruleset reduced to the fields Octoform manages."
+      "description": "A desired ruleset.\n\nExactly one of the three target keys says what the ruleset governs, and the key names which. A single `target` field plus a shared list of patterns would let a file say `target: tag` beside `target_branches`, which is a disagreement nothing could resolve."
+    },
+    "AccessPolicy": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CAccessLevel%3E"
+          },
+          "description": "GitHub logins, each with the level to grant them directly."
+        },
+        "teams": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CAccessLevel%3E"
+          },
+          "description": "Team slugs, each with the level to grant them. Organisations only."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Who may work on a repository, and at what level.\n\nOnly the logins and slugs named here are managed. Somebody who was given access by hand and never written down is not a difference to correct — this is not the place to discover them — which is why revoking has to be spelled `none` rather than expressed by deletion from the file."
+    },
+    "Managed<AccessLevel>": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/AccessLevel"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "not": {}
+        }
+      ],
+      "description": "A managed setting is tri-state:\n\n  true       enforce it on   false      enforce it off   undefined  not managed at all, leave whatever the repository has\n\n`null` is accepted as an explicit \"stop managing this\", which is how a repository-level entry cancels a policy it would otherwise inherit from its type or from the defaults. Both collapse to `undefined` once resolved."
+    },
+    "AccessLevel": {
+      "type": "string",
+      "description": "A permission level on a repository.\n\nThe five built-in levels are `read`, `triage`, `write`, `maintain` and `admin`. GitHub's own endpoints disagree about two of their names — the grant endpoints take `pull` and `push`, invitations take `read` and `write`, and a collaborator reads back as whichever the API of the day prefers — so both spellings are accepted here and translated at the boundary.\n\nThe set is open because an organisation can define custom repository roles, which are granted by name. Anything octoform does not recognise as built-in is passed through as one of those.\n\n`none` is octoform's own word, not GitHub's: it revokes the grant. It has to be written, because a login simply left out of the policy is left alone."
+    },
+    "LabelPolicy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string",
+          "description": "Six hex digits, with or without the leading `#`."
+        },
+        "description": {
+          "type": "string"
+        },
+        "rename_from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Rename a label that currently has one of these names, instead of creating a second one. Deleting and recreating would take the label off every issue it is on, which is not a thing a rename should do."
+        },
+        "mode": {
+          "$ref": "#/definitions/CollectionMode"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false,
+      "description": "A desired issue label."
+    },
+    "MilestonePolicy": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "due": {
+          "type": "string",
+          "description": "Due date as `YYYY-MM-DD`."
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "open",
+            "closed"
+          ],
+          "description": "Closing a milestone retires it without detaching it from its issues."
+        },
+        "rename_from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Rename a milestone that currently has one of these titles."
+        },
+        "mode": {
+          "$ref": "#/definitions/CollectionMode"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "additionalProperties": false,
+      "description": "A desired milestone."
+    },
+    "Managed<PropertyValue>": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/PropertyValue"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "not": {}
+        }
+      ],
+      "description": "A managed setting is tri-state:\n\n  true       enforce it on   false      enforce it off   undefined  not managed at all, leave whatever the repository has\n\n`null` is accepted as an explicit \"stop managing this\", which is how a repository-level entry cancels a policy it would otherwise inherit from its type or from the defaults. Both collapse to `undefined` once resolved."
     },
     "EnvironmentPolicy": {
       "type": "object",
@@ -500,10 +1963,18 @@
         },
         "from": {
           "type": "string",
-          "description": "Path to the local file to copy, relative to the configuration file."
+          "description": "Path to the local file to copy, relative to the configuration file that declares it, and refused if it resolves outside that file's directory."
         },
         "mode": {
           "$ref": "#/definitions/FileMode"
+        },
+        "message": {
+          "type": "string",
+          "description": "Message for the commit that creates the file.\n\nWorth setting where the repository's own rules constrain commit messages — which octoform can be the thing that put there, so its own commit is exactly the one that would be refused."
+        },
+        "branch": {
+          "type": "string",
+          "description": "Branch to create the file on. Defaults to the repository's default branch, which is also the one most likely to refuse a direct push."
         }
       },
       "required": [
@@ -517,7 +1988,7 @@
     "FileMode": {
       "type": "string",
       "const": "create-if-missing",
-      "description": "Supported behavior when reconciling a declared repository file."
+      "description": "What octoform is allowed to do to a file in a repository.\n\nThere is one mode and it is the whole boundary: a file that is not there is created, and a file that is there is left exactly as it is, whatever it contains. Nothing here overwrites and nothing here deletes. A repository's files are the one thing octoform manages that people edit by hand every day, and a governance run that quietly reverted somebody's edit would be worse than one that did nothing at all.\n\nThis is also why the existing content is never fetched to compare against: a difference octoform refuses to correct is not worth reporting on every run for the life of the repository."
     },
     "RepoEntry": {
       "type": "object",
@@ -558,11 +2029,39 @@
             "type": "string"
           }
         },
+        "branch_protection": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BranchProtectionPolicy"
+          }
+        },
         "rulesets": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/RulesetPolicy"
           }
+        },
+        "access": {
+          "$ref": "#/definitions/AccessPolicy"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LabelPolicy"
+          }
+        },
+        "milestones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MilestonePolicy"
+          }
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/Managed%3CPropertyValue%3E"
+          },
+          "description": "Custom property values, by property name. Organisations only."
         },
         "environments": {
           "type": "array",

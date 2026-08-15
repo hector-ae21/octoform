@@ -2,9 +2,11 @@ import type { Octokit } from '@octokit/rest';
 import {
   detectOwnerKind,
   putPropertySchema,
+  readPropertyDefinitions,
   readPropertyValues,
   setPropertyValues,
 } from '../github/client.js';
+import { MAX_REPOSITORIES_PER_BATCH, definitionBody } from '../core/properties.js';
 import type { OwnerScope } from '../types/index.js';
 
 /**
@@ -50,8 +52,27 @@ export async function propertiesSync(octokit: Octokit, scope: OwnerScope): Promi
   console.log(`Property "${property}" on ${scope.owner}`);
   console.log(`  allowed values: ${allowedValues.join(', ')}`);
 
+  /**
+   * The definition is read before it is written, because the endpoint replaces
+   * rather than patches. Sending the allowed values alone would clear the
+   * description, the default and who may edit the values — none of which this
+   * command has an opinion about, and all of which somebody chose.
+   */
+  const definitions = await readPropertyDefinitions(octokit, scope.owner);
+  if (definitions === undefined) {
+    console.error(
+      '  schema: FAILED — could not read the current property definitions, and writing one ' +
+        'replaces every field of it.',
+    );
+    return 1;
+  }
+
   try {
-    await putPropertySchema(octokit, scope.owner, property, allowedValues);
+    const body = definitionBody(
+      { value_type: 'single_select', allowed_values: allowedValues },
+      definitions[property],
+    );
+    await putPropertySchema(octokit, scope.owner, property, body);
     console.log('  schema: up to date');
   } catch (error) {
     console.error(`  schema: FAILED — ${(error as Error).message}`);
@@ -85,12 +106,23 @@ export async function propertiesSync(octokit: Octokit, scope: OwnerScope): Promi
   console.log('');
   let failures = 0;
   for (const [type, repos] of byType) {
-    try {
-      await setPropertyValues(octokit, scope.owner, property, type, repos);
-      console.log(`  ${type}: ${repos.join(', ')}`);
-    } catch (error) {
-      failures++;
-      console.log(`  ${type}: FAILED — ${(error as Error).message}`);
+    /**
+     * The endpoint takes thirty repositories at a time, and an organisation
+     * with more than thirty of one type is the ordinary case rather than the
+     * edge one — sending them all in a single request would fail for the
+     * organisations that most need this command.
+     */
+    for (let start = 0; start < repos.length; start += MAX_REPOSITORIES_PER_BATCH) {
+      const batch = repos.slice(start, start + MAX_REPOSITORIES_PER_BATCH);
+      try {
+        await setPropertyValues(octokit, scope.owner, batch, [
+          { property_name: property, value: type },
+        ]);
+        console.log(`  ${type}: ${batch.join(', ')}`);
+      } catch (error) {
+        failures++;
+        console.log(`  ${type}: FAILED — ${(error as Error).message}`);
+      }
     }
   }
 

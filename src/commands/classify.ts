@@ -1,6 +1,7 @@
 import type { Octokit } from '@octokit/rest';
 import { isExcluded, repoType } from '../config/resolve.js';
 import { classifyRepo, pathsUsedBy } from '../core/classify.js';
+import { MAX_REPOSITORIES_PER_BATCH } from '../core/properties.js';
 import {
   detectOwnerKind,
   listRepos,
@@ -111,12 +112,16 @@ async function write(
   console.log('');
   let failures = 0;
   for (const [type, repos] of byType) {
-    try {
-      await setPropertyValues(octokit, owner, property, type, repos);
-      console.log(`  ${printable(type)}: recorded on ${repos.length} repositories`);
-    } catch (error) {
-      failures++;
-      console.log(`  ${printable(type)}: FAILED — ${printable((error as Error).message)}`);
+    /** Thirty repositories per request, which is what the endpoint takes. */
+    for (let start = 0; start < repos.length; start += MAX_REPOSITORIES_PER_BATCH) {
+      const batch = repos.slice(start, start + MAX_REPOSITORIES_PER_BATCH);
+      try {
+        await setPropertyValues(octokit, owner, batch, [{ property_name: property, value: type }]);
+        console.log(`  ${printable(type)}: recorded on ${batch.length} repositories`);
+      } catch (error) {
+        failures++;
+        console.log(`  ${printable(type)}: FAILED — ${printable((error as Error).message)}`);
+      }
     }
   }
 

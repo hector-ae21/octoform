@@ -1,11 +1,27 @@
 import { readFileSync } from 'node:fs';
 import type { Octokit } from '@octokit/rest';
-import { toRefName } from './client.js';
+import { graphqlRequest } from './graphql.js';
+import { blockedByPrerequisite, orderByDependency } from '../core/dependencies.js';
+import { protectionBody } from '../core/branch-protection.js';
+import { REVOKED, grantLevel, invitationLevel } from '../core/access.js';
+import { labelBody, milestoneBody } from '../core/collections.js';
+import { ORGANIZATION_FIELDS } from '../core/organization.js';
+import { batchPropertyValues } from '../core/properties.js';
+import { repositoryConditions } from '../core/organization-rulesets.js';
+import { deletePropertySchema, putPropertySchema, setPropertyValues } from './client.js';
+import type { RuleContext } from '../core/rulesets.js';
+import { rulesetBody } from '../core/rulesets.js';
 import type {
   AppliedChange,
+  BranchProtectionPolicy,
+  BranchProtectionSettings,
   Change,
   EnvironmentPolicy,
+  ExistingRuleset,
   FilePolicy,
+  LabelPolicy,
+  MilestonePolicy,
+  OrganizationRulesetPolicy,
   RulesetPolicy,
 } from '../types/index.js';
 
@@ -22,17 +38,53 @@ const PATCH_FIELDS: Record<string, string> = {
   'merge.allow_auto_merge': 'allow_auto_merge',
   'merge.allow_update_branch': 'allow_update_branch',
   'merge.delete_branch_on_merge': 'delete_branch_on_merge',
+  'merge.squash_title': 'squash_merge_commit_title',
+  'merge.squash_message': 'squash_merge_commit_message',
+  'merge.merge_commit_title': 'merge_commit_title',
+  'merge.merge_commit_message': 'merge_commit_message',
   'repo.description': 'description',
   'repo.homepage': 'homepage',
   'repo.allow_forking': 'allow_forking',
   'repo.web_commit_signoff_required': 'web_commit_signoff_required',
+  'repo.visibility': 'visibility',
+  'repo.template': 'is_template',
+  'repo.name': 'name',
 };
+
+/**
+ * Archiving is its own request rather than a field of the bundled one, because
+ * its position matters: once it lands nothing else can be written, and until
+ * it is undone nothing else can be written either. The planner puts the rest
+ * of the run on the correct side of it; sending it in the same body as those
+ * changes would leave GitHub to decide the order instead.
+ */
+const ARCHIVE_KEY = 'repo.archived';
 
 /** Maps dotted plan keys to fields in the nested security settings object. */
 const SECURITY_AND_ANALYSIS_FIELDS: Record<string, string> = {
   'security.secret_scanning': 'secret_scanning',
   'security.secret_scanning_push_protection': 'secret_scanning_push_protection',
 };
+
+/**
+ * Maps dotted plan keys to fields of GitHub's `updateRepository` mutation, for
+ * the settings its REST API cannot change at all.
+ */
+export const MUTATION_FIELDS: Record<string, string> = {
+  'features.discussions': 'hasDiscussionsEnabled',
+  'features.sponsorships': 'hasSponsorshipsEnabled',
+  'features.pull_requests': 'hasPullRequestsEnabled',
+  'repo.issue_creation': 'issueCreationPolicy',
+  'repo.pull_request_creation': 'pullRequestCreationPolicy',
+};
+
+const UPDATE_REPOSITORY_MUTATION = `
+  mutation UpdateRepositorySettings($input: UpdateRepositoryInput!) {
+    updateRepository(input: $input) {
+      repository { id }
+    }
+  }
+`;
 
 /**
  * Security toggles that are their own endpoint, enabled with PUT and disabled
@@ -43,6 +95,7 @@ const PUT_DELETE_TOGGLES: Record<string, string> = {
   'security.automated_security_fixes': '/repos/{owner}/{repo}/automated-security-fixes',
   'security.private_vulnerability_reporting':
     '/repos/{owner}/{repo}/private-vulnerability-reporting',
+  'security.immutable_releases': '/repos/{owner}/{repo}/immutable-releases',
 };
 
 /**
@@ -61,29 +114,72 @@ const PUT_DELETE_TOGGLES: Record<string, string> = {
  *
  * Order is deliberate where it matters. The default branch is renamed before
  * anything that could name a branch, so a ruleset or a seeded file lands
- * against the name the configuration actually declares.
+ * against the name the configuration actually declares. Unarchiving comes
+ * before everything, and archiving after everything, because on either side of
+ * those the repository accepts no writes at all.
  */
 export async function applyRepoChanges(
   octokit: Octokit,
   owner: string,
   repo: string,
-  changes: Change[],
+  planned: Change[],
 ): Promise<AppliedChange[]> {
   const results: AppliedChange[] = [];
+  const changes = orderByDependency(planned);
+  const failed = new Set<string>();
+
+  /**
+   * Record an outcome, remembering a failure so anything depending on it can
+   * be stopped before it is sent.
+   */
+  const record = (result: AppliedChange): void => {
+    if (result.outcome !== 'applied') failed.add(result.id);
+    results.push(result);
+  };
+
+  /**
+   * Whether this change was stopped by something that already failed. The
+   * blocked result is recorded here so the caller sees one entry per planned
+   * change either way.
+   */
+  const stopped = (change: Change): boolean => {
+    const reason = blockedByPrerequisite(change, failed);
+    if (reason === undefined) return false;
+    record({ ...change, outcome: 'blocked', error: reason });
+    return true;
+  };
+
+  const archive = changes.find((change) => change.key === ARCHIVE_KEY);
+  if (archive?.to === false) {
+    record(await attempt(archive, () => setArchived(octokit, owner, repo, false)));
+  }
 
   const patchBody: Record<string, unknown> = {};
   const securityAndAnalysis: Record<string, { status: 'enabled' | 'disabled' }> = {};
   const bundled: Change[] = [];
 
   for (const change of changes) {
+    if (change.key === ARCHIVE_KEY) continue;
     const field = PATCH_FIELDS[change.key];
     if (field) {
+      if (stopped(change)) continue;
+      /**
+       * A setting GitHub will not accept alone brings its companion with it.
+       * A companion that is itself a planned change sets the same field from
+       * its own branch of this loop; whichever arrives first wins, and both
+       * carry the value the configuration declared, so the two agree.
+       */
+      for (const [key, value] of Object.entries(companionsOf(change))) {
+        const companionField = PATCH_FIELDS[key];
+        if (companionField && !(companionField in patchBody)) patchBody[companionField] = value;
+      }
       patchBody[field] = change.to;
       bundled.push(change);
       continue;
     }
     const secField = SECURITY_AND_ANALYSIS_FIELDS[change.key];
     if (secField) {
+      if (stopped(change)) continue;
       securityAndAnalysis[secField] = { status: change.to ? 'enabled' : 'disabled' };
       bundled.push(change);
     }
@@ -96,16 +192,18 @@ export async function applyRepoChanges(
   if (bundled.length > 0) {
     try {
       await octokit.request('PATCH /repos/{owner}/{repo}', { owner, repo, ...patchBody });
-      for (const change of bundled) results.push({ ...change, outcome: 'applied' });
+      for (const change of bundled) record({ ...change, outcome: 'applied' });
     } catch (error) {
       const message = describeError(error);
-      for (const change of bundled) results.push({ ...change, outcome: 'failed', error: message });
+      for (const change of bundled) record({ ...change, outcome: 'failed', error: message });
     }
   }
 
+  for (const result of await applyMutationSettings(octokit, changes, stopped)) record(result);
+
   const topics = changes.find((c) => c.key === 'repo.topics');
-  if (topics) {
-    results.push(
+  if (topics && !stopped(topics)) {
+    record(
       await attempt(topics, () =>
         octokit.request('PUT /repos/{owner}/{repo}/topics', {
           owner,
@@ -118,8 +216,8 @@ export async function applyRepoChanges(
 
   for (const [key, path] of Object.entries(PUT_DELETE_TOGGLES)) {
     const change = changes.find((c) => c.key === key);
-    if (!change) continue;
-    results.push(
+    if (!change || stopped(change)) continue;
+    record(
       await attempt(change, () =>
         octokit.request(`${change.to ? 'PUT' : 'DELETE'} ${path}`, { owner, repo }),
       ),
@@ -127,8 +225,8 @@ export async function applyRepoChanges(
   }
 
   const codeScanning = changes.find((c) => c.key === 'security.code_scanning_default_setup');
-  if (codeScanning) {
-    results.push(
+  if (codeScanning && !stopped(codeScanning)) {
+    record(
       await attempt(codeScanning, () =>
         octokit.request('PATCH /repos/{owner}/{repo}/code-scanning/default-setup', {
           owner,
@@ -140,9 +238,9 @@ export async function applyRepoChanges(
   }
 
   const rename = changes.find((c) => c.key === 'default_branch.name');
-  if (rename) {
+  if (rename && !stopped(rename)) {
     const payload = rename.payload as { from: string; to: string } | undefined;
-    results.push(
+    record(
       await attempt(rename, async () => {
         if (!payload) throw new Error('no branch to rename from');
         await octokit.request('POST /repos/{owner}/{repo}/branches/{branch}/rename', {
@@ -156,8 +254,9 @@ export async function applyRepoChanges(
   }
 
   for (const change of changes.filter((c) => c.key.startsWith('ensure_branches.'))) {
+    if (stopped(change)) continue;
     const payload = change.payload as { branch: string; from: string } | undefined;
-    results.push(
+    record(
       await attempt(change, async () => {
         if (!payload?.from) throw new Error('no source branch to create from');
         const { data } = await octokit.request('GET /repos/{owner}/{repo}/git/ref/{ref}', {
@@ -175,9 +274,160 @@ export async function applyRepoChanges(
     );
   }
 
+  for (const change of changes.filter((c) => c.key.startsWith('access.users.'))) {
+    if (stopped(change)) continue;
+    const payload = change.payload as
+      { login: string; level: string; invitation?: number } | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no collaborator to change');
+        const { login, level, invitation } = payload;
+
+        if (level === REVOKED) {
+          /**
+           * An invitation is withdrawn through its own endpoint; removing the
+           * collaborator would not touch one that has never been accepted.
+           */
+          if (invitation !== undefined) {
+            await octokit.request('DELETE /repos/{owner}/{repo}/invitations/{invitation_id}', {
+              owner,
+              repo,
+              invitation_id: invitation,
+            });
+            return;
+          }
+          await octokit.request('DELETE /repos/{owner}/{repo}/collaborators/{username}', {
+            owner,
+            repo,
+            username: login,
+          });
+          return;
+        }
+
+        /**
+         * Amending the pending invitation rather than re-sending it: the
+         * second one would be refused, and cancelling to re-invite would throw
+         * away an invitation somebody may be about to accept.
+         */
+        if (invitation !== undefined) {
+          const amend: string = 'PATCH /repos/{owner}/{repo}/invitations/{invitation_id}';
+          await octokit.request(amend, {
+            owner,
+            repo,
+            invitation_id: invitation,
+            permissions: invitationLevel(level),
+          });
+          return;
+        }
+
+        await octokit.request('PUT /repos/{owner}/{repo}/collaborators/{username}', {
+          owner,
+          repo,
+          username: login,
+          permission: grantLevel(level),
+        });
+      }),
+    );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('access.teams.'))) {
+    if (stopped(change)) continue;
+    const payload = change.payload as { slug: string; level: string } | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no team grant to change');
+        const route =
+          payload.level === REVOKED
+            ? 'DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}'
+            : 'PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}';
+        await octokit.request(route, {
+          org: owner,
+          team_slug: payload.slug,
+          owner,
+          repo,
+          ...(payload.level === REVOKED ? {} : { permission: grantLevel(payload.level) }),
+        });
+      }),
+    );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('labels.'))) {
+    if (stopped(change)) continue;
+    const payload = change.payload as { label: LabelPolicy; name?: string } | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no label to change');
+        const { label, name } = payload;
+
+        if (label.mode === 'absent') {
+          await octokit.request('DELETE /repos/{owner}/{repo}/labels/{name}', {
+            owner,
+            repo,
+            name: name ?? label.name,
+          });
+          return;
+        }
+
+        if (name === undefined) {
+          const create: string = 'POST /repos/{owner}/{repo}/labels';
+          await octokit.request(create, { owner, repo, ...labelBody(label) });
+          return;
+        }
+
+        await octokit.request('PATCH /repos/{owner}/{repo}/labels/{name}', {
+          owner,
+          repo,
+          name,
+          ...labelBody(label, name),
+        });
+      }),
+    );
+  }
+
+  for (const change of changes.filter((c) => c.key.startsWith('milestones.'))) {
+    if (stopped(change)) continue;
+    const payload = change.payload as { milestone: MilestonePolicy; number?: number } | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no milestone to change');
+        const { milestone, number } = payload;
+
+        if (milestone.mode === 'absent') {
+          await octokit.request('DELETE /repos/{owner}/{repo}/milestones/{milestone_number}', {
+            owner,
+            repo,
+            milestone_number: number ?? 0,
+          });
+          return;
+        }
+
+        const body = milestoneBody(milestone);
+
+        if (number === undefined) {
+          const create: string = 'POST /repos/{owner}/{repo}/milestones';
+          await octokit.request(create, { owner, repo, ...body });
+          return;
+        }
+        await octokit.request('PATCH /repos/{owner}/{repo}/milestones/{milestone_number}', {
+          owner,
+          repo,
+          milestone_number: number,
+          ...body,
+        });
+      }),
+    );
+  }
+
+  const propertyChanges = changes.filter((c) => c.key.startsWith('properties.'));
+  if (propertyChanges.length > 0) {
+    const sending = propertyChanges.filter((change) => !stopped(change));
+    for (const result of await applyPropertyValues(octokit, owner, sending)) record(result);
+  }
+
   for (const change of changes.filter((c) => c.key.startsWith('environments.'))) {
+    if (stopped(change)) continue;
     const payload = change.payload as { environment: EnvironmentPolicy } | undefined;
-    results.push(
+    record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no environment to create');
         const reviewers = await resolveReviewers(octokit, payload.environment.reviewers ?? []);
@@ -191,12 +441,45 @@ export async function applyRepoChanges(
     );
   }
 
+  for (const change of changes.filter((c) => c.key.startsWith('branch_protection.'))) {
+    if (stopped(change)) continue;
+    const payload = change.payload as
+      | { protection: BranchProtectionPolicy; existing?: BranchProtectionSettings | null }
+      | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no protection to apply');
+        const route: string = 'PUT /repos/{owner}/{repo}/branches/{branch}/protection';
+        await octokit.request(route, {
+          owner,
+          repo,
+          branch: payload.protection.branch,
+          ...protectionBody(payload.protection, payload.existing),
+        });
+        /**
+         * Required signatures is the one protection with an endpoint of its
+         * own, and it is left alone unless the policy says something: sending
+         * a `DELETE` for an undeclared key would turn silence into a removal.
+         */
+        const signatures = payload.protection.require_signatures;
+        if (signatures === undefined) return;
+        await octokit.request(
+          `${signatures ? 'POST' : 'DELETE'} /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures`,
+          { owner, repo, branch: payload.protection.branch },
+        );
+      }),
+    );
+  }
+
   for (const change of changes.filter((c) => c.key.startsWith('rulesets.'))) {
-    const payload = change.payload as { ruleset: RulesetPolicy; id?: number } | undefined;
-    results.push(
+    if (stopped(change)) continue;
+    const payload = change.payload as
+      | { ruleset: RulesetPolicy; id?: number; existing?: ExistingRuleset; context?: RuleContext }
+      | undefined;
+    record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no ruleset to apply');
-        const body = rulesetBody(payload.ruleset);
+        const body = rulesetBody(payload.ruleset, payload.existing, payload.context);
         const route: string =
           payload.id === undefined
             ? 'POST /repos/{owner}/{repo}/rulesets'
@@ -212,13 +495,19 @@ export async function applyRepoChanges(
   }
 
   for (const change of changes.filter((c) => c.key.startsWith('files.'))) {
+    if (stopped(change)) continue;
     const payload = change.payload as { file: FilePolicy } | undefined;
-    results.push(
+    record(
       await attempt(change, async () => {
         if (!payload) throw new Error('no file to seed');
-        let content: string;
+        /**
+         * Read as bytes. Decoding to a string first and encoding it back
+         * replaces every byte that is not valid UTF-8, which quietly corrupts
+         * anything that is not text — an icon, a font, a signature.
+         */
+        let content: Buffer;
         try {
-          content = readFileSync(payload.file.from, 'utf8');
+          content = readFileSync(payload.file.from);
         } catch {
           throw new Error(`cannot read local file ${payload.file.from}`);
         }
@@ -226,14 +515,80 @@ export async function applyRepoChanges(
           owner,
           repo,
           path: payload.file.path,
-          message: `chore: add ${payload.file.path}`,
-          content: Buffer.from(content, 'utf8').toString('base64'),
+          message: payload.file.message ?? `chore: add ${payload.file.path}`,
+          content: content.toString('base64'),
+          ...(payload.file.branch === undefined ? {} : { branch: payload.file.branch }),
         });
       }),
     );
   }
 
+  if (archive?.to === true && !stopped(archive)) {
+    record(await attempt(archive, () => setArchived(octokit, owner, repo, true)));
+  }
+
   return results;
+}
+
+function setArchived(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  archived: boolean,
+): Promise<unknown> {
+  return octokit.request('PATCH /repos/{owner}/{repo}', { owner, repo, archived });
+}
+
+/**
+ * Send every GraphQL-only setting for one repository in a single mutation.
+ *
+ * Grouped for the same reason the repository PATCH is: they are fields of one
+ * operation, so five of them cost one request. They succeed or fail together,
+ * and the mutation is never retried — an ambiguous write is resolved by
+ * observing, not by sending it again.
+ *
+ * The node id comes from the plan, which read it alongside the values it is
+ * comparing against. A change that reached here without one was blocked at
+ * planning time, so the guard here is a last resort rather than the report.
+ */
+async function applyMutationSettings(
+  octokit: Octokit,
+  changes: Change[],
+  stopped: (change: Change) => boolean,
+): Promise<AppliedChange[]> {
+  const mutated = changes.filter(
+    (change) => MUTATION_FIELDS[change.key] !== undefined && !stopped(change),
+  );
+  if (mutated.length === 0) return [];
+
+  const input: Record<string, unknown> = {};
+  for (const change of mutated) input[MUTATION_FIELDS[change.key] as string] = change.to;
+  const repositoryId = mutated
+    .map((change) => (change.payload as { repositoryId?: string } | undefined)?.repositoryId)
+    .find((id): id is string => typeof id === 'string');
+
+  if (!repositoryId) {
+    return mutated.map((change) => ({
+      ...change,
+      outcome: 'failed',
+      error: 'no repository node id to address the mutation to',
+    }));
+  }
+
+  const outcome = await graphqlRequest(
+    octokit,
+    UPDATE_REPOSITORY_MUTATION,
+    { input: { repositoryId, ...input } },
+    { attempts: 0, wait: async () => {} },
+  );
+
+  if (outcome.failures.length > 0) {
+    const reason = outcome.failures
+      .map((failure) => `${failure.kind}: ${failure.message}`)
+      .join('; ');
+    return mutated.map((change) => ({ ...change, outcome: 'failed', error: reason }));
+  }
+  return mutated.map((change) => ({ ...change, outcome: 'applied' }));
 }
 
 /**
@@ -259,54 +614,14 @@ async function resolveReviewers(
 }
 
 /**
- * Translate a declared ruleset into GitHub's own shape.
- *
- * GitHub names its rules after what they permit rather than what they block,
- * and requires every parameter of a rule to be present even when only one of
- * them is interesting. Both are contained here so the configuration model can
- * stay in the shape a person would write.
+ * Settings that must be sent alongside this one for GitHub to accept it, by
+ * plan key. Empty for everything except the merge message defaults, which the
+ * planner refuses outright when their companion was never declared — so a
+ * change that reaches here either needs nothing or already carries it.
  */
-function rulesetBody(policy: RulesetPolicy): Record<string, unknown> {
-  const rules: Array<Record<string, unknown>> = [];
-
-  if (policy.required_approvals !== undefined) {
-    rules.push({
-      type: 'pull_request',
-      parameters: {
-        required_approving_review_count: policy.required_approvals,
-        dismiss_stale_reviews_on_push: false,
-        require_code_owner_review: false,
-        require_last_push_approval: false,
-        required_review_thread_resolution: false,
-      },
-    });
-  }
-
-  if (policy.required_checks?.length) {
-    rules.push({
-      type: 'required_status_checks',
-      parameters: {
-        required_status_checks: policy.required_checks.map((context) => ({ context })),
-        strict_required_status_checks_policy: false,
-      },
-    });
-  }
-
-  if (policy.block_force_push) rules.push({ type: 'non_fast_forward' });
-  if (policy.block_deletion) rules.push({ type: 'deletion' });
-
-  return {
-    name: policy.name,
-    target: 'branch',
-    enforcement: 'active',
-    conditions: {
-      ref_name: {
-        include: policy.target_branches.map(toRefName),
-        exclude: [],
-      },
-    },
-    rules,
-  };
+function companionsOf(change: Change): Record<string, unknown> {
+  const requires = (change.payload as { requires?: Record<string, unknown> } | undefined)?.requires;
+  return requires ?? {};
 }
 
 async function attempt(change: Change, call: () => Promise<unknown>): Promise<AppliedChange> {
@@ -322,4 +637,272 @@ function describeError(error: unknown): string {
   const status = (error as { status?: number }).status;
   const message = error instanceof Error ? error.message : String(error);
   return status ? `${status}: ${message}` : message;
+}
+
+/**
+ * Apply every organisation change that is not blocked.
+ *
+ * The settings all live on one object and are written through one PATCH, so
+ * that group succeeds or fails together — the same rule the repository
+ * settings body already follows, and reported the same way, since none of them
+ * happened if the request did not.
+ *
+ * Custom property definitions are the exception, and not by preference: each
+ * one has its own endpoint. One request each also means one outcome each,
+ * which is worth having for an operation that replaces a definition wholesale.
+ *
+ * Teams are the first thing at this level that can depend on another thing at
+ * this level, so they go through the dependency graph rather than a written
+ * order: a child team is attempted after the parent this run is creating, and
+ * a child whose parent failed is blocked instead of sent somewhere that does
+ * not exist.
+ */
+export async function applyOrganizationChanges(
+  octokit: Octokit,
+  owner: string,
+  planned: Change[],
+): Promise<AppliedChange[]> {
+  const changes = planned.filter((change) => change.key.startsWith('organization.'));
+  if (changes.length === 0) return [];
+
+  const settings = changes.filter((change) => ORGANIZATION_FIELDS[change.key] !== undefined);
+  const definitions = changes.filter((change) => change.key.startsWith('organization.properties.'));
+  const rulesets = changes.filter((change) => change.key.startsWith('organization.rulesets.'));
+  /**
+   * Teams and the people on them are ordered together, because a membership
+   * waits for the team it is on the same way a child team waits for its
+   * parent. Ordering them apart would put someone on a team that the same run
+   * had not created yet.
+   */
+  const teams = orderByDependency(
+    changes.filter(
+      (change) =>
+        change.key.startsWith('organization.teams.') ||
+        change.key.startsWith('organization.membership.') ||
+        change.key.startsWith('organization.roles.'),
+    ),
+  );
+
+  const results: AppliedChange[] = [];
+  const failed = new Set<string>();
+  const record = (result: AppliedChange): AppliedChange => {
+    if (result.outcome !== 'applied') failed.add(result.id);
+    results.push(result);
+    return result;
+  };
+
+  if (settings.length > 0) {
+    const body: Record<string, unknown> = {};
+    for (const change of settings) body[ORGANIZATION_FIELDS[change.key] as string] = change.to;
+    try {
+      await octokit.request('PATCH /orgs/{org}', { org: owner, ...body });
+      for (const change of settings) record({ ...change, outcome: 'applied' });
+    } catch (error) {
+      const message = describeError(error);
+      for (const change of settings) record({ ...change, outcome: 'failed', error: message });
+    }
+  }
+
+  for (const change of definitions) {
+    const payload = change.payload as
+      { property: string; body?: Record<string, unknown>; remove?: boolean } | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no property definition to write');
+        if (payload.remove) {
+          await deletePropertySchema(octokit, owner, payload.property);
+          return;
+        }
+        await putPropertySchema(octokit, owner, payload.property, payload.body ?? {});
+      }),
+    );
+  }
+
+  /**
+   * Already ordered so a parent comes before its children, and a team before
+   * the people on it and the roles it is granted. Anything whose prerequisite
+   * failed is recorded as blocked rather than attempted, which is the
+   * difference between a run that reports what it did and one that reports an
+   * error GitHub raised about a team nobody can see in the plan.
+   */
+  for (const change of teams) {
+    const reason = blockedByPrerequisite(change, failed);
+    if (reason !== undefined) {
+      record({ ...change, outcome: 'blocked', error: reason });
+      continue;
+    }
+
+    const payload = change.payload as
+      | {
+          team?: string;
+          body?: Record<string, unknown>;
+          remove?: boolean;
+          login?: string;
+          role?: string | number;
+          kind?: 'users' | 'teams';
+          name?: string;
+        }
+      | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no team to change');
+
+        /**
+         * One holder of one organisation role. The endpoint takes the role's
+         * id, which the role listing is what turns the declared name into.
+         */
+        if (payload.kind !== undefined && payload.name !== undefined) {
+          const route =
+            payload.kind === 'users'
+              ? '/orgs/{org}/organization-roles/users/{username}/{role_id}'
+              : '/orgs/{org}/organization-roles/teams/{team_slug}/{role_id}';
+          const target = {
+            org: owner,
+            role_id: payload.role,
+            ...(payload.kind === 'users'
+              ? { username: payload.name }
+              : { team_slug: payload.name }),
+          };
+          const verb: string = `${payload.remove ? 'DELETE' : 'PUT'} ${route}`;
+          await octokit.request(verb, target);
+          return;
+        }
+
+        if (payload.team === undefined) throw new Error('no team to change');
+
+        /**
+         * One person on one team. The same endpoint adds, promotes and demotes;
+         * for somebody who is not an organisation member yet it sends an email
+         * invitation instead, which is why the plan counts a pending
+         * invitation as already asked.
+         */
+        if (payload.login !== undefined) {
+          const target = { org: owner, team_slug: payload.team, username: payload.login };
+          if (payload.remove) {
+            await octokit.request(
+              'DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}',
+              target,
+            );
+            return;
+          }
+          const put: string = 'PUT /orgs/{org}/teams/{team_slug}/memberships/{username}';
+          await octokit.request(put, { ...target, role: payload.role });
+          return;
+        }
+
+        if (payload.remove) {
+          await octokit.request('DELETE /orgs/{org}/teams/{team_slug}', {
+            org: owner,
+            team_slug: payload.team,
+          });
+          return;
+        }
+        if (change.operation === 'create') {
+          const create: string = 'POST /orgs/{org}/teams';
+          await octokit.request(create, { org: owner, ...(payload.body ?? {}) });
+          return;
+        }
+        const update: string = 'PATCH /orgs/{org}/teams/{team_slug}';
+        await octokit.request(update, {
+          org: owner,
+          team_slug: payload.team,
+          ...(payload.body ?? {}),
+        });
+      }),
+    );
+  }
+
+  /**
+   * Rulesets come after the definitions, because one can select repositories
+   * by a property the same run is about to define. The other order would send
+   * a condition naming a property that does not exist yet.
+   */
+  for (const change of rulesets) {
+    const payload = change.payload as
+      | {
+          ruleset: OrganizationRulesetPolicy;
+          id?: number;
+          existing?: ExistingRuleset;
+          context: RuleContext;
+        }
+      | undefined;
+    record(
+      await attempt(change, async () => {
+        if (!payload) throw new Error('no ruleset to apply');
+        const body = rulesetBody(payload.ruleset, payload.existing, payload.context);
+        body.conditions = {
+          ...(body.conditions as Record<string, unknown>),
+          ...repositoryConditions(payload.ruleset.repositories ?? {}),
+        };
+
+        /**
+         * The routes are held in variables so their typing does not fix the
+         * body's shape here: it is assembled by `rulesetBody` from the policy
+         * and whatever the stored ruleset had, which is the only place that
+         * knows what belongs in it.
+         */
+        if (payload.id === undefined) {
+          const create: string = 'POST /orgs/{org}/rulesets';
+          await octokit.request(create, { org: owner, ...body });
+          return;
+        }
+        const update: string = 'PUT /orgs/{org}/rulesets/{ruleset_id}';
+        await octokit.request(update, { org: owner, ruleset_id: payload.id, ...body });
+      }),
+    );
+  }
+
+  return results;
+}
+
+/**
+ * Set custom property values, spending as few requests as the endpoints allow.
+ *
+ * A group of repositories asking for the same values goes through the
+ * organisation's endpoint, which takes thirty at a time. A single repository
+ * goes through its own, which needs only that repository's permission — there
+ * is nothing to save by reaching for the wider one when the request count is
+ * the same either way.
+ *
+ * A shared request has a shared outcome. GitHub does not say which repository
+ * it refused, so every repository in a failed batch is reported failed with
+ * the same message rather than octoform inventing an attribution.
+ */
+export async function applyPropertyValues(
+  octokit: Octokit,
+  owner: string,
+  planned: Change[],
+): Promise<AppliedChange[]> {
+  const changes = planned.filter((change) => change.key.startsWith('properties.'));
+  if (changes.length === 0) return [];
+
+  const results: AppliedChange[] = [];
+  for (const batch of batchPropertyValues(changes)) {
+    const single = batch.repositories.length === 1 ? batch.repositories[0] : undefined;
+    try {
+      if (single !== undefined) {
+        await octokit.request('PATCH /repos/{owner}/{repo}/properties/values', {
+          owner,
+          repo: single,
+          properties: batch.properties,
+        });
+      } else {
+        await setPropertyValues(octokit, owner, batch.repositories, batch.properties);
+      }
+      results.push(...batch.changes.map((change) => ({ ...change, outcome: 'applied' as const })));
+    } catch (error) {
+      const message =
+        batch.repositories.length === 1
+          ? describeError(error)
+          : `${describeError(error)} (one request covering ${batch.repositories.length} repositories)`;
+      results.push(
+        ...batch.changes.map((change) => ({
+          ...change,
+          outcome: 'failed' as const,
+          error: message,
+        })),
+      );
+    }
+  }
+  return results;
 }

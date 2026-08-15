@@ -1,17 +1,35 @@
 import type { Octokit } from '@octokit/rest';
 import { isExcluded, resolvePolicy } from '../config/resolve.js';
 import {
+  authenticatedLogin,
   detectOwnerKind,
   detectRulesetCapability,
+  getOrganizationDetail,
   getRepoDetail,
   listRepos,
+  readOrganizationRoles,
+  readOrganizationRulesets,
+  readPropertyDefinitions,
   readPropertyValues,
+  readTeamMembers,
+  readTeams,
+  resolveOwnerNames,
 } from '../github/client.js';
 import { capability } from '../github/capabilities.js';
 import { DEFAULT_CONCURRENCY, mapWithConcurrency } from '../core/concurrency.js';
 import { planRepo } from '../core/plan.js';
+import { planOrganization } from '../core/organization.js';
+import { namesToResolve } from '../core/identity.js';
 import { formatChange, groupByRepo, printable } from '../report/format.js';
-import type { Change, OwnerScope, PlanResult, PlanSelector, PlanSummary } from '../types/index.js';
+import type {
+  Change,
+  OrganizationPolicy,
+  OrganizationState,
+  OwnerScope,
+  PlanResult,
+  PlanSelector,
+  PlanSummary,
+} from '../types/index.js';
 
 export type { PlanResult } from '../types/index.js';
 
@@ -31,6 +49,11 @@ export async function plan(
   opts?: { quiet?: boolean },
 ): Promise<PlanResult> {
   const kind = await detectOwnerKind(octokit, scope.owner);
+  /**
+   * Read once for the whole run: every repository asks the same question of
+   * it, and the answer cannot change while the run is in progress.
+   */
+  const actor = await authenticatedLogin(octokit);
   const all = await listRepos(octokit, scope.owner, kind);
 
   const property = scope.classify?.property;
@@ -56,6 +79,23 @@ export async function plan(
     return { changes: [], blocked: [], errors: [], scanned: 0 };
   }
 
+  /**
+   * The organisation itself is planned before its repositories, and only when
+   * a policy asks about it: reading it otherwise would spend a request to
+   * compare nothing.
+   */
+  const organizationChanges = scope.organization
+    ? planOrganization(
+        scope.owner,
+        kind,
+        kind === 'org'
+          ? await readOrganization(octokit, scope.owner, scope.organization)
+          : undefined,
+        scope.organization,
+        actor,
+      )
+    : [];
+
   const perRepo = await mapWithConcurrency<
     (typeof targets)[number],
     { repo: string; changes: Change[] } | { repo: string; error: string }
@@ -73,7 +113,11 @@ export async function plan(
       const detail = await getRepoDetail(octokit, scope.owner, repo, policy);
       return {
         repo: repo.name,
-        changes: planRepo(scope.owner, detail, policy, { rulesetCapability }),
+        changes: planRepo(scope.owner, detail, policy, {
+          rulesetCapability,
+          ownerKind: kind,
+          ...(actor === undefined ? {} : { actor }),
+        }),
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -84,6 +128,7 @@ export async function plan(
   const changes: Change[] = [];
   const blocked: Change[] = [];
   const errors: PlanResult['errors'] = [];
+  for (const change of organizationChanges) (change.blocked ? blocked : changes).push(change);
   for (const result of perRepo) {
     if ('error' in result) {
       errors.push({ repo: result.repo, message: result.error });
@@ -97,14 +142,68 @@ export async function plan(
 }
 
 /**
+ * Gather the organisation, asking only about what the policy declares.
+ *
+ * The property definitions cost a request of their own, so a file that
+ * declares no property never pays for it. A file that does gets them read
+ * before anything is planned, because writing a definition replaces it and
+ * there is nothing to carry forward from a listing that was never fetched.
+ */
+async function readOrganization(
+  octokit: Octokit,
+  owner: string,
+  policy: OrganizationPolicy,
+): Promise<OrganizationState> {
+  const settings = await getOrganizationDetail(octokit, owner);
+  const properties = policy.properties ? await readPropertyDefinitions(octokit, owner) : undefined;
+  const rulesets = policy.rulesets?.length
+    ? await readOrganizationRulesets(octokit, owner)
+    : undefined;
+  const teams = policy.teams ? await readTeams(octokit, owner) : undefined;
+  /**
+   * Who is on a team is only read for the teams whose policy asks about it,
+   * and only for the ones that already exist. It costs several requests each,
+   * and a file that declares a team's name and nothing about its people has
+   * not asked a question that needs answering.
+   */
+  for (const [slug, declared] of Object.entries(policy.teams ?? {})) {
+    if (!declared || declared.membership === undefined) continue;
+    const team = teams?.[slug];
+    if (team === undefined) continue;
+    team.members = await readTeamMembers(octokit, owner, slug);
+  }
+  const roles = policy.roles
+    ? await readOrganizationRoles(octokit, owner, Object.keys(policy.roles))
+    : undefined;
+  /**
+   * The names a ruleset has to send as numbers are looked up once for the
+   * whole organisation, so a team named by three rulesets costs one request
+   * and a name nobody can find becomes a blocked line rather than an
+   * exception raised part way through applying.
+   */
+  const resolved = policy.rulesets?.length
+    ? await resolveOwnerNames(octokit, owner, namesToResolve({ rulesets: policy.rulesets }, ''))
+    : undefined;
+
+  return {
+    ...(settings === undefined ? {} : { settings }),
+    ...(properties === undefined ? {} : { properties }),
+    ...(rulesets === undefined ? {} : { rulesets }),
+    ...(teams === undefined ? {} : { teams }),
+    ...(roles === undefined ? {} : { roles }),
+    ...(resolved === undefined ? {} : { resolved }),
+  };
+}
+
+/**
  * Reduce a plan to the counts that matter, per repository rather than per
  * operation: a repository that both applied one setting and was blocked on
  * another is not "unchanged," and one this run could not even read is not
  * "matching" either — it counts as `failed`, distinct from both.
  */
 export function summarizePlan(result: PlanResult): PlanSummary {
-  const changedRepos = new Set(result.changes.map((c) => c.repo));
-  const blockedRepos = new Set(result.blocked.map((c) => c.repo));
+  const changedRepos = repositoriesIn(result.changes);
+  const blockedRepos = repositoriesIn(result.blocked);
   const failedRepos = new Set(result.errors.map((e) => e.repo));
   const changed = changedRepos.size;
   const blockedOnly = [...blockedRepos].filter((repo) => !changedRepos.has(repo)).length;
@@ -160,6 +259,17 @@ function report(
   console.log('Nothing was changed. This command only reports.');
 }
 
+/**
+ * The repositories a set of changes touches. A change belonging to the owner
+ * itself touches none, so it is left out rather than counted as a repository
+ * with no name.
+ */
+function repositoriesIn(changes: Change[]): Set<string> {
+  return new Set(
+    changes.map((change) => change.repo).filter((name): name is string => name !== undefined),
+  );
+}
+
 function countRepos(changes: Change[]): number {
-  return new Set(changes.map((c) => c.repo)).size;
+  return repositoriesIn(changes).size;
 }

@@ -165,6 +165,7 @@ function generateCapabilities(config, productVersion) {
         ownerKinds: [...capability.ownerKinds].sort(),
         readRoutes: [...capability.readRoutes].sort(),
         writeRoutes: [...capability.writeRoutes].sort(),
+        writeMutations: [...capability.writeMutations].sort(),
         readPermissions: [...capability.readPermissions].sort(),
         writePermissions: [...capability.writePermissions].sort(),
       }))
@@ -173,15 +174,15 @@ function generateCapabilities(config, productVersion) {
 }
 
 function generatePermissions(config, apiSurfaceConfig, productVersion) {
-  const currentRoutes = [...apiSurfaceConfig.rest.currentRoutes].sort();
-  const knownRoutes = new Set(currentRoutes);
+  const implementedRoutes = Object.values(apiSurfaceConfig.rest.implementedRoutes).flat().sort();
+  const knownRoutes = new Set(implementedRoutes);
   const usedRoutes = new Set(
     config.capabilities.flatMap((capability) => [
       ...capability.readRoutes,
       ...capability.writeRoutes,
     ]),
   );
-  const missing = currentRoutes.filter((route) => !usedRoutes.has(route));
+  const missing = implementedRoutes.filter((route) => !usedRoutes.has(route));
   const unknown = [...usedRoutes].filter((route) => !knownRoutes.has(route)).sort();
   if (missing.length || unknown.length) {
     throw new Error(
@@ -189,8 +190,27 @@ function generatePermissions(config, apiSurfaceConfig, productVersion) {
     );
   }
 
+  /**
+   * The same coverage check for the other transport. A capability naming a
+   * mutation the register does not record as implemented would claim support
+   * the register contradicts.
+   */
+  const implementedMutations = new Set(
+    Object.values(apiSurfaceConfig.graphql.implementedMutations ?? {}).flat(),
+  );
+  const unknownMutations = [
+    ...new Set(config.capabilities.flatMap((capability) => capability.writeMutations ?? [])),
+  ]
+    .filter((mutation) => !implementedMutations.has(mutation))
+    .sort();
+  if (unknownMutations.length > 0) {
+    throw new Error(
+      `Capabilities name GraphQL mutations the register does not record as implemented: ${unknownMutations.join(', ')}`,
+    );
+  }
+
   const permissionIds = new Set(config.permissions.map((permission) => permission.id));
-  const operations = currentRoutes.map((route) => {
+  const operations = implementedRoutes.map((route) => {
     const access = route.startsWith('GET ') ? 'read' : 'write';
     const matching = config.capabilities.filter((capability) =>
       [...capability.readRoutes, ...capability.writeRoutes].includes(route),

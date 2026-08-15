@@ -7,6 +7,7 @@
  */
 
 export * from './config.js';
+export * from './identity.js';
 export * from './repository.js';
 export * from './github.js';
 export * from './shape.js';
@@ -19,6 +20,8 @@ export * from './audit.js';
 export * from './selectors.js';
 export * from './config-command.js';
 export * from './capabilities.js';
+export * from './graphql.js';
 export * from './plan-artifact.js';
 export * from './token.js';
 export * from './inspect.js';
+export * from './members.js';

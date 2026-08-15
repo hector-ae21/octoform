@@ -25,6 +25,7 @@ after(() => rmSync(dir, { recursive: true, force: true }));
 
 const OPTIONS = {
   rulesetCapability: capability('supported', 'assumed in this suite', 'permission'),
+  ownerKind: 'org' as const,
 };
 
 const ESCAPE = String.fromCharCode(0x1b);
@@ -186,7 +187,7 @@ test('a repository name carrying terminal escapes is printed escaped, never exec
   const [change] = planRepo('account', repo(hostile), { features: { issues: true } }, OPTIONS);
   assert.ok(change);
 
-  const rendered = printable(change.repo);
+  const rendered = printable(change.repo ?? '');
   assert.equal(rendered.includes(ESCAPE), false, 'an escape sequence survived into the report');
   assert.equal(rendered.includes('\r'), false, 'a carriage return survived into the report');
   assert.match(rendered, /^thing\\x1b\[2K\\x0ddeleted everything$/);

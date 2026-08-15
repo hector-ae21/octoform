@@ -13,6 +13,12 @@ import type { Field, MergeSemantics, ObjectShape, SemanticsEntry } from '../type
 
 const scalar: Field = { shape: { kind: 'scalar' }, merge: 'scalar' };
 const scalarList: Field = { shape: { kind: 'scalar-list' }, merge: 'replace' };
+
+/** A scalar restricted to a closed set of values, listed as GitHub spells them. */
+function enumeration(...values: readonly string[]): Field {
+  return { shape: { kind: 'scalar', values }, merge: 'scalar' };
+}
+
 const freeMap: Field = {
   shape: { kind: 'map', of: () => ({ kind: 'any' }) },
   merge: 'merge-by-key',
@@ -26,13 +32,25 @@ function objectList(of: () => ObjectShape, merge: MergeSemantics = 'replace'): F
   return { shape: { kind: 'object-list', of }, merge };
 }
 
+const mapOfScalars: Field = {
+  shape: { kind: 'map', of: () => ({ kind: 'scalar' }) },
+  merge: 'merge-by-key',
+};
+
 function mapOfObjects(of: () => ObjectShape): Field {
   return { shape: { kind: 'map', of: () => ({ kind: 'object', of }) }, merge: 'merge-by-key' };
 }
 
 const FEATURE_POLICY: ObjectShape = {
   name: 'FeaturePolicy',
-  fields: { issues: scalar, wiki: scalar, projects: scalar, discussions: scalar },
+  fields: {
+    issues: scalar,
+    wiki: scalar,
+    projects: scalar,
+    discussions: scalar,
+    sponsorships: scalar,
+    pull_requests: scalar,
+  },
 };
 
 const MERGE_POLICY: ObjectShape = {
@@ -44,6 +62,10 @@ const MERGE_POLICY: ObjectShape = {
     allow_auto_merge: scalar,
     allow_update_branch: scalar,
     delete_branch_on_merge: scalar,
+    squash_title: enumeration('PR_TITLE', 'COMMIT_OR_PR_TITLE'),
+    squash_message: enumeration('PR_BODY', 'COMMIT_MESSAGES', 'BLANK'),
+    merge_commit_title: enumeration('PR_TITLE', 'MERGE_MESSAGE'),
+    merge_commit_message: enumeration('PR_BODY', 'PR_TITLE', 'BLANK'),
   },
 };
 
@@ -56,6 +78,7 @@ const SECURITY_POLICY: ObjectShape = {
     secret_scanning: scalar,
     secret_scanning_push_protection: scalar,
     code_scanning_default_setup: scalar,
+    immutable_releases: scalar,
   },
 };
 
@@ -67,6 +90,13 @@ const REPO_POLICY: ObjectShape = {
     topics: scalarList,
     allow_forking: scalar,
     web_commit_signoff_required: scalar,
+    issue_creation: enumeration('ALL', 'COLLABORATORS_ONLY'),
+    pull_request_creation: enumeration('ALL', 'COLLABORATORS_ONLY'),
+    visibility: enumeration('public', 'private'),
+    archived: scalar,
+    template: scalar,
+    name: scalar,
+    rename_from: scalarList,
   },
 };
 
@@ -75,15 +105,174 @@ const DEFAULT_BRANCH_POLICY: ObjectShape = {
   fields: { name: scalar, rename_from: scalarList },
 };
 
+const PATTERN_RULE: ObjectShape = {
+  name: 'PatternRule',
+  fields: {
+    operator: enumeration('starts_with', 'ends_with', 'contains', 'regex'),
+    pattern: scalar,
+    negate: scalar,
+    name: scalar,
+  },
+};
+
+const CODE_SCANNING_RULE: ObjectShape = {
+  name: 'CodeScanningRule',
+  fields: {
+    tool: scalar,
+    alerts_threshold: enumeration('none', 'errors', 'errors_and_warnings', 'all'),
+    security_alerts_threshold: enumeration(
+      'none',
+      'critical',
+      'high_or_higher',
+      'medium_or_higher',
+      'all',
+    ),
+  },
+};
+
+const MERGE_QUEUE_RULE: ObjectShape = {
+  name: 'MergeQueueRule',
+  fields: {
+    merge_method: enumeration('MERGE', 'SQUASH', 'REBASE'),
+    grouping_strategy: enumeration('ALLGREEN', 'HEADGREEN'),
+    max_entries_to_build: scalar,
+    max_entries_to_merge: scalar,
+    min_entries_to_merge: scalar,
+    min_entries_to_merge_wait_minutes: scalar,
+    check_response_timeout_minutes: scalar,
+  },
+};
+
+const COPILOT_CODE_REVIEW_RULE: ObjectShape = {
+  name: 'CopilotCodeReviewRule',
+  fields: { review_draft_pull_requests: scalar, review_on_push: scalar },
+};
+
+/** Every rule a ruleset can carry, flattened as {@link RuleSettings} declares. */
+const RULE_SETTINGS: Readonly<Record<string, Field>> = {
+  require_pull_request: scalar,
+  required_approvals: scalar,
+  dismiss_stale_reviews: scalar,
+  require_code_owner_review: scalar,
+  require_last_push_approval: scalar,
+  require_thread_resolution: scalar,
+  allowed_merge_methods: scalarList,
+  required_checks: scalarList,
+  strict_required_checks: scalar,
+  checks_not_enforced_on_create: scalar,
+  required_deployments: scalarList,
+  block_creation: scalar,
+  block_update: scalar,
+  allow_fetch_and_merge: scalar,
+  block_deletion: scalar,
+  block_force_push: scalar,
+  require_linear_history: scalar,
+  require_signatures: scalar,
+  merge_queue: object(() => MERGE_QUEUE_RULE),
+  required_code_scanning: objectList(() => CODE_SCANNING_RULE),
+  require_license_compliance_scanning: scalar,
+  copilot_code_review: object(() => COPILOT_CODE_REVIEW_RULE),
+  commit_message_pattern: object(() => PATTERN_RULE),
+  commit_author_email_pattern: object(() => PATTERN_RULE),
+  committer_email_pattern: object(() => PATTERN_RULE),
+  branch_name_pattern: object(() => PATTERN_RULE),
+  tag_name_pattern: object(() => PATTERN_RULE),
+  restricted_file_paths: scalarList,
+  restricted_file_extensions: scalarList,
+  max_file_size: scalar,
+  max_file_path_length: scalar,
+  required_workflows: objectList(() => WORKFLOW_REQUIREMENT),
+  workflows_not_enforced_on_create: scalar,
+};
+
+const WORKFLOW_REQUIREMENT: ObjectShape = {
+  name: 'WorkflowRequirement',
+  fields: { path: scalar, repository: scalar, repository_id: scalar, ref: scalar, sha: scalar },
+};
+
+const RULESET_BYPASS: ObjectShape = {
+  name: 'RulesetBypass',
+  fields: {
+    mode: enumeration('always', 'pull_request', 'exempt'),
+    users: scalarList,
+    teams: scalarList,
+    apps: scalarList,
+    roles: scalarList,
+    deploy_keys: scalar,
+    organization_admins: scalar,
+  },
+};
+
 const RULESET_POLICY: ObjectShape = {
   name: 'RulesetPolicy',
   fields: {
     name: scalar,
     target_branches: scalarList,
-    required_approvals: scalar,
+    target_tags: scalarList,
+    target_pushes: scalar,
+    exclude: scalarList,
+    enforcement: enumeration('active', 'evaluate', 'disabled'),
+    bypass: objectList(() => RULESET_BYPASS),
+    ...RULE_SETTINGS,
+  },
+};
+
+const BRANCH_RESTRICTIONS: ObjectShape = {
+  name: 'BranchRestrictions',
+  fields: { users: scalarList, teams: scalarList, apps: scalarList },
+};
+
+const BRANCH_PROTECTION_POLICY: ObjectShape = {
+  name: 'BranchProtectionPolicy',
+  fields: {
+    branch: scalar,
     required_checks: scalarList,
-    block_force_push: scalar,
-    block_deletion: scalar,
+    strict_required_checks: scalar,
+    enforce_admins: scalar,
+    require_pull_request: scalar,
+    required_approvals: scalar,
+    dismiss_stale_reviews: scalar,
+    require_code_owner_review: scalar,
+    require_last_push_approval: scalar,
+    dismissal_restrictions: object(() => BRANCH_RESTRICTIONS),
+    bypass_pull_request_allowances: object(() => BRANCH_RESTRICTIONS),
+    restrict_pushes: object(() => BRANCH_RESTRICTIONS),
+    require_linear_history: scalar,
+    allow_force_pushes: scalar,
+    allow_deletions: scalar,
+    block_creations: scalar,
+    require_conversation_resolution: scalar,
+    lock_branch: scalar,
+    allow_fork_syncing: scalar,
+    require_signatures: scalar,
+  },
+};
+
+const ACCESS_POLICY: ObjectShape = {
+  name: 'AccessPolicy',
+  fields: { users: mapOfScalars, teams: mapOfScalars },
+};
+
+const LABEL_POLICY: ObjectShape = {
+  name: 'LabelPolicy',
+  fields: {
+    name: scalar,
+    color: scalar,
+    description: scalar,
+    rename_from: scalarList,
+    mode: enumeration('present', 'absent'),
+  },
+};
+
+const MILESTONE_POLICY: ObjectShape = {
+  name: 'MilestonePolicy',
+  fields: {
+    title: scalar,
+    description: scalar,
+    due: scalar,
+    state: enumeration('open', 'closed'),
+    rename_from: scalarList,
+    mode: enumeration('present', 'absent'),
   },
 };
 
@@ -94,7 +283,13 @@ const ENVIRONMENT_POLICY: ObjectShape = {
 
 const FILE_POLICY: ObjectShape = {
   name: 'FilePolicy',
-  fields: { path: scalar, from: scalar, mode: scalar },
+  fields: {
+    path: scalar,
+    from: scalar,
+    mode: enumeration('create-if-missing'),
+    message: scalar,
+    branch: scalar,
+  },
 };
 
 const POLICY_SET: ObjectShape = {
@@ -108,11 +303,18 @@ const POLICY_SET: ObjectShape = {
     repo: object(() => REPO_POLICY),
     default_branch: object(() => DEFAULT_BRANCH_POLICY),
     ensure_branches: scalarList,
+    branch_protection: objectList(() => BRANCH_PROTECTION_POLICY),
     rulesets: objectList(() => RULESET_POLICY),
+    access: object(() => ACCESS_POLICY),
+    labels: objectList(() => LABEL_POLICY),
+    milestones: objectList(() => MILESTONE_POLICY),
+    properties: freeMap,
     environments: objectList(() => ENVIRONMENT_POLICY),
     files: objectList(() => FILE_POLICY),
   },
 };
+
+export { POLICY_SET };
 
 const REPO_ENTRY: ObjectShape = {
   name: 'RepoEntry',
@@ -121,7 +323,7 @@ const REPO_ENTRY: ObjectShape = {
 
 const CLASSIFY_RULE_CONDITION: ObjectShape = {
   name: 'ClassifyRuleCondition',
-  fields: { file_exists: scalar, json: freeMap, visibility: scalar },
+  fields: { file_exists: scalar, json: freeMap, visibility: enumeration('public', 'private') },
 };
 
 const CLASSIFY_RULE: ObjectShape = {
@@ -139,7 +341,7 @@ const CLASSIFY_CONFIG: ObjectShape = {
 
 const VISIBILITY_RULE: ObjectShape = {
   name: 'VisibilityRule',
-  fields: { visibility: scalar },
+  fields: { visibility: enumeration('public', 'private') },
 };
 
 const AUDIT_CONFIG: ObjectShape = {
@@ -158,7 +360,122 @@ const EXCLUDE_CONFIG: ObjectShape = {
 };
 
 /** The fields an owner may declare, at the root or under `owners.<login>`. */
+const ORGANIZATION_PROFILE: ObjectShape = {
+  name: 'OrganizationProfile',
+  fields: {
+    name: scalar,
+    description: scalar,
+    company: scalar,
+    website: scalar,
+    location: scalar,
+    email: scalar,
+    twitter_username: scalar,
+  },
+};
+
+const ORGANIZATION_MEMBER_POLICY: ObjectShape = {
+  name: 'OrganizationMemberPolicy',
+  fields: {
+    base_permission: enumeration('none', 'read', 'write', 'admin'),
+    create_repositories: scalar,
+    create_public_repositories: scalar,
+    create_private_repositories: scalar,
+    create_internal_repositories: scalar,
+    fork_private_repositories: scalar,
+    create_pages: scalar,
+    create_public_pages: scalar,
+    create_private_pages: scalar,
+    web_commit_signoff_required: scalar,
+    deploy_keys_enabled: scalar,
+    organization_projects: scalar,
+    repository_projects: scalar,
+  },
+};
+
+const PROPERTY_DEFINITION: ObjectShape = {
+  name: 'PropertyDefinition',
+  fields: {
+    value_type: enumeration('string', 'url', 'true_false', 'single_select', 'multi_select'),
+    description: scalar,
+    required: scalar,
+    default_value: scalar,
+    allowed_values: scalarList,
+    values_editable_by: enumeration('org_actors', 'org_and_repo_actors'),
+    require_explicit_values: scalar,
+    mode: enumeration('present', 'absent'),
+  },
+};
+
+const RULESET_PROPERTY_MATCH: ObjectShape = {
+  name: 'RulesetPropertyMatch',
+  fields: {
+    name: scalar,
+    values: scalarList,
+    source: enumeration('custom', 'system'),
+  },
+};
+
+const RULESET_REPOSITORIES: ObjectShape = {
+  name: 'RulesetRepositories',
+  fields: {
+    include: scalarList,
+    exclude: scalarList,
+    properties: objectList(() => RULESET_PROPERTY_MATCH),
+    exclude_properties: objectList(() => RULESET_PROPERTY_MATCH),
+    protected: scalar,
+  },
+};
+
+const ORGANIZATION_RULESET_POLICY: ObjectShape = {
+  name: 'OrganizationRulesetPolicy',
+  fields: {
+    ...RULESET_POLICY.fields,
+    repositories: object(() => RULESET_REPOSITORIES),
+  },
+};
+
+const TEAM_MEMBERSHIP: ObjectShape = {
+  name: 'TeamMembership',
+  fields: {
+    maintainers: scalarList,
+    members: scalarList,
+    authoritative: scalar,
+  },
+};
+
+const TEAM_POLICY: ObjectShape = {
+  name: 'TeamPolicy',
+  fields: {
+    name: scalar,
+    description: scalar,
+    privacy: enumeration('secret', 'closed'),
+    notifications: scalar,
+    parent: scalar,
+    membership: object(() => TEAM_MEMBERSHIP),
+    rename_from: scalarList,
+    mode: enumeration('present', 'absent'),
+  },
+};
+
+const ROLE_HOLDERS: ObjectShape = {
+  name: 'RoleHolders',
+  fields: { users: scalarList, teams: scalarList, authoritative: scalar },
+};
+
+const ORGANIZATION_POLICY: ObjectShape = {
+  name: 'OrganizationPolicy',
+  fields: {
+    profile: object(() => ORGANIZATION_PROFILE),
+    members: object(() => ORGANIZATION_MEMBER_POLICY),
+    properties: mapOfObjects(() => PROPERTY_DEFINITION),
+    rulesets: objectList(() => ORGANIZATION_RULESET_POLICY),
+    teams: mapOfObjects(() => TEAM_POLICY),
+    roles: mapOfObjects(() => ROLE_HOLDERS),
+  },
+};
+
 const OWNER_FIELDS: Readonly<Record<string, Field>> = {
+  organization: object(() => ORGANIZATION_POLICY),
   classify: object(() => CLASSIFY_CONFIG),
   audit: object(() => AUDIT_CONFIG),
   defaults: object(() => POLICY_SET),

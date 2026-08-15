@@ -3,11 +3,17 @@ import { test } from 'node:test';
 import { planRepo } from '../src/core/plan.js';
 import { UNREADABLE } from '../src/config/sentinels.js';
 import { capability } from '../src/github/capabilities.js';
-import type { Change, PlanOptions, PolicySet, RepoDetail } from '../src/types/index.js';
+import type {
+  Change,
+  ExistingRuleset,
+  PlanOptions,
+  PolicySet,
+  RepoDetail,
+} from '../src/types/index.js';
 
 const SUPPORTED = capability('supported', 'available in this fixture', 'resource-state');
 const FORBIDDEN = capability('forbidden', 'not available in this fixture', 'permission');
-const OPTIONS = { rulesetCapability: SUPPORTED };
+const OPTIONS: PlanOptions = { rulesetCapability: SUPPORTED, ownerKind: 'org' };
 
 /**
  * Every case here is about one repository under one policy, so the owner is
@@ -16,6 +22,32 @@ const OPTIONS = { rulesetCapability: SUPPORTED };
  */
 const planned = (repo: RepoDetail, policy: PolicySet, options: PlanOptions = OPTIONS): Change[] =>
   planRepo('account', repo, policy, options);
+
+/**
+ * A ruleset as GitHub already has it. Every switch rule is read as explicitly
+ * off unless it is there, which is how the reader reports them, so a fixture
+ * that only lists what is on still compares correctly.
+ */
+const stored = (over: Partial<ExistingRuleset> = {}): ExistingRuleset => ({
+  id: 7,
+  name: 'protect',
+  target: 'branch',
+  enforcement: 'active',
+  include: [],
+  exclude: [],
+  bypass: [],
+  unmodelled: [],
+  ...over,
+  rules: {
+    block_creation: false,
+    block_deletion: false,
+    block_force_push: false,
+    require_linear_history: false,
+    require_signatures: false,
+    require_license_compliance_scanning: false,
+    ...over.rules,
+  },
+});
 
 const repo = (over: Partial<RepoDetail> = {}): RepoDetail => ({
   name: 'thing',
@@ -70,7 +102,7 @@ test('manage: false suppresses everything', () => {
   assert.deepEqual(planned(repo(), policy, OPTIONS), []);
 });
 
-test('an archived repository is never planned against', () => {
+test('an archived repository is not planned against, since it refuses every write', () => {
   const policy: PolicySet = { features: { wiki: false } };
   assert.deepEqual(planned(repo({ archived: true }), policy, OPTIONS), []);
 });
@@ -113,12 +145,48 @@ test('an unreadable value visibility cannot explain says only what is known', ()
   assert.doesNotMatch(reason, /plan|Advanced Security/i);
 });
 
-test('a policy with no REST endpoint at all is blamed on the API, not on the configuration', () => {
+test('a setting only a mutation can change carries the node id that mutation needs', () => {
+  const state = repo({
+    nodeId: 'R_abc',
+    settings: { ...repo().settings, 'features.discussions': false },
+  });
+  const policy: PolicySet = { features: { discussions: true } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.blocked, undefined);
+  assert.deepEqual(change?.payload, { repositoryId: 'R_abc' });
+});
+
+test('without a node id there is nothing to address the mutation to, so it is blocked', () => {
   const state = repo({ settings: { ...repo().settings, 'features.discussions': false } });
   const policy: PolicySet = { features: { discussions: true } };
-  const changes = planned(state, policy, OPTIONS);
-  assert.equal(changes.length, 1);
-  assert.equal(changes[0]?.blocked, 'not applicable over the REST API');
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /GraphQL identity/u);
+});
+
+test('a creation policy is compared like any other value', () => {
+  const state = repo({
+    nodeId: 'R_abc',
+    settings: { ...repo().settings, 'repo.issue_creation': 'ALL' },
+  });
+
+  assert.deepEqual(planned(state, { repo: { issue_creation: 'ALL' } }, OPTIONS), []);
+  const [change] = planned(state, { repo: { issue_creation: 'COLLABORATORS_ONLY' } }, OPTIONS);
+  assert.deepEqual(
+    { from: change?.from, to: change?.to },
+    { from: 'ALL', to: 'COLLABORATORS_ONLY' },
+  );
+});
+
+test('a GraphQL-only setting that could not be read blocks rather than being planned over', () => {
+  const state = repo({
+    nodeId: 'R_abc',
+    settings: { ...repo().settings, 'features.sponsorships': UNREADABLE },
+  });
+  const policy: PolicySet = { features: { sponsorships: true } };
+
+  assert.match(String(planned(state, policy, OPTIONS)[0]?.blocked), /could not be read/u);
 });
 
 test('rulesets on a private repository are blocked when the owner and token cannot manage them', () => {
@@ -127,6 +195,7 @@ test('rulesets on a private repository are blocked when the owner and token cann
   };
   const changes = planned(repo({ visibility: 'private' }), policy, {
     rulesetCapability: FORBIDDEN,
+    ownerKind: 'org',
   });
   assert.equal(changes.length, 1);
   assert.match(String(changes[0]?.blocked), /not available in this fixture/);
@@ -138,6 +207,7 @@ test('a public repository is not blocked for that reason, and a missing ruleset 
   };
   const changes = planned(repo({ structure: { rulesets: [] } }), policy, {
     rulesetCapability: FORBIDDEN,
+    ownerKind: 'org',
   });
   assert.equal(changes.length, 1);
   assert.equal(changes[0]?.key, 'rulesets.protect');
@@ -161,15 +231,16 @@ test('a ruleset that already matches is not planned again', () => {
   const state = repo({
     structure: {
       rulesets: [
-        {
-          id: 7,
-          name: 'protect',
-          target_branches: ['v*.x'],
-          required_approvals: 1,
-          required_checks: ['CI complete'],
-          block_force_push: true,
-          block_deletion: true,
-        },
+        stored({
+          include: ['v*.x'],
+          rules: {
+            require_pull_request: true,
+            required_approvals: 1,
+            required_checks: ['CI complete'],
+            block_force_push: true,
+            block_deletion: true,
+          },
+        }),
       ],
     },
   });
@@ -180,23 +251,19 @@ test('a ruleset that differs is updated in place, carrying the id it already has
   const policy: PolicySet = {
     rulesets: [{ name: 'protect', target_branches: ['v*.x'], required_approvals: 2 }],
   };
-  const state = repo({
-    structure: {
-      rulesets: [
-        {
-          id: 7,
-          name: 'protect',
-          target_branches: ['v*.x'],
-          required_approvals: 1,
-          block_force_push: false,
-          block_deletion: false,
-        },
-      ],
-    },
+  const existing = stored({
+    include: ['v*.x'],
+    rules: { require_pull_request: true, required_approvals: 1 },
   });
+  const state = repo({ structure: { rulesets: [existing] } });
   const changes = planned(state, policy, OPTIONS);
   assert.equal(changes.length, 1);
-  assert.deepEqual(changes[0]?.payload, { ruleset: policy.rulesets?.[0], id: 7 });
+  assert.deepEqual(changes[0]?.payload, {
+    ruleset: policy.rulesets?.[0],
+    id: 7,
+    existing,
+    context: { resolution: new Map(), repository: 'account/thing' },
+  });
 });
 
 test('rulesets that could not be read are blocked rather than assumed missing', () => {
@@ -336,17 +403,690 @@ test('a repository that already matches its whole policy plans nothing', () => {
       environments: [{ name: 'npm', reviewers: [] }],
       files: { LICENSE: true },
       rulesets: [
-        {
+        stored({
           id: 1,
-          name: 'protect',
-          target_branches: ['main'],
-          required_approvals: 1,
-          block_force_push: true,
-          block_deletion: false,
-        },
+          include: ['main'],
+          rules: { require_pull_request: true, required_approvals: 1, block_force_push: true },
+        }),
       ],
     },
   });
 
   assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('enabling the code scanning default setup warns about the workflow it would disable', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.code_scanning_default_setup': false },
+    structure: { workflowsUploadingCodeScanning: ['.github/workflows/security.yml'] },
+  });
+  const policy: PolicySet = { security: { code_scanning_default_setup: true } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.match(String(change?.warning), /security\.yml/u);
+  assert.match(String(change?.warning), /refuses those uploads/u);
+  assert.equal(change?.blocked, undefined, 'the change still happens; it is a consequence');
+});
+
+test('no warning when the repository has no workflow that uploads code scanning', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.code_scanning_default_setup': false },
+    structure: { workflowsUploadingCodeScanning: [] },
+  });
+  const policy: PolicySet = { security: { code_scanning_default_setup: true } };
+  assert.equal(planned(state, policy, OPTIONS)[0]?.warning, undefined);
+});
+
+test('unreadable workflows are reported as unknown, not as none', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.code_scanning_default_setup': false },
+    structure: {},
+  });
+  const policy: PolicySet = { security: { code_scanning_default_setup: true } };
+  assert.match(String(planned(state, policy, OPTIONS)[0]?.warning), /could not be read/u);
+});
+
+test('turning the default setup off cannot disable a workflow, so it carries no warning', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.code_scanning_default_setup': true },
+    structure: { workflowsUploadingCodeScanning: ['.github/workflows/security.yml'] },
+  });
+  const policy: PolicySet = { security: { code_scanning_default_setup: false } };
+  assert.equal(planned(state, policy, OPTIONS)[0]?.warning, undefined);
+});
+
+const merging = (over: Record<string, unknown> = {}): RepoDetail =>
+  repo({
+    settings: {
+      ...repo().settings,
+      'merge.squash_title': 'PR_TITLE',
+      'merge.squash_message': 'COMMIT_MESSAGES',
+      'merge.merge_commit_title': 'MERGE_MESSAGE',
+      'merge.merge_commit_message': 'PR_TITLE',
+      ...over,
+    },
+  });
+
+test('a merge message default is planned like any other setting', () => {
+  const policy: PolicySet = { merge: { squash_title: 'COMMIT_OR_PR_TITLE' } };
+  const [change] = planned(merging(), policy, OPTIONS);
+
+  assert.deepEqual(
+    { key: change?.key, from: change?.from, to: change?.to, blocked: change?.blocked },
+    {
+      key: 'merge.squash_title',
+      from: 'PR_TITLE',
+      to: 'COMMIT_OR_PR_TITLE',
+      blocked: undefined,
+    },
+  );
+});
+
+test('a message default declared without its title is blocked, not sent', () => {
+  const policy: PolicySet = { merge: { squash_message: 'BLANK' } };
+  const [change] = planned(merging(), policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /merge\.squash_title/u);
+});
+
+test('a message default carries the declared title so GitHub accepts it', () => {
+  const policy: PolicySet = { merge: { squash_message: 'BLANK', squash_title: 'PR_TITLE' } };
+  const change = planned(merging(), policy, OPTIONS).find((c) => c.key === 'merge.squash_message');
+
+  assert.deepEqual(change?.payload, { requires: { 'merge.squash_title': 'PR_TITLE' } });
+});
+
+test('the title it carries is the declared one even when the repository already has it', () => {
+  // squash_title is unchanged, so it is planned as no change at all — and yet
+  // the request still has to state it, or GitHub rejects the message.
+  const policy: PolicySet = { merge: { squash_message: 'BLANK', squash_title: 'PR_TITLE' } };
+  const changes = planned(merging(), policy, OPTIONS);
+
+  assert.deepEqual(
+    changes.map((c) => c.key),
+    ['merge.squash_message'],
+  );
+});
+
+test('the merge-commit pair is independent of the squash pair', () => {
+  const policy: PolicySet = { merge: { merge_commit_message: 'BLANK' } };
+  const [change] = planned(merging(), policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /merge\.merge_commit_title/u);
+});
+
+test('a message default that already matches is not blocked, because nothing is sent', () => {
+  const policy: PolicySet = { merge: { squash_message: 'COMMIT_MESSAGES' } };
+  assert.deepEqual(planned(merging(), policy, OPTIONS), []);
+});
+
+test('a setting the owner enforces is blocked with the reason, not attempted', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.immutable_releases': true },
+    enforced: { 'security.immutable_releases': 'account enforces immutable releases' },
+  });
+  const policy: PolicySet = { security: { immutable_releases: false } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.blocked, 'account enforces immutable releases');
+});
+
+test('enforcement only matters where the policy disagrees with it', () => {
+  const state = repo({
+    settings: { ...repo().settings, 'security.immutable_releases': true },
+    enforced: { 'security.immutable_releases': 'account enforces immutable releases' },
+  });
+  const policy: PolicySet = { security: { immutable_releases: true } };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('declaring the unarchive is what makes an archived repository plannable again', () => {
+  const archived = repo({
+    archived: true,
+    settings: { ...repo().settings, 'repo.archived': true },
+  });
+
+  const keys = planned(
+    archived,
+    { repo: { archived: false }, features: { wiki: false } },
+    OPTIONS,
+  ).map((change) => change.key);
+  assert.deepEqual(keys.sort(), ['features.wiki', 'repo.archived']);
+});
+
+test('everything planned beside an unarchive waits for it', () => {
+  const archived = repo({
+    archived: true,
+    settings: { ...repo().settings, 'repo.archived': true },
+  });
+  const changes = planned(
+    archived,
+    { repo: { archived: false }, features: { wiki: false } },
+    OPTIONS,
+  );
+
+  const unarchive = changes.find((c) => c.key === 'repo.archived');
+  const other = changes.find((c) => c.key === 'features.wiki');
+  assert.deepEqual(other?.prerequisites, [unarchive?.id]);
+  assert.deepEqual(unarchive?.prerequisites, []);
+});
+
+test('archiving waits for everything else, so it cannot freeze a failed change', () => {
+  const state = repo({ settings: { ...repo().settings, 'repo.archived': false } });
+  const changes = planned(state, { repo: { archived: true }, features: { wiki: false } }, OPTIONS);
+
+  const archive = changes.find((c) => c.key === 'repo.archived');
+  const other = changes.find((c) => c.key === 'features.wiki');
+  assert.deepEqual(archive?.prerequisites, [other?.id]);
+  assert.deepEqual(other?.prerequisites, []);
+});
+
+test('a rename without rename_from is refused, whatever layer declared it', () => {
+  const [change] = planned(repo(), { repo: { name: 'renamed' } }, OPTIONS);
+
+  assert.match(String(change?.blocked), /must declare repo\.rename_from/u);
+});
+
+test('a rename fires only from a name it anticipated', () => {
+  const policy: PolicySet = { repo: { name: 'renamed', rename_from: ['something-else'] } };
+  const [change] = planned(repo(), policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /not in rename_from/u);
+});
+
+test('a rename warns that the entry which asked for it will stop matching', () => {
+  const policy: PolicySet = { repo: { name: 'renamed', rename_from: ['thing'] } };
+  const [change] = planned(repo(), policy, OPTIONS);
+
+  assert.equal(change?.blocked, undefined);
+  assert.equal(change?.risk, 'sensitive');
+  assert.match(String(change?.warning), /stop matching/u);
+});
+
+test('rename_from is a guard, not a setting, so it is never planned on its own', () => {
+  const policy: PolicySet = { repo: { rename_from: ['thing'] } };
+  assert.deepEqual(planned(repo(), policy, OPTIONS), []);
+});
+
+test('leaving internal visibility warns that the configuration cannot restore it', () => {
+  const state = repo({
+    visibility: 'internal',
+    settings: { ...repo().settings, 'repo.visibility': 'internal' },
+  });
+  const [change] = planned(state, { repo: { visibility: 'private' } }, OPTIONS);
+
+  assert.equal(change?.blocked, undefined);
+  assert.equal(change?.risk, 'sensitive');
+  assert.match(String(change?.warning), /cannot be undone/u);
+});
+
+test('an ordinary visibility change carries no such warning', () => {
+  const state = repo({ settings: { ...repo().settings, 'repo.visibility': 'public' } });
+  const [change] = planned(state, { repo: { visibility: 'private' } }, OPTIONS);
+
+  assert.equal(change?.warning, undefined);
+});
+
+test('a ruleset with no target names no refs, so it is refused rather than guessed', () => {
+  const policy: PolicySet = { rulesets: [{ name: 'protect' }] };
+  const [change] = planned(repo({ structure: { rulesets: [] } }), policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /exactly one of target_branches/u);
+});
+
+test('two targets disagree with each other, and are refused the same way', () => {
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], target_tags: ['v*'] }],
+  };
+  const [change] = planned(repo({ structure: { rulesets: [] } }), policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /exactly one of target_branches/u);
+});
+
+test('an update carries the stored ruleset, so unmanaged rules can be put back', () => {
+  const existing = stored({
+    include: ['main'],
+    unmodelled: [{ type: 'something_new' }],
+  });
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], block_deletion: true }],
+  };
+  const [change] = planned(repo({ structure: { rulesets: [existing] } }), policy, OPTIONS);
+
+  assert.equal((change?.payload as { existing?: unknown })?.existing, existing);
+});
+
+test('an ensured branch is cut from the name the run will leave behind, not the old one', () => {
+  const state = repo({
+    default_branch: 'master',
+    structure: { branches: { develop: false } },
+  });
+  const policy: PolicySet = {
+    default_branch: { name: 'main', rename_from: ['master'] },
+    ensure_branches: ['develop'],
+  };
+  const change = planned(state, policy, OPTIONS).find((c) => c.key === 'ensure_branches.develop');
+
+  assert.deepEqual(change?.payload, { branch: 'develop', from: 'main' });
+});
+
+test('with no rename planned it is cut from the branch that is there', () => {
+  const state = repo({ structure: { branches: { develop: false } } });
+  const policy: PolicySet = { ensure_branches: ['develop'] };
+  const change = planned(state, policy, OPTIONS).find((c) => c.key === 'ensure_branches.develop');
+
+  assert.deepEqual(change?.payload, { branch: 'develop', from: 'main' });
+});
+
+test('branch protection is planned against what is currently in force', () => {
+  const state = repo({ structure: { branchProtection: { main: null } } });
+  const policy: PolicySet = { branch_protection: [{ branch: 'main', enforce_admins: true }] };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.key, 'branch_protection.main');
+  assert.equal(change?.from, null);
+  assert.equal(change?.risk, 'sensitive');
+});
+
+test('protection for a branch that does not exist is blocked, not created', () => {
+  const state = repo({ structure: { branchProtection: {} } });
+  const policy: PolicySet = { branch_protection: [{ branch: 'nope', enforce_admins: true }] };
+
+  assert.match(String(planned(state, policy, OPTIONS)[0]?.blocked), /no branch called/u);
+});
+
+test('unreadable protection blocks rather than being assumed absent', () => {
+  const state = repo({ structure: {} });
+  const policy: PolicySet = { branch_protection: [{ branch: 'main', enforce_admins: true }] };
+
+  assert.match(String(planned(state, policy, OPTIONS)[0]?.blocked), /could not read/u);
+});
+
+test('a branch governed by both protection and a ruleset blocks both sides', () => {
+  const state = repo({ structure: { branchProtection: { main: null }, rulesets: [] } });
+  const policy: PolicySet = {
+    branch_protection: [{ branch: 'main', enforce_admins: true }],
+    rulesets: [{ name: 'protect', target_branches: ['~DEFAULT_BRANCH'], block_deletion: true }],
+  };
+  const changes = planned(state, policy, OPTIONS);
+
+  assert.match(
+    String(changes.find((c) => c.key === 'branch_protection.main')?.blocked),
+    /ruleset/u,
+  );
+  assert.match(
+    String(changes.find((c) => c.key === 'rulesets.protect')?.blocked),
+    /branch_protection/u,
+  );
+});
+
+test('the conflict is reported even when neither side would otherwise change', () => {
+  const state = repo({
+    structure: {
+      branchProtection: { main: { enforce_admins: true } },
+      rulesets: [stored({ include: ['main'], rules: { block_deletion: true } })],
+    },
+  });
+  const policy: PolicySet = {
+    branch_protection: [{ branch: 'main', enforce_admins: true }],
+    rulesets: [{ name: 'protect', target_branches: ['main'], block_deletion: true }],
+  };
+  const changes = planned(state, policy, OPTIONS);
+
+  assert.equal(changes.length, 2, 'both are reported, though neither differs');
+  assert.ok(changes.every((change) => change.blocked !== undefined));
+});
+
+test('a ruleset governing other refs is not a conflict', () => {
+  const state = repo({ structure: { branchProtection: { main: null }, rulesets: [] } });
+  const policy: PolicySet = {
+    branch_protection: [{ branch: 'main', enforce_admins: true }],
+    rulesets: [{ name: 'tags', target_tags: ['v*'], block_deletion: true }],
+  };
+
+  assert.ok(planned(state, policy, OPTIONS).every((change) => change.blocked === undefined));
+});
+
+test('a bypass naming a team nobody can find blocks the whole ruleset', () => {
+  const state = repo({
+    structure: {
+      rulesets: [],
+      resolved: new Map([['team:ghosts', null]]),
+    },
+  });
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], bypass: [{ teams: ['ghosts'] }] }],
+  };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.match(String(change?.blocked), /no team called "ghosts"/u);
+});
+
+test('a bypass on a personal repository is blocked before anything is sent', () => {
+  const state = repo({ structure: { rulesets: [], resolved: new Map([['team:reviewers', 22]]) } });
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], bypass: [{ teams: ['reviewers'] }] }],
+  };
+  const [change] = planned(state, policy, { rulesetCapability: SUPPORTED, ownerKind: 'user' });
+
+  assert.match(String(change?.blocked), /no teams on a personal repository/u);
+});
+
+test('a bypass that already matches is not planned again', () => {
+  const state = repo({
+    structure: {
+      rulesets: [
+        stored({
+          include: ['main'],
+          bypass: [{ actor_type: 'Team', actor_id: 22, bypass_mode: 'always' }],
+        }),
+      ],
+      resolved: new Map([['team:reviewers', 22]]),
+    },
+  });
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], bypass: [{ teams: ['reviewers'] }] }],
+  };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('changing who bypasses is a change on its own, with nothing else touched', () => {
+  const state = repo({
+    structure: {
+      rulesets: [stored({ include: ['main'] })],
+      resolved: new Map([['user:hector', 11]]),
+    },
+  });
+  const policy: PolicySet = {
+    rulesets: [{ name: 'protect', target_branches: ['main'], bypass: [{ users: ['hector'] }] }],
+  };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.blocked, undefined);
+  assert.match(String(change?.to), /bypass: user:hector/u);
+});
+
+test('a collaborator nobody wrote down is not a difference to correct', () => {
+  const state = repo({
+    structure: { collaborators: { stranger: 'admin' }, invitations: {} },
+  });
+  const policy: PolicySet = { access: { users: { hector: 'admin' } } };
+  const changes = planned(state, policy, OPTIONS);
+
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0]?.key, 'access.users.hector');
+});
+
+test('a level held under GitHub other name for it is not a change', () => {
+  const state = repo({ structure: { collaborators: { hector: 'write' }, invitations: {} } });
+  const policy: PolicySet = { access: { users: { hector: 'push' } } };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('a pending invitation for the level asked for is not planned again', () => {
+  const state = repo({
+    structure: { collaborators: {}, invitations: { hector: { id: 3, level: 'write' } } },
+  });
+  const policy: PolicySet = { access: { users: { hector: 'write' } } };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('a pending invitation offering the wrong level is amended, not sent again', () => {
+  const state = repo({
+    structure: { collaborators: {}, invitations: { hector: { id: 3, level: 'read' } } },
+  });
+  const policy: PolicySet = { access: { users: { hector: 'admin' } } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.from, 'invited as read');
+  assert.deepEqual(change?.payload, { login: 'hector', level: 'admin', invitation: 3 });
+});
+
+test('a custom role cannot be reached by amending an invitation, and says so', () => {
+  const state = repo({
+    structure: { collaborators: {}, invitations: { hector: { id: 3, level: 'read' } } },
+  });
+  const policy: PolicySet = { access: { users: { hector: 'security-reviewer' } } };
+
+  assert.match(String(planned(state, policy, OPTIONS)[0]?.blocked), /answered or withdrawn/u);
+});
+
+test('granting and revoking are attach and detach, and revoking is destructive', () => {
+  const state = repo({ structure: { collaborators: { leaver: 'write' }, invitations: {} } });
+  const policy: PolicySet = { access: { users: { joiner: 'read', leaver: 'none' } } };
+  const changes = planned(state, policy, OPTIONS);
+  const joiner = changes.find((c) => c.key === 'access.users.joiner');
+  const leaver = changes.find((c) => c.key === 'access.users.leaver');
+
+  assert.equal(joiner?.operation, 'attach');
+  assert.equal(joiner?.risk, 'sensitive');
+  assert.equal(leaver?.operation, 'detach');
+  assert.equal(leaver?.risk, 'destructive');
+});
+
+test('revoking somebody who has no access and no invitation is not a change', () => {
+  const state = repo({ structure: { collaborators: {}, invitations: {} } });
+  const policy: PolicySet = { access: { users: { nobody: 'none' } } };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('revoking a pending invitation withdraws it rather than removing a collaborator', () => {
+  const state = repo({
+    structure: { collaborators: {}, invitations: { hector: { id: 3, level: 'read' } } },
+  });
+  const policy: PolicySet = { access: { users: { hector: 'none' } } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.deepEqual(change?.payload, { login: 'hector', level: 'none', invitation: 3 });
+});
+
+test('the account octoform runs as cannot revoke its own admin access', () => {
+  const state = repo({ structure: { collaborators: { hector: 'admin' }, invitations: {} } });
+  const policy: PolicySet = { access: { users: { hector: 'none' } } };
+  const [change] = planned(state, policy, {
+    rulesetCapability: SUPPORTED,
+    ownerKind: 'org',
+    actor: 'hector',
+  });
+
+  assert.match(String(change?.blocked), /lock the run out/u);
+});
+
+test('a personal repository has one collaborator level and cannot be asked for another', () => {
+  const state = repo({ structure: { collaborators: {}, invitations: {} } });
+  const options: PlanOptions = { rulesetCapability: SUPPORTED, ownerKind: 'user' };
+
+  assert.match(
+    String(planned(state, { access: { users: { hector: 'admin' } } }, options)[0]?.blocked),
+    /grants collaborators write access and nothing else/u,
+  );
+  assert.equal(
+    planned(state, { access: { users: { hector: 'push' } } }, options)[0]?.blocked,
+    undefined,
+    'write itself is fine',
+  );
+});
+
+test('a team cannot be granted access to a personal repository', () => {
+  const state = repo({ structure: { teamAccess: {} } });
+  const [change] = planned(
+    state,
+    { access: { teams: { reviewers: 'write' } } },
+    {
+      rulesetCapability: SUPPORTED,
+      ownerKind: 'user',
+    },
+  );
+
+  assert.match(String(change?.blocked), /no teams on a personal repository/u);
+});
+
+test('a team grant is compared and corrected like any other level', () => {
+  const state = repo({ structure: { teamAccess: { reviewers: 'read' } } });
+  const policy: PolicySet = { access: { teams: { reviewers: 'maintain' } } };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.deepEqual(
+    { from: change?.from, to: change?.to, payload: change?.payload },
+    { from: 'read', to: 'maintain', payload: { slug: 'reviewers', level: 'maintain' } },
+  );
+});
+
+test('access that could not be read blocks rather than being planned over', () => {
+  const policy: PolicySet = { access: { users: { hector: 'admin' } } };
+
+  assert.match(
+    String(planned(repo({ structure: {} }), policy, OPTIONS)[0]?.blocked),
+    /could not read who already has access/u,
+  );
+});
+
+test('a cancelled access entry is not a change', () => {
+  const state = repo({ structure: { collaborators: {}, invitations: {} } });
+
+  assert.deepEqual(planned(state, { access: { users: { hector: null } } }, OPTIONS), []);
+});
+
+test('a label nobody declared is left alone, and a declared one is corrected', () => {
+  const state = repo({
+    structure: {
+      labels: {
+        bug: { name: 'bug', color: 'ffffff', description: null, default: true },
+        stray: { name: 'stray', color: '000000', description: null, default: false },
+      },
+    },
+  });
+  const policy: PolicySet = { labels: [{ name: 'bug', color: '#D73A4A' }] };
+  const changes = planned(state, policy, OPTIONS);
+
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0]?.key, 'labels.bug');
+  assert.equal(changes[0]?.operation, 'update');
+  assert.deepEqual(changes[0]?.payload, { label: policy.labels?.[0], name: 'bug' });
+});
+
+test('a renamed label is renamed, not recreated under the new name', () => {
+  const state = repo({
+    structure: {
+      labels: { defect: { name: 'defect', color: 'd73a4a', description: null, default: false } },
+    },
+  });
+  const policy: PolicySet = { labels: [{ name: 'bug', rename_from: ['defect'] }] };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.deepEqual(change?.payload, { label: policy.labels?.[0], name: 'defect' });
+  assert.match(String(change?.warning), /keeps it on every issue/u);
+});
+
+test('deleting a label is a delete, is destructive, and says what it costs', () => {
+  const state = repo({
+    structure: {
+      labels: { wontfix: { name: 'wontfix', color: 'ffffff', description: null, default: true } },
+    },
+  });
+  const policy: PolicySet = { labels: [{ name: 'wontfix', mode: 'absent' }] };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.equal(change?.operation, 'delete');
+  assert.equal(change?.risk, 'destructive');
+  assert.equal(change?.to, null);
+  assert.match(String(change?.warning), /every issue and pull request/u);
+  assert.match(String(change?.warning), /GitHub creates with a new repository/u);
+});
+
+test('a label already absent is not a change', () => {
+  const state = repo({ structure: { labels: {} } });
+
+  assert.deepEqual(planned(state, { labels: [{ name: 'gone', mode: 'absent' }] }, OPTIONS), []);
+});
+
+test('a closed milestone is seen, so it is not created a second time', () => {
+  const state = repo({
+    structure: {
+      milestones: {
+        'v0.9': { number: 1, title: 'v0.9', description: null, state: 'closed' },
+      },
+    },
+  });
+  const policy: PolicySet = { milestones: [{ title: 'v0.9', state: 'closed' }] };
+
+  assert.deepEqual(planned(state, policy, OPTIONS), []);
+});
+
+test('a milestone is addressed by the number GitHub keeps, not by its title', () => {
+  const state = repo({
+    structure: {
+      milestones: { 'v1.0': { number: 7, title: 'v1.0', description: null, state: 'open' } },
+    },
+  });
+  const policy: PolicySet = { milestones: [{ title: 'v1.0', state: 'closed' }] };
+  const [change] = planned(state, policy, OPTIONS);
+
+  assert.deepEqual(change?.payload, { milestone: policy.milestones?.[0], number: 7 });
+});
+
+test('deleting a milestone offers closing it as the alternative', () => {
+  const state = repo({
+    structure: {
+      milestones: { 'v0.1': { number: 2, title: 'v0.1', description: null, state: 'closed' } },
+    },
+  });
+  const [change] = planned(state, { milestones: [{ title: 'v0.1', mode: 'absent' }] }, OPTIONS);
+
+  assert.equal(change?.operation, 'delete');
+  assert.equal(change?.risk, 'destructive');
+  assert.match(String(change?.warning), /closing it instead retires it/u);
+});
+
+test('a property value is sensitive, since it can decide what governs the repository', () => {
+  const state = repo({ structure: { propertyValues: { team: 'core' } } });
+  const [change] = planned(state, { properties: { team: 'platform' } }, OPTIONS);
+
+  assert.equal(change?.risk, 'sensitive');
+  assert.deepEqual({ from: change?.from, to: change?.to }, { from: 'core', to: 'platform' });
+  assert.deepEqual(change?.payload, { property: 'team', value: 'platform' });
+});
+
+test('an empty property value unsets it rather than writing an empty string', () => {
+  const state = repo({ structure: { propertyValues: { team: 'core' } } });
+  const [change] = planned(state, { properties: { team: '' } }, OPTIONS);
+
+  assert.equal(change?.to, null);
+  assert.deepEqual(change?.payload, { property: 'team', value: null });
+});
+
+test('a property a personal account cannot have is blocked, not attempted', () => {
+  const state = repo({ structure: { propertyValues: {} } });
+  const [change] = planned(
+    state,
+    { properties: { team: 'platform' } },
+    {
+      rulesetCapability: SUPPORTED,
+      ownerKind: 'user',
+    },
+  );
+
+  assert.match(String(change?.blocked), /defined by an organisation/u);
+});
+
+test('collections that could not be read block rather than being planned over', () => {
+  const state = repo({ structure: {} });
+
+  assert.match(
+    String(planned(state, { labels: [{ name: 'bug' }] }, OPTIONS)[0]?.blocked),
+    /could not read the existing labels/u,
+  );
+  assert.match(
+    String(planned(state, { milestones: [{ title: 'v1' }] }, OPTIONS)[0]?.blocked),
+    /could not read the existing milestones/u,
+  );
+  assert.match(
+    String(planned(state, { properties: { team: 'a' } }, OPTIONS)[0]?.blocked),
+    /could not read the current custom property values/u,
+  );
 });

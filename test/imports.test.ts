@@ -128,3 +128,59 @@ test('no owner anywhere in the chain is a clear error, not a crash', () => {
   const path = write('main.yml', `defaults:\n  features: { issues: true }\n`);
   assert.throws(() => loadConfig(path), /must declare an "owner"/);
 });
+
+test('a seed file is resolved next to the file that named it, not the entry point', () => {
+  write('presets/seeds/dependabot.yml', 'version: 2\n');
+  write(
+    'presets/npm.yml',
+    `
+defaults:
+  files:
+    - path: .github/dependabot.yml
+      from: seeds/dependabot.yml
+      mode: create-if-missing
+`,
+  );
+  const path = write(
+    'seeded.yml',
+    `
+owner: my-account
+imports: [presets/npm.yml]
+`,
+  );
+
+  const config = only(loadConfig(path));
+  assert.equal(config.defaults?.files?.[0]?.from, join(dir, 'presets', 'seeds', 'dependabot.yml'));
+});
+
+test('a seed file outside the declaring file directory is refused', () => {
+  const path = write(
+    'escaping.yml',
+    `
+owner: my-account
+defaults:
+  files:
+    - path: .github/secret
+      from: ../outside-the-tree
+      mode: create-if-missing
+`,
+  );
+
+  assert.throws(() => loadConfig(path), /resolves outside/u);
+});
+
+test('a seed file that does not exist is refused when the configuration loads', () => {
+  const path = write(
+    'missing-seed.yml',
+    `
+owner: my-account
+defaults:
+  files:
+    - path: .github/thing
+      from: nothing-is-here.yml
+      mode: create-if-missing
+`,
+  );
+
+  assert.throws(() => loadConfig(path), /cannot be read/u);
+});

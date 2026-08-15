@@ -210,6 +210,8 @@ export function generateRepo(random: Random, name: string, types: readonly strin
     description: (settings['repo.description'] as string | null | undefined) ?? null,
     homepage: null,
     topics: (settings['repo.topics'] as string[] | undefined) ?? [],
+    // Occasionally missing, so a setting that needs it is generated blocked too.
+    ...(random.int(12) === 0 ? {} : { nodeId: `R_${name}` }),
     settings,
   };
   if (types.length > 0 && random.bool()) repo.type = random.pick(types);

@@ -36,6 +36,7 @@ after(() => rmSync(dir, { recursive: true, force: true }));
 
 const OPTIONS = {
   rulesetCapability: capability('supported', 'assumed in this suite', 'permission'),
+  ownerKind: 'org' as const,
 };
 
 /** How many generated cases each property runs over. */
@@ -298,7 +299,7 @@ test('an excluded repository produces no operation for the owner that excluded i
     const { config, states } = generateCase(random);
     for (const change of planAll(config, states)) {
       assert.equal(
-        isExcluded(scopeFor(config, change.owner), change.repo),
+        isExcluded(scopeFor(config, change.owner), change.repo ?? ''),
         false,
         `${change.repo} is excluded for ${change.owner} but was planned anyway`,
       );

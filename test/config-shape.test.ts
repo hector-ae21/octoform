@@ -8,10 +8,13 @@ import type { ObjectShape, ValueShape } from '../src/types/index.js';
 interface SchemaNode {
   $ref?: string;
   type?: string;
+  enum?: unknown[];
+  const?: unknown;
   properties?: Record<string, SchemaNode>;
   additionalProperties?: SchemaNode | boolean;
   items?: SchemaNode;
   anyOf?: SchemaNode[];
+  not?: unknown;
 }
 
 const schema = JSON.parse(
@@ -19,19 +22,27 @@ const schema = JSON.parse(
 ) as { definitions: Record<string, SchemaNode> };
 
 /**
- * Follow a reference, and look past the `null` branch a cancellable setting
- * gains in the schema. `null` is how a narrower layer stops managing a value,
- * so it says nothing about the shape of the value itself.
+ * Follow a reference, and look past the two branches a cancellable setting
+ * gains in the schema: `null`, which is how a narrower layer stops managing a
+ * value, and the empty `not`, which is how the generator spells the absent
+ * one. Neither says anything about the shape of the value itself.
  */
 function deref(node: SchemaNode): SchemaNode {
   if (node.$ref) {
-    const name = node.$ref.replace('#/definitions/', '');
+    /**
+     * A generic definition is keyed by its written name and referred to by its
+     * escaped one, so `Managed<PropertyDefinition>` is looked up as
+     * `Managed%3CPropertyDefinition%3E` and found only after decoding.
+     */
+    const name = decodeURIComponent(node.$ref.replace('#/definitions/', ''));
     const target = schema.definitions[name];
     assert.ok(target, `unresolved reference ${node.$ref}`);
     return deref(target);
   }
   if (node.anyOf) {
-    const substantive = node.anyOf.filter((branch) => branch.type !== 'null');
+    const substantive = node.anyOf.filter(
+      (branch) => branch.type !== 'null' && branch.not === undefined,
+    );
     if (substantive.length === 1) return deref(substantive[0] as SchemaNode);
   }
   return node;
@@ -51,14 +62,40 @@ function compareObject(node: SchemaNode, shape: ObjectShape, path: string): void
   for (const [key, field] of Object.entries(shape.fields)) {
     const child = resolved.properties?.[key];
     assert.ok(child, `${path}.${key}`);
+    /**
+     * `version` is the one closed set the loader deliberately does not treat
+     * as one. It has a check of its own that names the accepted version and
+     * says to upgrade, and that check runs after this one — declaring the set
+     * here would replace that message with a bare list of allowed values.
+     */
+    if (key === 'version') continue;
     compareValue(child, field.shape, `${path}.${key}`);
   }
+}
+
+/** A single accepted value is a closed set of one, however the schema spells it. */
+function closedSet(node: SchemaNode): string[] | undefined {
+  const values = node.enum ?? (node.const === undefined ? undefined : [node.const]);
+  return values?.map(String).sort();
 }
 
 function compareValue(node: SchemaNode, shape: ValueShape, path: string): void {
   const resolved = deref(node);
   switch (shape.kind) {
     case 'scalar':
+      assert.notEqual(resolved.type, 'array', path);
+      /**
+       * A closed set has to be closed in both places. The loader rejects a
+       * value outside it with a message; the schema rejects the same value in
+       * an editor before the file is ever run. They only stay worth trusting
+       * while they list the same values.
+       */
+      assert.deepEqual(
+        closedSet(resolved),
+        shape.values === undefined ? undefined : [...shape.values].sort(),
+        path,
+      );
+      return;
     case 'any':
       assert.notEqual(resolved.type, 'array', path);
       return;

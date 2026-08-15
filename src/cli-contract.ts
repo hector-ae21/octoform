@@ -107,11 +107,49 @@ export const CLI_CONTRACT: CliContract = {
     {
       path: ['inspect', 'capabilities'],
       usage:
-        'octoform inspect capabilities [--config <path>] [--owner <login>]... [--format <text|json>]',
-      summary: 'Print what octoform determined each selected owner supports, and the evidence why.',
+        'octoform inspect capabilities [--config <path>] [--owner <login>]... [--repo <name>] [--format <text|json>]',
+      summary:
+        'Print what octoform determined each selected owner supports, and the evidence why. With --repo, also whether rulesets can be managed on that repository.',
+      mode: 'read-only',
+      options: ['config', 'owner', 'repo', 'format', 'help'],
+      classicScopes: ['repo'],
+    },
+    {
+      path: ['inspect', 'members'],
+      usage:
+        'octoform inspect members      [--config <path>] [--owner <login>]... [--format <text|json>]',
+      summary:
+        'Print who owns, belongs to and collaborates on the organisation, which invitations are waiting or failed, and which people the configuration names are not in it. Organisations only. Changes nothing.',
       mode: 'read-only',
       options: ['config', 'owner', 'format', 'help'],
-      classicScopes: ['repo'],
+      classicScopes: ['read:org'],
+    },
+    {
+      path: ['members', 'invite'],
+      usage: 'octoform members invite  --user <login> [--role <role>] [--owner <login>] [--yes]',
+      summary:
+        'Invite one person to the organization. Asks first, and emails them. Organizations only.',
+      mode: 'confirmed-write',
+      options: ['config', 'owner', 'user', 'role', 'yes', 'help'],
+      classicScopes: ['admin:org'],
+    },
+    {
+      path: ['members', 'remove'],
+      usage: 'octoform members remove  --user <login> [--owner <login>] [--yes]',
+      summary:
+        'Remove one person from the organization, or withdraw the invitation they never answered. Refused for the last owner and for the account running it.',
+      mode: 'confirmed-write',
+      options: ['config', 'owner', 'user', 'yes', 'help'],
+      classicScopes: ['admin:org'],
+    },
+    {
+      path: ['members', 'convert'],
+      usage: 'octoform members convert --user <login> [--owner <login>] [--yes]',
+      summary:
+        'Turn one member into an outside collaborator, keeping only the repositories their teams allow. Guarded like a removal.',
+      mode: 'confirmed-write',
+      options: ['config', 'owner', 'user', 'yes', 'help'],
+      classicScopes: ['admin:org'],
     },
   ],
   options: [
@@ -132,6 +170,17 @@ export const CLI_CONTRACT: CliContract = {
       description: 'Limit to one repository; accepts "owner/name" to disambiguate',
     },
     { id: 'type', syntax: '--type <type>', description: 'Limit to repositories of one type' },
+    {
+      id: 'user',
+      syntax: '--user <login>',
+      description: 'members: the one person the command is about',
+    },
+    {
+      id: 'role',
+      syntax: '--role <role>',
+      description: 'members invite: admin, direct_member or billing_manager',
+      default: 'direct_member',
+    },
     { id: 'yes', syntax: '--yes, -y', description: 'Apply without asking for confirmation' },
     {
       id: 'apply',
@@ -227,7 +276,7 @@ export const CLI_CONTRACT: CliContract = {
     'A run against more than one owner prints a total across every owner it reached.',
     'apply --plan verifies actor, owner identity, source and configuration digests, and expiry before applying anything; a stale or altered plan is refused, never repaired.',
     'Exit codes are frozen for the v0 line: their meaning never changes once published here.',
-    '--format json wraps output in a versioned envelope. Currently supported by plan, inspect config, and inspect capabilities; other commands remain text-only.',
+    '--format json wraps output in a versioned envelope. Currently supported by plan, inspect config, inspect capabilities, and inspect members; other commands remain text-only.',
   ],
 };
 

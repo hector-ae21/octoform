@@ -25,6 +25,14 @@
       "description": "Additional classic scope required before organization custom-property writes."
     },
     {
+      "id": "classic-read-org",
+      "tokenType": "classic-pat",
+      "scope": "organization",
+      "name": "read:org",
+      "access": "read",
+      "description": "Classic scope for reading the organization's members, outside collaborators and invitations."
+    },
+    {
       "id": "repository-metadata-read",
       "tokenType": "fine-grained",
       "scope": "repository",
@@ -65,6 +73,38 @@
       "description": "Branch creation and create-if-missing file writes."
     },
     {
+      "id": "repository-issues-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Issues",
+      "access": "read",
+      "description": "Reading the labels and milestones a repository already has."
+    },
+    {
+      "id": "repository-issues-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Issues",
+      "access": "write",
+      "description": "Creating, renaming and deleting labels and milestones."
+    },
+    {
+      "id": "repository-custom-properties-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Custom properties",
+      "access": "read",
+      "description": "Reading the custom property values set on one repository."
+    },
+    {
+      "id": "repository-custom-properties-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Custom properties",
+      "access": "write",
+      "description": "Setting and unsetting custom property values on one repository."
+    },
+    {
       "id": "organization-custom-properties-read",
       "tokenType": "fine-grained",
       "scope": "organization",
@@ -89,12 +129,36 @@
       "description": "Organization custom-property definitions."
     },
     {
+      "id": "organization-administration-read",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Administration",
+      "access": "read",
+      "description": "Reading the organization's own profile and member policies."
+    },
+    {
       "id": "organization-administration-write",
       "tokenType": "fine-grained",
       "scope": "organization",
       "name": "Administration",
       "access": "write",
-      "description": "Organization ruleset capability discovery for an organization administrator."
+      "description": "Organization ruleset capability discovery, and writing the organization's own profile and member policies."
+    },
+    {
+      "id": "organization-members-read",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Members",
+      "access": "read",
+      "description": "Reading the organization's teams."
+    },
+    {
+      "id": "organization-members-write",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Members",
+      "access": "write",
+      "description": "Creating, updating and deleting the organization's teams."
     }
   ],
   "routePermissions": {
@@ -103,7 +167,124 @@
       "classic-admin-org",
       "organization-administration-write"
     ],
+    "GET /orgs/{org}/members": [
+      "classic-read-org",
+      "organization-members-read"
+    ],
+    "POST /orgs/{org}/invitations": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "DELETE /orgs/{org}/memberships/{username}": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "PUT /orgs/{org}/outside_collaborators/{username}": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "GET /orgs/{org}/outside_collaborators": [
+      "classic-read-org",
+      "organization-members-read"
+    ],
+    "GET /orgs/{org}/invitations": [
+      "classic-read-org",
+      "organization-members-read"
+    ],
+    "GET /orgs/{org}/failed_invitations": [
+      "classic-read-org",
+      "organization-members-read"
+    ],
+    "GET /orgs/{org}/organization-roles": [
+      "classic-admin-org",
+      "organization-administration-read"
+    ],
+    "GET /orgs/{org}/organization-roles/{role_id}/users": [
+      "classic-admin-org",
+      "organization-administration-read"
+    ],
+    "GET /orgs/{org}/organization-roles/{role_id}/teams": [
+      "classic-admin-org",
+      "organization-administration-read"
+    ],
+    "PUT /orgs/{org}/organization-roles/users/{username}/{role_id}": [
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "DELETE /orgs/{org}/organization-roles/users/{username}/{role_id}": [
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "PUT /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}": [
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}": [
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "GET /orgs/{org}/teams": [
+      "classic-admin-org",
+      "organization-members-read"
+    ],
+    "GET /orgs/{org}/teams/{team_slug}/members": [
+      "classic-admin-org",
+      "organization-members-read"
+    ],
+    "GET /orgs/{org}/teams/{team_slug}/invitations": [
+      "classic-admin-org",
+      "organization-members-read"
+    ],
+    "GET /orgs/{org}/teams/{team_slug}/memberships/{username}": [
+      "classic-admin-org",
+      "organization-members-read"
+    ],
+    "PUT /orgs/{org}/teams/{team_slug}/memberships/{username}": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "POST /orgs/{org}/teams": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "PATCH /orgs/{org}/teams/{team_slug}": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "DELETE /orgs/{org}/teams/{team_slug}": [
+      "classic-admin-org",
+      "organization-members-write"
+    ],
+    "GET /orgs/{org}/rulesets/{ruleset_id}": [
+      "classic-repo",
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "POST /orgs/{org}/rulesets": [
+      "classic-repo",
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "PUT /orgs/{org}/rulesets/{ruleset_id}": [
+      "classic-repo",
+      "classic-admin-org",
+      "organization-administration-write"
+    ],
+    "GET /orgs/{org}/properties/schema": [
+      "classic-repo",
+      "classic-admin-org",
+      "organization-custom-properties-read"
+    ],
     "PUT /orgs/{org}/properties/schema/{custom_property_name}": [
+      "classic-repo",
+      "classic-admin-org",
+      "organization-custom-properties-admin"
+    ],
+    "DELETE /orgs/{org}/properties/schema/{custom_property_name}": [
       "classic-repo",
       "classic-admin-org",
       "organization-custom-properties-admin"
@@ -124,6 +305,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /user"],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": ["classic-repo"],
       "writePermissions": [],
       "limitations": ["Some token types do not expose an authenticated user login or classic scope headers."]
@@ -137,6 +319,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /orgs/{org}", "GET /users/{username}"],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": ["classic-repo"],
       "writePermissions": [],
       "limitations": ["Owner kind is discovered from GitHub and is never declared in configuration."]
@@ -155,6 +338,7 @@
         "GET /repos/{owner}/{repo}"
       ],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": [],
       "limitations": ["Another personal account exposes public repositories only; the authenticated owner can expose repositories granted to the token."]
@@ -168,6 +352,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": [],
       "limitations": ["Audit findings are informational and do not change the command exit code."]
@@ -181,6 +366,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": []
@@ -188,15 +374,54 @@
     {
       "id": "repository-discussions",
       "area": "repository",
-      "support": "blocked",
+      "support": "supported",
       "configPaths": ["features.discussions"],
       "commands": ["plan", "apply"],
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": [],
+      "writeMutations": ["updateRepository"],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
-      "writePermissions": [],
-      "limitations": ["This version observes the field but has no supported REST mutation and always blocks a requested change."]
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": [
+        "The REST repository response reports the field but its PATCH body cannot change it; the change is made by the GraphQL updateRepository mutation, so a repository whose node id could not be read blocks instead."
+      ]
+    },
+    {
+      "id": "repository-graphql-settings",
+      "area": "repository",
+      "support": "supported",
+      "configPaths": ["features.sponsorships", "features.pull_requests", "repo.issue_creation", "repo.pull_request_creation"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": [],
+      "writeRoutes": [],
+      "writeMutations": ["updateRepository"],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": [
+        "The REST API exposes none of these settings; both the read and the change go through GraphQL, and only the mutation half has an identity this register can name.",
+        "A failed GraphQL read leaves every one of them unreadable, which blocks the change rather than planning over an assumed value."
+      ]
+    },
+    {
+      "id": "repository-guarded-changes",
+      "area": "repository",
+      "support": "supported",
+      "configPaths": ["repo.visibility", "repo.archived", "repo.template", "repo.name", "repo.rename_from"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}"],
+      "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-metadata-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": [
+        "A rename must declare repo.rename_from, so that a shared policy layer cannot rename every repository it covers.",
+        "Repositories are declared under repos.<name>, so the entry that asked for a rename stops matching once it is applied; the plan reports that as a warning.",
+        "GitHub reports internal visibility but does not accept it back, so leaving it is reported as a change the configuration cannot reverse.",
+        "Archiving is sent after every other change and only if they all succeeded; unarchiving is sent before them. An archived repository with no unarchive declared is not planned against at all."
+      ]
     },
     {
       "id": "merge-settings",
@@ -207,6 +432,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": []
@@ -220,6 +446,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": []
@@ -233,6 +460,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/topics"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": []
@@ -246,6 +474,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}"],
       "writeRoutes": ["PATCH /repos/{owner}/{repo}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["An omitted security_and_analysis field is unreadable and blocks mutation instead of being treated as disabled."]
@@ -259,6 +488,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/vulnerability-alerts"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/vulnerability-alerts", "DELETE /repos/{owner}/{repo}/vulnerability-alerts"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
@@ -272,6 +502,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/automated-security-fixes"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/automated-security-fixes", "DELETE /repos/{owner}/{repo}/automated-security-fixes"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
@@ -285,6 +516,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/private-vulnerability-reporting"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/private-vulnerability-reporting", "DELETE /repos/{owner}/{repo}/private-vulnerability-reporting"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
@@ -298,9 +530,29 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/code-scanning/default-setup"],
       "writeRoutes": ["PATCH /repos/{owner}/{repo}/code-scanning/default-setup"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["A forbidden or unavailable endpoint is reported as unreadable state."]
+    },
+    {
+      "id": "immutable-releases",
+      "area": "security",
+      "support": "supported",
+      "configPaths": ["security.immutable_releases"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/immutable-releases"],
+      "writeRoutes": [
+        "PUT /repos/{owner}/{repo}/immutable-releases",
+        "DELETE /repos/{owner}/{repo}/immutable-releases"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": [
+        "An owner that enforces immutable releases leaves the setting readable but not writable, so a change is reported as blocked rather than attempted."
+      ]
     },
     {
       "id": "default-branch-rename",
@@ -311,6 +563,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}", "GET /repos/{owner}/{repo}/contents/{path}"],
       "writeRoutes": ["POST /repos/{owner}/{repo}/branches/{branch}/rename"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-metadata-read", "repository-contents-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["Rename is guarded by rename_from and workflow references are reported but never rewritten."]
@@ -324,9 +577,35 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/branches/{branch}", "GET /repos/{owner}/{repo}/git/ref/{ref}"],
       "writeRoutes": ["POST /repos/{owner}/{repo}/git/refs"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-contents-read"],
       "writePermissions": ["classic-repo", "repository-contents-write"],
       "limitations": ["A missing branch is created from the current default branch; existing branches are never changed or deleted."]
+    },
+    {
+      "id": "branch-protection",
+      "area": "branches",
+      "support": "supported",
+      "configPaths": ["branch_protection"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": [
+        "GET /repos/{owner}/{repo}/branches/{branch}/protection",
+        "GET /repos/{owner}/{repo}/branches/{branch}"
+      ],
+      "writeRoutes": [
+        "PUT /repos/{owner}/{repo}/branches/{branch}/protection",
+        "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
+        "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": [
+        "The update endpoint has no partial form and reads an omitted member as a removal, so the current protection is read and declared keys are folded over it.",
+        "Protection is never removed from a branch the policy stops naming; only a declared value changes anything.",
+        "A branch also governed by a declared ruleset is blocked on both sides, because GitHub applies both and the stricter wins per rule."
+      ]
     },
     {
       "id": "repository-rulesets",
@@ -342,9 +621,419 @@
         "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}"
       ],
       "writeRoutes": ["POST /repos/{owner}/{repo}/rulesets", "PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
-      "limitations": ["Private repositories require positive owner, repository, token, and API evidence; unknown remote rule types are not removed."]
+      "limitations": [
+        "Private repositories require positive owner, repository, token, and API evidence; unknown remote rule types are not removed.",
+        "That evidence can be gathered before it matters with octoform inspect capabilities --repo <name>, which probes a private repository and reports the answer with its source."
+      ]
+    },
+    {
+      "id": "organization-teams",
+      "area": "organization",
+      "support": "supported",
+      "configPaths": ["organization.teams"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": ["GET /orgs/{org}/teams"],
+      "writeRoutes": [
+        "POST /orgs/{org}/teams",
+        "PATCH /orgs/{org}/teams/{team_slug}",
+        "DELETE /orgs/{org}/teams/{team_slug}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-members-read"],
+      "writePermissions": ["classic-admin-org", "organization-members-write"],
+      "limitations": [
+        "Blocked on a personal account, which has no teams.",
+        "A team is declared under the slug GitHub addresses it by; a rename says which slug it currently has, the way a label does.",
+        "A child team waits for a parent the same run is creating, and is blocked when that creation fails.",
+        "A team with a parent, or with children, cannot be secret; declaring it so is refused.",
+        "Deleting a team is destructive: GitHub deletes its child teams with it, so a parent whose children the file declares is refused.",
+        "The permission field is not modelled: GitHub documents it as closing down.",
+        "The listing is what the token can see, so a secret team it cannot see reads as absent."
+      ]
+    },
+    {
+      "id": "personal-access-token-governance",
+      "area": "access",
+      "support": "unsupported",
+      "configPaths": [],
+      "commands": [],
+      "ownerKinds": ["organization"],
+      "readRoutes": [],
+      "writeRoutes": [],
+      "writeMutations": [],
+      "readPermissions": [],
+      "writePermissions": [],
+      "limitations": [
+        "Not available to octoform: every endpoint for fine-grained personal access token requests and grants states that only GitHub Apps can use it.",
+        "octoform authenticates with a personal access token from GITHUB_TOKEN or GH_TOKEN, so these endpoints refuse it whatever permissions it carries.",
+        "Recorded here rather than left out so the gap is a published statement, not something an operator discovers by assuming it was covered.",
+        "Approving or denying a token request stays a task for the organization's settings pages, or for a GitHub App built for it."
+      ]
+    },
+    {
+      "id": "organization-membership-commands",
+      "area": "access",
+      "support": "organization-only",
+      "configPaths": [],
+      "commands": ["members invite", "members remove", "members convert"],
+      "ownerKinds": ["organization"],
+      "readRoutes": [
+        "GET /orgs/{org}/members",
+        "GET /orgs/{org}/invitations",
+        "GET /orgs/{org}/outside_collaborators",
+        "GET /users/{username}"
+      ],
+      "writeRoutes": [
+        "POST /orgs/{org}/invitations",
+        "DELETE /orgs/{org}/memberships/{username}",
+        "PUT /orgs/{org}/outside_collaborators/{username}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-members-read"],
+      "writePermissions": ["classic-admin-org", "organization-members-write"],
+      "limitations": [
+        "Commands rather than declarations: an invitation is an act addressed to a person, and a file listing members authoritatively would remove somebody on a typo.",
+        "One person per invocation, which is also what GitHub's secondary rate limiting on the invitation endpoint asks for.",
+        "The invitation endpoint takes a user id rather than a login, so a login is looked up first and an unknown one is refused.",
+        "Removing the only owner is refused: an organization with no owners cannot be administered by anybody.",
+        "Removing or converting the account the run is authenticated as is refused, since it could not put itself back.",
+        "One endpoint removes an active member and cancels a pending invitation, and GitHub emails the person in both cases.",
+        "Membership held through an enterprise team survives removal and has to be removed there.",
+        "Converting to an outside collaborator may be restricted by enterprise administrators."
+      ]
+    },
+    {
+      "id": "organization-member-inventory",
+      "area": "discovery",
+      "support": "organization-only",
+      "configPaths": [],
+      "commands": ["inspect members"],
+      "ownerKinds": ["organization"],
+      "readRoutes": [
+        "GET /orgs/{org}/members",
+        "GET /orgs/{org}/outside_collaborators",
+        "GET /orgs/{org}/invitations",
+        "GET /orgs/{org}/failed_invitations"
+      ],
+      "writeRoutes": [],
+      "writeMutations": [],
+      "readPermissions": ["classic-read-org", "organization-members-read"],
+      "writePermissions": [],
+      "limitations": [
+        "Read-only: it reports and changes nothing.",
+        "Refused on a personal account, which has no members, outside collaborators or invitations.",
+        "The two-factor listing is only answered for an organization owner, so it is reported as not visible rather than as nobody when the token cannot ask.",
+        "An outside collaborator and an already-invited person both count as known, so neither is reported as missing from the organization.",
+        "Invitation age is reported in whole days, which is what makes a stale invitation visible."
+      ]
+    },
+    {
+      "id": "organization-role-assignment",
+      "area": "access",
+      "support": "supported",
+      "configPaths": ["organization.roles"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": [
+        "GET /orgs/{org}/organization-roles",
+        "GET /orgs/{org}/organization-roles/{role_id}/users",
+        "GET /orgs/{org}/organization-roles/{role_id}/teams"
+      ],
+      "writeRoutes": [
+        "PUT /orgs/{org}/organization-roles/users/{username}/{role_id}",
+        "DELETE /orgs/{org}/organization-roles/users/{username}/{role_id}",
+        "PUT /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}",
+        "DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-administration-read"],
+      "writePermissions": ["classic-admin-org", "organization-administration-write"],
+      "limitations": [
+        "Blocked on a personal account, which has no organization roles.",
+        "Assignment only: GitHub's description has no endpoint that creates an organization role, so a name that matches none is refused rather than defined.",
+        "Custom repository roles are not managed at all, because the description exposes no endpoint for them.",
+        "The role listing is what turns a declared name into the id the assignment endpoints take, which repository roles in a ruleset bypass have no equivalent of.",
+        "Granting and revoking are both sensitive: an organization role carries permissions across every repository the organization owns.",
+        "Additive unless the block says authoritative, with the same two guards team membership uses.",
+        "A team granted a role waits for a team the same run is creating."
+      ]
+    },
+    {
+      "id": "team-membership",
+      "area": "organization",
+      "support": "supported",
+      "configPaths": ["organization.teams.*.membership"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": [
+        "GET /orgs/{org}/teams/{team_slug}/members",
+        "GET /orgs/{org}/teams/{team_slug}/invitations",
+        "GET /orgs/{org}/teams/{team_slug}/memberships/{username}"
+      ],
+      "writeRoutes": [
+        "PUT /orgs/{org}/teams/{team_slug}/memberships/{username}",
+        "DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-members-read"],
+      "writePermissions": ["classic-admin-org", "organization-members-write"],
+      "limitations": [
+        "Additive unless the block says authoritative: nobody is removed for not appearing in a file.",
+        "An authoritative block that names nobody is refused, because emptying a team is not something a blank section should say.",
+        "An authoritative block that would remove the account the run is authenticated as is refused.",
+        "A pending invitation counts as somebody already asked, so nobody is invited twice.",
+        "The team role of a pending invitation is asked for per person: the role on the invitation listing is the organization invitation role, not the team one.",
+        "An invitation sent to an email address has no login and is skipped, since nothing in the file can name it.",
+        "Removal is destructive: it takes the person out of every repository the team reaches.",
+        "A team synchronized with an identity provider refuses membership changes through the API, and that refusal is reported as the failure it is."
+      ]
+    },
+    {
+      "id": "organization-rulesets",
+      "area": "rules",
+      "support": "supported",
+      "configPaths": ["organization.rulesets"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": ["GET /orgs/{org}/rulesets", "GET /orgs/{org}/rulesets/{ruleset_id}"],
+      "writeRoutes": ["POST /orgs/{org}/rulesets", "PUT /orgs/{org}/rulesets/{ruleset_id}"],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-administration-read"],
+      "writePermissions": ["classic-admin-org", "organization-administration-write"],
+      "limitations": [
+        "Blocked on a personal account, which has no rulesets of its own to aim at repositories.",
+        "Every one is reported as sensitive: it reaches whatever its condition matches, including repositories no configuration names.",
+        "Repositories are selected by name or by custom property, never both, because GitHub takes one repository condition beside the refs.",
+        "A merge queue rule is refused: it is in GitHub's repository rule list and not in its organization one.",
+        "A required workflow must name the repository it comes from, since there is no current repository to default to.",
+        "Applied after the property definitions, so a condition can name a property the same run defines.",
+        "A ruleset nobody declared is left alone, and none is ever deleted."
+      ]
+    },
+    {
+      "id": "ruleset-bypass-actors",
+      "area": "rules",
+      "support": "supported",
+      "configPaths": ["rulesets[].bypass"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": [
+        "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}",
+        "GET /users/{username}",
+        "GET /orgs/{org}/teams/{team_slug}",
+        "GET /apps/{app_slug}"
+      ],
+      "writeRoutes": ["POST /repos/{owner}/{repo}/rulesets", "PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}"],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": [
+        "Names are resolved while reading, so a name GitHub does not know blocks the ruleset in plan instead of failing during apply.",
+        "Repository roles are declared by numeric id: the REST surface has no route mapping a repository-role name to one.",
+        "Teams and organization admins are blocked on a personal repository, and pull_request bypass on deploy keys or non-branch rulesets.",
+        "Omitting bypass preserves the stored actors, since updating a ruleset replaces the whole list."
+      ]
+    },
+    {
+      "id": "ruleset-required-workflows",
+      "area": "rules",
+      "support": "supported",
+      "configPaths": ["rulesets[].required_workflows"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/rulesets/{ruleset_id}", "GET /repos/{owner}/{repo}"],
+      "writeRoutes": ["POST /repos/{owner}/{repo}/rulesets", "PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}"],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": [
+        "A workflow's repository is declared by name and resolved to the id GitHub stores; writing repository_id directly skips the lookup.",
+        "A declared workflow is compared against the stored one through that id, so the same path in another repository is a different requirement."
+      ]
+    },
+    {
+      "id": "organization-profile",
+      "area": "organization",
+      "support": "supported",
+      "configPaths": ["organization.profile"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": ["GET /orgs/{org}"],
+      "writeRoutes": ["PATCH /orgs/{org}"],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-administration-read"],
+      "writePermissions": ["classic-admin-org", "organization-administration-write"],
+      "limitations": [
+        "Blocked on a personal account, which has none of these settings.",
+        "The website is GitHub's blog field; the configuration does not call it that.",
+        "The billing address is not managed, since it is not a governance setting."
+      ]
+    },
+    {
+      "id": "organization-member-policies",
+      "area": "organization",
+      "support": "supported",
+      "configPaths": ["organization.members"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": ["GET /orgs/{org}"],
+      "writeRoutes": ["PATCH /orgs/{org}"],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-administration-read"],
+      "writePermissions": ["classic-admin-org", "organization-administration-write"],
+      "limitations": [
+        "The base permission and the creation switches reach every repository the organization owns, including ones no policy names, so they are reported as sensitive.",
+        "members_allowed_repository_creation_type is not modelled: GitHub documents it as closing down and says using it overrides members_can_create_repositories.",
+        "The security defaults for new repositories are not modelled: GitHub documents every one of them as closing down in favour of code security configurations.",
+        "Applied before any repository change, so a lowered base permission is never briefly wider than the policy asks for.",
+        "Every declared setting is sent in one request, so they succeed or fail together."
+      ]
+    },
+    {
+      "id": "organization-property-definitions",
+      "area": "organization",
+      "support": "supported",
+      "configPaths": ["organization.properties"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": ["GET /orgs/{org}/properties/schema"],
+      "writeRoutes": [
+        "PUT /orgs/{org}/properties/schema/{custom_property_name}",
+        "DELETE /orgs/{org}/properties/schema/{custom_property_name}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-admin-org", "organization-custom-properties-read"],
+      "writePermissions": ["classic-admin-org", "organization-custom-properties-admin"],
+      "limitations": [
+        "Blocked on a personal account: custom properties are an organization feature.",
+        "The write replaces the whole definition, so the current one is read first and every field the configuration does not state is carried forward.",
+        "Blocked when the definitions could not be read, since there would be nothing to carry forward.",
+        "A property the enterprise defines is visible and cannot be changed by the organization.",
+        "A definition is removed only when the configuration names it with mode: absent, and that is reported as destructive because it takes the value off every repository.",
+        "Requiring a value or dropping an allowed value is reported as sensitive; a description is not."
+      ]
+    },
+    {
+      "id": "repository-collaborators",
+      "area": "access",
+      "support": "supported",
+      "configPaths": ["access.users"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/collaborators", "GET /repos/{owner}/{repo}/invitations"],
+      "writeRoutes": [
+        "PUT /repos/{owner}/{repo}/collaborators/{username}",
+        "DELETE /repos/{owner}/{repo}/collaborators/{username}",
+        "PATCH /repos/{owner}/{repo}/invitations/{invitation_id}",
+        "DELETE /repos/{owner}/{repo}/invitations/{invitation_id}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": [
+        "Only direct collaborators are managed; access reaching the repository through a team or an organization base permission is left alone.",
+        "Granting access to someone who is not a collaborator yet creates an invitation, so the change reports an invitation rather than a grant.",
+        "A pending invitation is amended rather than re-sent, and cannot be amended to a custom repository role.",
+        "A personal repository grants collaborators write access only; any other level is blocked.",
+        "The account octoform authenticates as cannot revoke its own admin access.",
+        "A login the policy does not name is never revoked; revoking is spelled none."
+      ]
+    },
+    {
+      "id": "team-repository-access",
+      "area": "access",
+      "support": "supported",
+      "configPaths": ["access.teams"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/teams"],
+      "writeRoutes": [
+        "PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}",
+        "DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-administration-read"],
+      "writePermissions": ["classic-repo", "repository-administration-write"],
+      "limitations": [
+        "Blocked on a personal repository, which has no teams.",
+        "A team the policy does not name keeps whatever access it has; revoking is spelled none."
+      ]
+    },
+    {
+      "id": "repository-labels",
+      "area": "collections",
+      "support": "supported",
+      "configPaths": ["labels"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/labels"],
+      "writeRoutes": [
+        "POST /repos/{owner}/{repo}/labels",
+        "PATCH /repos/{owner}/{repo}/labels/{name}",
+        "DELETE /repos/{owner}/{repo}/labels/{name}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-issues-read"],
+      "writePermissions": ["classic-repo", "repository-issues-write"],
+      "limitations": [
+        "A label the policy does not name is left alone; removing one is spelled mode: absent.",
+        "Deleting a label removes it from every issue and pull request that carries it, so it is reported as destructive.",
+        "rename_from renames an existing label rather than creating a second one, which is what keeps it on the issues it already marks."
+      ]
+    },
+    {
+      "id": "repository-milestones",
+      "area": "collections",
+      "support": "supported",
+      "configPaths": ["milestones"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization", "personal"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/milestones"],
+      "writeRoutes": [
+        "POST /repos/{owner}/{repo}/milestones",
+        "PATCH /repos/{owner}/{repo}/milestones/{milestone_number}",
+        "DELETE /repos/{owner}/{repo}/milestones/{milestone_number}"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-issues-read"],
+      "writePermissions": ["classic-repo", "repository-issues-write"],
+      "limitations": [
+        "Closed milestones are read as well as open ones, since GitHub does not refuse a second milestone with the same title.",
+        "A due date is compared as a calendar day; the time GitHub attaches to it is not something a policy states.",
+        "Deleting a milestone detaches it from every issue in it, so it is reported as destructive."
+      ]
+    },
+    {
+      "id": "repository-property-values",
+      "area": "collections",
+      "support": "supported",
+      "configPaths": ["properties"],
+      "commands": ["plan", "apply"],
+      "ownerKinds": ["organization"],
+      "readRoutes": ["GET /repos/{owner}/{repo}/properties/values"],
+      "writeRoutes": [
+        "PATCH /repos/{owner}/{repo}/properties/values",
+        "PATCH /orgs/{org}/properties/values"
+      ],
+      "writeMutations": [],
+      "readPermissions": ["classic-repo", "repository-custom-properties-read"],
+      "writePermissions": [
+        "classic-repo",
+        "repository-custom-properties-write",
+        "organization-custom-properties-write"
+      ],
+      "limitations": [
+        "Blocked on a personal repository: custom properties are defined by an organisation.",
+        "An empty value unsets the property, since null already means stop managing it.",
+        "Every declared value is sent in one request, so they succeed or fail together.",
+        "Repositories asking for the same values are written together, up to the thirty the organization endpoint takes; a single repository uses its own endpoint, which needs only that repository's permission.",
+        "A shared request has a shared outcome: GitHub does not say which repository it refused, so every repository in a failed batch is reported failed.",
+        "A repository this run is also archiving or unarchiving keeps its values in its own sequence, because they have to wait for it."
+      ]
     },
     {
       "id": "deployment-environments",
@@ -355,6 +1044,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/environments", "GET /users/{username}"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/environments/{environment_name}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-administration-read"],
       "writePermissions": ["classic-repo", "repository-administration-write"],
       "limitations": ["Declared reviewers resolve to users only; an observed team reviewer blocks replacement."]
@@ -368,9 +1058,16 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/contents/{path}"],
       "writeRoutes": ["PUT /repos/{owner}/{repo}/contents/{path}"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-contents-read"],
       "writePermissions": ["classic-repo", "repository-contents-write"],
-      "limitations": ["Only create-if-missing is supported; existing files are never overwritten or deleted."]
+      "limitations": [
+        "Only create-if-missing is supported; existing files are never overwritten or deleted.",
+        "Existing content is never fetched to compare against, since a difference octoform refuses to correct is not worth reporting on every run.",
+        "A files[].from that resolves outside the directory of the file declaring it is refused when the configuration loads, as is one that cannot be read.",
+        "The source is copied byte for byte, so a file that is not text survives.",
+        "Existence is probed on the branch the file would be created on, not on the default branch."
+      ]
     },
     {
       "id": "repository-classification",
@@ -381,6 +1078,7 @@
       "ownerKinds": ["organization", "personal"],
       "readRoutes": ["GET /repos/{owner}/{repo}/contents/{path}"],
       "writeRoutes": [],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "repository-contents-read"],
       "writePermissions": [],
       "limitations": ["Personal accounts use local type declarations because organization custom properties do not apply."]
@@ -394,6 +1092,7 @@
       "ownerKinds": ["organization"],
       "readRoutes": ["GET /orgs/{org}/properties/values"],
       "writeRoutes": ["PUT /orgs/{org}/properties/schema/{custom_property_name}", "PATCH /orgs/{org}/properties/values"],
+      "writeMutations": [],
       "readPermissions": ["classic-repo", "organization-custom-properties-read"],
       "writePermissions": [
         "classic-repo",

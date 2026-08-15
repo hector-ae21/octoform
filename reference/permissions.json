@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "productVersion": "0.4.1",
+  "productVersion": "0.5.0",
   "sources": {
     "githubRestApiVersion": "2026-03-10",
     "apiSurface": "github-api-surface.json",
@@ -18,7 +18,26 @@
       "access": "write",
       "description": "Additional classic scope required before organization custom-property writes.",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "organization-member-policies",
+        "organization-membership-commands",
+        "organization-profile",
+        "organization-property-definitions",
+        "organization-role-assignment",
+        "organization-rulesets",
+        "organization-teams",
+        "team-membership"
+      ]
+    },
+    {
+      "id": "classic-read-org",
+      "tokenType": "classic-pat",
+      "scope": "organization",
+      "name": "read:org",
+      "access": "read",
+      "description": "Classic scope for reading the organization's members, outside collaborators and invitations.",
+      "capabilityIds": [
+        "organization-member-inventory"
       ]
     },
     {
@@ -32,24 +51,49 @@
         "audit-expectations",
         "authenticated-identity",
         "automated-security-fixes",
+        "branch-protection",
         "code-scanning-default-setup",
         "create-if-missing-files",
         "default-branch-rename",
         "deployment-environments",
         "ensured-branches",
+        "immutable-releases",
         "merge-settings",
         "organization-custom-properties",
         "owner-kind",
         "private-vulnerability-reporting",
         "repository-classification",
+        "repository-collaborators",
         "repository-discussions",
         "repository-features",
+        "repository-graphql-settings",
+        "repository-guarded-changes",
         "repository-inventory",
+        "repository-labels",
         "repository-metadata",
+        "repository-milestones",
+        "repository-property-values",
         "repository-rulesets",
         "repository-topics",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows",
         "secret-scanning-settings",
+        "team-repository-access",
         "vulnerability-alerts"
+      ]
+    },
+    {
+      "id": "organization-administration-read",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Administration",
+      "access": "read",
+      "description": "Reading the organization's own profile and member policies.",
+      "capabilityIds": [
+        "organization-member-policies",
+        "organization-profile",
+        "organization-role-assignment",
+        "organization-rulesets"
       ]
     },
     {
@@ -58,8 +102,13 @@
       "scope": "organization",
       "name": "Administration",
       "access": "write",
-      "description": "Organization ruleset capability discovery for an organization administrator.",
-      "capabilityIds": []
+      "description": "Organization ruleset capability discovery, and writing the organization's own profile and member policies.",
+      "capabilityIds": [
+        "organization-member-policies",
+        "organization-profile",
+        "organization-role-assignment",
+        "organization-rulesets"
+      ]
     },
     {
       "id": "organization-custom-properties-admin",
@@ -69,7 +118,8 @@
       "access": "admin",
       "description": "Organization custom-property definitions.",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "organization-property-definitions"
       ]
     },
     {
@@ -80,7 +130,8 @@
       "access": "read",
       "description": "Organization repository property definitions and values.",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "organization-property-definitions"
       ]
     },
     {
@@ -91,7 +142,35 @@
       "access": "write",
       "description": "Organization repository property values.",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "repository-property-values"
+      ]
+    },
+    {
+      "id": "organization-members-read",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Members",
+      "access": "read",
+      "description": "Reading the organization's teams.",
+      "capabilityIds": [
+        "organization-member-inventory",
+        "organization-membership-commands",
+        "organization-teams",
+        "team-membership"
+      ]
+    },
+    {
+      "id": "organization-members-write",
+      "tokenType": "fine-grained",
+      "scope": "organization",
+      "name": "Members",
+      "access": "write",
+      "description": "Creating, updating and deleting the organization's teams.",
+      "capabilityIds": [
+        "organization-membership-commands",
+        "organization-teams",
+        "team-membership"
       ]
     },
     {
@@ -103,11 +182,18 @@
       "description": "Administrative settings, rulesets, environments, and security configuration state.",
       "capabilityIds": [
         "automated-security-fixes",
+        "branch-protection",
         "code-scanning-default-setup",
         "deployment-environments",
+        "immutable-releases",
         "private-vulnerability-reporting",
+        "repository-collaborators",
+        "repository-graphql-settings",
         "repository-rulesets",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows",
         "secret-scanning-settings",
+        "team-repository-access",
         "vulnerability-alerts"
       ]
     },
@@ -120,16 +206,25 @@
       "description": "Repository settings, branch rename, rulesets, environments, and supported security configuration changes.",
       "capabilityIds": [
         "automated-security-fixes",
+        "branch-protection",
         "code-scanning-default-setup",
         "default-branch-rename",
         "deployment-environments",
+        "immutable-releases",
         "merge-settings",
         "private-vulnerability-reporting",
+        "repository-collaborators",
+        "repository-discussions",
         "repository-features",
+        "repository-graphql-settings",
+        "repository-guarded-changes",
         "repository-metadata",
         "repository-rulesets",
         "repository-topics",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows",
         "secret-scanning-settings",
+        "team-repository-access",
         "vulnerability-alerts"
       ]
     },
@@ -160,6 +255,52 @@
       ]
     },
     {
+      "id": "repository-custom-properties-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Custom properties",
+      "access": "read",
+      "description": "Reading the custom property values set on one repository.",
+      "capabilityIds": [
+        "repository-property-values"
+      ]
+    },
+    {
+      "id": "repository-custom-properties-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Custom properties",
+      "access": "write",
+      "description": "Setting and unsetting custom property values on one repository.",
+      "capabilityIds": [
+        "repository-property-values"
+      ]
+    },
+    {
+      "id": "repository-issues-read",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Issues",
+      "access": "read",
+      "description": "Reading the labels and milestones a repository already has.",
+      "capabilityIds": [
+        "repository-labels",
+        "repository-milestones"
+      ]
+    },
+    {
+      "id": "repository-issues-write",
+      "tokenType": "fine-grained",
+      "scope": "repository",
+      "name": "Issues",
+      "access": "write",
+      "description": "Creating, renaming and deleting labels and milestones.",
+      "capabilityIds": [
+        "repository-labels",
+        "repository-milestones"
+      ]
+    },
+    {
       "id": "repository-metadata-read",
       "tokenType": "fine-grained",
       "scope": "repository",
@@ -172,6 +313,7 @@
         "merge-settings",
         "repository-discussions",
         "repository-features",
+        "repository-guarded-changes",
         "repository-inventory",
         "repository-metadata",
         "repository-topics"
@@ -179,6 +321,84 @@
     }
   ],
   "operations": [
+    {
+      "route": "DELETE /orgs/{org}/memberships/{username}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-membership-commands"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
+      ]
+    },
+    {
+      "route": "DELETE /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /orgs/{org}/organization-roles/users/{username}/{role_id}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /orgs/{org}/properties/schema/{custom_property_name}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-property-definitions"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-custom-properties-admin"
+      ]
+    },
+    {
+      "route": "DELETE /orgs/{org}/teams/{team_slug}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-teams"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
+      ]
+    },
+    {
+      "route": "DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}",
+      "access": "write",
+      "capabilityIds": [
+        "team-membership"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
+      ]
+    },
+    {
+      "route": "DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}",
+      "access": "write",
+      "capabilityIds": [
+        "team-repository-access"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
     {
       "route": "DELETE /repos/{owner}/{repo}/automated-security-fixes",
       "access": "write",
@@ -188,6 +408,72 @@
       "permissionProfiles": [
         "classic-repo",
         "repository-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
+      "access": "write",
+      "capabilityIds": [
+        "branch-protection"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/collaborators/{username}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-collaborators"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/immutable-releases",
+      "access": "write",
+      "capabilityIds": [
+        "immutable-releases"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/invitations/{invitation_id}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-collaborators"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/labels/{name}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-labels"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
+      ]
+    },
+    {
+      "route": "DELETE /repos/{owner}/{repo}/milestones/{milestone_number}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-milestones"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
       ]
     },
     {
@@ -213,13 +499,120 @@
       ]
     },
     {
+      "route": "GET /apps/{app_slug}",
+      "access": "read",
+      "capabilityIds": [
+        "ruleset-bypass-actors"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
       "route": "GET /orgs/{org}",
       "access": "read",
       "capabilityIds": [
+        "organization-member-policies",
+        "organization-profile",
         "owner-kind"
       ],
       "permissionProfiles": [
-        "classic-repo"
+        "classic-admin-org",
+        "classic-repo",
+        "organization-administration-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/failed_invitations",
+      "access": "read",
+      "capabilityIds": [
+        "organization-member-inventory"
+      ],
+      "permissionProfiles": [
+        "classic-read-org",
+        "organization-members-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/invitations",
+      "access": "read",
+      "capabilityIds": [
+        "organization-member-inventory",
+        "organization-membership-commands"
+      ],
+      "permissionProfiles": [
+        "classic-read-org",
+        "organization-members-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/members",
+      "access": "read",
+      "capabilityIds": [
+        "organization-member-inventory",
+        "organization-membership-commands"
+      ],
+      "permissionProfiles": [
+        "classic-read-org",
+        "organization-members-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/organization-roles",
+      "access": "read",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/organization-roles/{role_id}/teams",
+      "access": "read",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/organization-roles/{role_id}/users",
+      "access": "read",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/outside_collaborators",
+      "access": "read",
+      "capabilityIds": [
+        "organization-member-inventory",
+        "organization-membership-commands"
+      ],
+      "permissionProfiles": [
+        "classic-read-org",
+        "organization-members-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/properties/schema",
+      "access": "read",
+      "capabilityIds": [
+        "organization-property-definitions"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-custom-properties-read"
       ]
     },
     {
@@ -248,12 +641,80 @@
       "route": "GET /orgs/{org}/rulesets",
       "access": "read",
       "capabilityIds": [
+        "organization-rulesets",
         "repository-rulesets"
       ],
       "permissionProfiles": [
         "classic-admin-org",
         "classic-repo",
         "organization-administration-write"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/rulesets/{ruleset_id}",
+      "access": "read",
+      "capabilityIds": [
+        "organization-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-administration-write"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/teams",
+      "access": "read",
+      "capabilityIds": [
+        "organization-teams"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/teams/{team_slug}",
+      "access": "read",
+      "capabilityIds": [
+        "ruleset-bypass-actors"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/teams/{team_slug}/invitations",
+      "access": "read",
+      "capabilityIds": [
+        "team-membership"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/teams/{team_slug}/members",
+      "access": "read",
+      "capabilityIds": [
+        "team-membership"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-read"
+      ]
+    },
+    {
+      "route": "GET /orgs/{org}/teams/{team_slug}/memberships/{username}",
+      "access": "read",
+      "capabilityIds": [
+        "team-membership"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-read"
       ]
     },
     {
@@ -265,9 +726,11 @@
         "merge-settings",
         "repository-discussions",
         "repository-features",
+        "repository-guarded-changes",
         "repository-inventory",
         "repository-metadata",
         "repository-topics",
+        "ruleset-required-workflows",
         "secret-scanning-settings"
       ],
       "permissionProfiles": [
@@ -292,10 +755,12 @@
       "route": "GET /repos/{owner}/{repo}/branches/{branch}",
       "access": "read",
       "capabilityIds": [
+        "branch-protection",
         "ensured-branches"
       ],
       "permissionProfiles": [
         "classic-repo",
+        "repository-administration-read",
         "repository-contents-read"
       ]
     },
@@ -303,6 +768,7 @@
       "route": "GET /repos/{owner}/{repo}/branches/{branch}/protection",
       "access": "read",
       "capabilityIds": [
+        "branch-protection",
         "repository-rulesets"
       ],
       "permissionProfiles": [
@@ -315,6 +781,17 @@
       "access": "read",
       "capabilityIds": [
         "code-scanning-default-setup"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/collaborators",
+      "access": "read",
+      "capabilityIds": [
+        "repository-collaborators"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -358,6 +835,50 @@
       ]
     },
     {
+      "route": "GET /repos/{owner}/{repo}/immutable-releases",
+      "access": "read",
+      "capabilityIds": [
+        "immutable-releases"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/invitations",
+      "access": "read",
+      "capabilityIds": [
+        "repository-collaborators"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/labels",
+      "access": "read",
+      "capabilityIds": [
+        "repository-labels"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/milestones",
+      "access": "read",
+      "capabilityIds": [
+        "repository-milestones"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-read"
+      ]
+    },
+    {
       "route": "GET /repos/{owner}/{repo}/private-vulnerability-reporting",
       "access": "read",
       "capabilityIds": [
@@ -366,6 +887,17 @@
       "permissionProfiles": [
         "classic-repo",
         "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/properties/values",
+      "access": "read",
+      "capabilityIds": [
+        "repository-property-values"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-custom-properties-read"
       ]
     },
     {
@@ -383,7 +915,20 @@
       "route": "GET /repos/{owner}/{repo}/rulesets/{ruleset_id}",
       "access": "read",
       "capabilityIds": [
-        "repository-rulesets"
+        "repository-rulesets",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-read"
+      ]
+    },
+    {
+      "route": "GET /repos/{owner}/{repo}/teams",
+      "access": "read",
+      "capabilityIds": [
+        "team-repository-access"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -427,10 +972,14 @@
       "access": "read",
       "capabilityIds": [
         "deployment-environments",
-        "owner-kind"
+        "organization-membership-commands",
+        "owner-kind",
+        "ruleset-bypass-actors"
       ],
       "permissionProfiles": [
+        "classic-admin-org",
         "classic-repo",
+        "organization-members-read",
         "repository-administration-read"
       ]
     },
@@ -446,10 +995,23 @@
       ]
     },
     {
+      "route": "PATCH /orgs/{org}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-member-policies",
+        "organization-profile"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-write"
+      ]
+    },
+    {
       "route": "PATCH /orgs/{org}/properties/values",
       "access": "write",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "repository-property-values"
       ],
       "permissionProfiles": [
         "classic-admin-org",
@@ -458,11 +1020,23 @@
       ]
     },
     {
+      "route": "PATCH /orgs/{org}/teams/{team_slug}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-teams"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
+      ]
+    },
+    {
       "route": "PATCH /repos/{owner}/{repo}",
       "access": "write",
       "capabilityIds": [
         "merge-settings",
         "repository-features",
+        "repository-guarded-changes",
         "repository-metadata",
         "secret-scanning-settings"
       ],
@@ -476,6 +1050,96 @@
       "access": "write",
       "capabilityIds": [
         "code-scanning-default-setup"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PATCH /repos/{owner}/{repo}/invitations/{invitation_id}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-collaborators"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PATCH /repos/{owner}/{repo}/labels/{name}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-labels"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
+      ]
+    },
+    {
+      "route": "PATCH /repos/{owner}/{repo}/milestones/{milestone_number}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-milestones"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
+      ]
+    },
+    {
+      "route": "PATCH /repos/{owner}/{repo}/properties/values",
+      "access": "write",
+      "capabilityIds": [
+        "repository-property-values"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "organization-custom-properties-write",
+        "repository-custom-properties-write"
+      ]
+    },
+    {
+      "route": "POST /orgs/{org}/invitations",
+      "access": "write",
+      "capabilityIds": [
+        "organization-membership-commands"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
+      ]
+    },
+    {
+      "route": "POST /orgs/{org}/rulesets",
+      "access": "write",
+      "capabilityIds": [
+        "organization-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-administration-write"
+      ]
+    },
+    {
+      "route": "POST /orgs/{org}/teams",
+      "access": "write",
+      "capabilityIds": [
+        "organization-teams"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
+      ]
+    },
+    {
+      "route": "POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures",
+      "access": "write",
+      "capabilityIds": [
+        "branch-protection"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -505,10 +1169,34 @@
       ]
     },
     {
+      "route": "POST /repos/{owner}/{repo}/labels",
+      "access": "write",
+      "capabilityIds": [
+        "repository-labels"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
+      ]
+    },
+    {
+      "route": "POST /repos/{owner}/{repo}/milestones",
+      "access": "write",
+      "capabilityIds": [
+        "repository-milestones"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-issues-write"
+      ]
+    },
+    {
       "route": "POST /repos/{owner}/{repo}/rulesets",
       "access": "write",
       "capabilityIds": [
-        "repository-rulesets"
+        "repository-rulesets",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -516,10 +1204,44 @@
       ]
     },
     {
+      "route": "PUT /orgs/{org}/organization-roles/teams/{team_slug}/{role_id}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /orgs/{org}/organization-roles/users/{username}/{role_id}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-role-assignment"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /orgs/{org}/outside_collaborators/{username}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-membership-commands"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
+      ]
+    },
+    {
       "route": "PUT /orgs/{org}/properties/schema/{custom_property_name}",
       "access": "write",
       "capabilityIds": [
-        "organization-custom-properties"
+        "organization-custom-properties",
+        "organization-property-definitions"
       ],
       "permissionProfiles": [
         "classic-admin-org",
@@ -528,10 +1250,66 @@
       ]
     },
     {
+      "route": "PUT /orgs/{org}/rulesets/{ruleset_id}",
+      "access": "write",
+      "capabilityIds": [
+        "organization-rulesets"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "classic-repo",
+        "organization-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /orgs/{org}/teams/{team_slug}/memberships/{username}",
+      "access": "write",
+      "capabilityIds": [
+        "team-membership"
+      ],
+      "permissionProfiles": [
+        "classic-admin-org",
+        "organization-members-write"
+      ]
+    },
+    {
+      "route": "PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}",
+      "access": "write",
+      "capabilityIds": [
+        "team-repository-access"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
       "route": "PUT /repos/{owner}/{repo}/automated-security-fixes",
       "access": "write",
       "capabilityIds": [
         "automated-security-fixes"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/branches/{branch}/protection",
+      "access": "write",
+      "capabilityIds": [
+        "branch-protection"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
+      "route": "PUT /repos/{owner}/{repo}/collaborators/{username}",
+      "access": "write",
+      "capabilityIds": [
+        "repository-collaborators"
       ],
       "permissionProfiles": [
         "classic-repo",
@@ -561,6 +1339,17 @@
       ]
     },
     {
+      "route": "PUT /repos/{owner}/{repo}/immutable-releases",
+      "access": "write",
+      "capabilityIds": [
+        "immutable-releases"
+      ],
+      "permissionProfiles": [
+        "classic-repo",
+        "repository-administration-write"
+      ]
+    },
+    {
       "route": "PUT /repos/{owner}/{repo}/private-vulnerability-reporting",
       "access": "write",
       "capabilityIds": [
@@ -575,7 +1364,9 @@
       "route": "PUT /repos/{owner}/{repo}/rulesets/{ruleset_id}",
       "access": "write",
       "capabilityIds": [
-        "repository-rulesets"
+        "repository-rulesets",
+        "ruleset-bypass-actors",
+        "ruleset-required-workflows"
       ],
       "permissionProfiles": [
         "classic-repo",

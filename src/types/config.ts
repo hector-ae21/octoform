@@ -29,9 +29,54 @@ export interface FeaturePolicy {
   wiki?: Toggle;
   projects?: Toggle;
   discussions?: Toggle;
+  /** Whether the repository shows a sponsor button. */
+  sponsorships?: Toggle;
+  /**
+   * Whether pull requests can be opened at all. Turning this off does not
+   * remove the ones that already exist.
+   */
+  pull_requests?: Toggle;
 }
 
-/** Desired state for pull-request merge behavior. */
+/**
+ * Who may open an issue or a pull request on the repository.
+ *
+ * `COLLABORATORS_ONLY` still leaves the feature enabled and its history
+ * readable; it narrows who can add to it. Turning the feature off entirely is
+ * a different setting.
+ */
+export type CreationPolicy = 'ALL' | 'COLLABORATORS_ONLY';
+
+/**
+ * Where the title of a squash merge commit comes from by default.
+ *
+ * `PR_TITLE` always uses the pull request's title; `COMMIT_OR_PR_TITLE` uses
+ * the single commit's title when there is exactly one, and the pull request's
+ * title otherwise.
+ */
+export type SquashCommitTitle = 'PR_TITLE' | 'COMMIT_OR_PR_TITLE';
+
+/** Where the body of a squash merge commit comes from by default. */
+export type SquashCommitMessage = 'PR_BODY' | 'COMMIT_MESSAGES' | 'BLANK';
+
+/**
+ * Where the title of a merge commit comes from by default. `MERGE_MESSAGE` is
+ * GitHub's own "Merge pull request #123 from branch" wording.
+ */
+export type MergeCommitTitle = 'PR_TITLE' | 'MERGE_MESSAGE';
+
+/** Where the body of a merge commit comes from by default. */
+export type MergeCommitMessage = 'PR_BODY' | 'PR_TITLE' | 'BLANK';
+
+/**
+ * Desired state for pull-request merge behavior.
+ *
+ * Each message default is named after the `allow_` switch it belongs to, since
+ * squash merges and merge commits carry their own independent pair. GitHub
+ * refuses a request that sets a message default without also stating the
+ * matching title, so declaring one without the other is reported rather than
+ * sent — see `planScalars`.
+ */
 export interface MergePolicy {
   allow_squash?: Toggle;
   allow_merge_commit?: Toggle;
@@ -39,6 +84,10 @@ export interface MergePolicy {
   allow_auto_merge?: Toggle;
   allow_update_branch?: Toggle;
   delete_branch_on_merge?: Toggle;
+  squash_title?: Managed<SquashCommitTitle>;
+  squash_message?: Managed<SquashCommitMessage>;
+  merge_commit_title?: Managed<MergeCommitTitle>;
+  merge_commit_message?: Managed<MergeCommitMessage>;
 }
 
 /** Desired state for repository security features. */
@@ -49,7 +98,23 @@ export interface SecurityPolicy {
   secret_scanning?: Toggle;
   secret_scanning_push_protection?: Toggle;
   code_scanning_default_setup?: Toggle;
+  /**
+   * Whether published releases and their assets become immutable. An owner can
+   * enforce this across its repositories, in which case a repository cannot
+   * turn it off and octoform reports that instead of attempting it.
+   */
+  immutable_releases?: Toggle;
 }
+
+/**
+ * A visibility a repository can be set to.
+ *
+ * `internal` is deliberately absent. GitHub reports it on a repository but its
+ * update endpoint does not accept it, so octoform can observe an internal
+ * repository and never restore one — a policy that could name it would be
+ * offering a door that only opens one way.
+ */
+export type RepositoryVisibility = 'public' | 'private';
 
 /** Desired state for repository metadata and access settings. */
 export interface RepoPolicy {
@@ -58,6 +123,29 @@ export interface RepoPolicy {
   topics?: Managed<string[]>;
   allow_forking?: Toggle;
   web_commit_signoff_required?: Toggle;
+  issue_creation?: Managed<CreationPolicy>;
+  pull_request_creation?: Managed<CreationPolicy>;
+  visibility?: Managed<RepositoryVisibility>;
+  /**
+   * Whether the repository is archived. Archiving is reversible, but while it
+   * lasts GitHub refuses every write, so it is applied after everything else
+   * and only when everything else succeeded.
+   */
+  archived?: Toggle;
+  /** Whether the repository can be used as a template for new ones. */
+  template?: Toggle;
+  /**
+   * Desired name of the repository, renamed only from one of
+   * {@link RepoPolicy.rename_from}.
+   *
+   * Repositories are declared under `repos.<name>`, so a rename outlives the
+   * entry that asked for it: once it happens, that entry no longer matches
+   * anything. The plan says so before it happens rather than leaving it to be
+   * discovered on the next run.
+   */
+  name?: Managed<string>;
+  /** Rename to `name` only when the repository currently has one of these. */
+  rename_from?: Managed<string[]>;
 }
 
 /** Desired default-branch name and guarded rename sources. */
@@ -68,14 +156,493 @@ export interface DefaultBranchPolicy {
   rename_from?: Managed<string[]>;
 }
 
-/** Desired branch ruleset reduced to the fields Octoform manages. */
-export interface RulesetPolicy {
-  name: string;
-  target_branches: string[];
+/**
+ * How strictly a ruleset is applied. `evaluate` reports what would have been
+ * blocked without blocking it, and GitHub offers it only on some plans.
+ */
+export type RulesetEnforcement = 'active' | 'evaluate' | 'disabled';
+
+/** Which refs a ruleset governs. */
+export type RulesetTarget = 'branch' | 'tag' | 'push';
+
+/** How a pattern rule compares the text it is given. */
+export type PatternOperator = 'starts_with' | 'ends_with' | 'contains' | 'regex';
+
+/** A rule matching some piece of commit or ref text against a pattern. */
+export interface PatternRule {
+  operator: PatternOperator;
+  pattern: string;
+  /** Match everything the pattern does not, instead of what it does. */
+  negate?: boolean;
+  /** Shown by GitHub when the rule rejects a push. */
+  name?: string;
+}
+
+/** How much of a code scanning tool's output blocks a merge. */
+export interface CodeScanningRule {
+  tool: string;
+  alerts_threshold: 'none' | 'errors' | 'errors_and_warnings' | 'all';
+  security_alerts_threshold: 'none' | 'critical' | 'high_or_higher' | 'medium_or_higher' | 'all';
+}
+
+/** Desired merge queue behaviour, when a ruleset requires one. */
+export interface MergeQueueRule {
+  merge_method?: 'MERGE' | 'SQUASH' | 'REBASE';
+  grouping_strategy?: 'ALLGREEN' | 'HEADGREEN';
+  max_entries_to_build?: number;
+  max_entries_to_merge?: number;
+  min_entries_to_merge?: number;
+  min_entries_to_merge_wait_minutes?: number;
+  check_response_timeout_minutes?: number;
+}
+
+/**
+ * Every rule a repository ruleset can carry, flattened.
+ *
+ * GitHub models these as a list of tagged objects, several of which exist only
+ * to hold one value. Flattening them is what lets a ruleset be read top to
+ * bottom, and what lets a policy say `block_force_push: false` — GitHub has no
+ * "off" for a rule, only its absence, so the two spellings have to be
+ * translated somewhere and this is the boundary that does it.
+ *
+ * Every key is optional and only a declared one is compared or sent. A rule
+ * octoform never modelled, or one the policy simply did not mention, survives
+ * an update untouched.
+ */
+export interface RuleSettings {
+  /** Require a pull request. The keys below configure it and imply it. */
+  require_pull_request?: boolean;
   required_approvals?: number;
+  dismiss_stale_reviews?: boolean;
+  require_code_owner_review?: boolean;
+  require_last_push_approval?: boolean;
+  require_thread_resolution?: boolean;
+  allowed_merge_methods?: Array<'merge' | 'squash' | 'rebase'>;
+
   required_checks?: string[];
-  block_force_push?: boolean;
+  strict_required_checks?: boolean;
+  /** Let a branch be created without the required checks having run. */
+  checks_not_enforced_on_create?: boolean;
+
+  required_deployments?: string[];
+
+  /** Refuse creating a matching ref. */
+  block_creation?: boolean;
+  /** Refuse updating a matching ref. */
+  block_update?: boolean;
+  /** Allow an otherwise blocked update when it is a fetch and merge. */
+  allow_fetch_and_merge?: boolean;
   block_deletion?: boolean;
+  block_force_push?: boolean;
+  require_linear_history?: boolean;
+  require_signatures?: boolean;
+
+  merge_queue?: MergeQueueRule;
+  required_code_scanning?: CodeScanningRule[];
+  require_license_compliance_scanning?: boolean;
+  copilot_code_review?: { review_draft_pull_requests?: boolean; review_on_push?: boolean };
+
+  commit_message_pattern?: PatternRule;
+  commit_author_email_pattern?: PatternRule;
+  committer_email_pattern?: PatternRule;
+  branch_name_pattern?: PatternRule;
+  tag_name_pattern?: PatternRule;
+
+  restricted_file_paths?: string[];
+  restricted_file_extensions?: string[];
+  max_file_size?: number;
+  max_file_path_length?: number;
+
+  required_workflows?: WorkflowRequirement[];
+  /** Let a branch be created without the required workflows having run. */
+  workflows_not_enforced_on_create?: boolean;
+}
+
+/**
+ * A workflow that has to pass before a change reaches a targeted ref.
+ *
+ * GitHub identifies the workflow's repository by numeric id, not by name, so
+ * `repository` is resolved before the rule can be sent, and `repository_id` is
+ * the form the rule comes back in. A policy normally writes the name; writing
+ * the number instead is allowed and skips the lookup, which is the only way to
+ * name a repository the token cannot read.
+ */
+export interface WorkflowRequirement {
+  /** Path to the workflow file from the root of its repository. */
+  path: string;
+  /** `owner/name` of the repository holding it. Defaults to this repository. */
+  repository?: string;
+  /** The id of {@link WorkflowRequirement.repository}, resolved or written. */
+  repository_id?: number;
+  /** Branch or tag to take the file from. */
+  ref?: string;
+  /** Commit to take the file from. */
+  sha?: string;
+}
+
+/**
+ * When an actor may bypass a ruleset.
+ *
+ * `pull_request` only lets the actor past on a pull request, and GitHub
+ * accepts it on branch rulesets only. `exempt` skips the rules entirely and
+ * writes no bypass entry to the audit log, so it is the one mode that leaves
+ * no trace of having been used.
+ */
+export type BypassMode = 'always' | 'pull_request' | 'exempt';
+
+/**
+ * Actors that may bypass a ruleset, grouped by the mode they bypass in.
+ *
+ * Grouping by mode rather than listing each actor with its own is what keeps
+ * the common case — one exception, granted to several people at once — from
+ * repeating the mode on every line. A policy that needs two modes writes two
+ * groups.
+ *
+ * Everything here is named except `roles`. GitHub's ruleset endpoints take a
+ * repository role as a numeric id, and its REST surface has no route that maps
+ * a repository-role name to one: only *organisation* roles can be listed. So
+ * the number is what a policy writes, rather than a name octoform would have
+ * to translate through a table it cannot verify.
+ */
+export interface RulesetBypass {
+  /** Defaults to `always`. */
+  mode?: BypassMode;
+  /** GitHub logins. */
+  users?: string[];
+  /** Team slugs. Organisation repositories only. */
+  teams?: string[];
+  /** GitHub App slugs. */
+  apps?: string[];
+  /** Repository role ids. */
+  roles?: number[];
+  /** Every deploy key on the repository, which GitHub grants as one actor. */
+  deploy_keys?: boolean;
+  /** Organisation owners. Organisation repositories only. */
+  organization_admins?: boolean;
+}
+
+/**
+ * A desired ruleset.
+ *
+ * Exactly one of the three target keys says what the ruleset governs, and the
+ * key names which. A single `target` field plus a shared list of patterns
+ * would let a file say `target: tag` beside `target_branches`, which is a
+ * disagreement nothing could resolve.
+ */
+export interface RulesetPolicy extends RuleSettings {
+  name: string;
+  /** Branch names or patterns, including `~DEFAULT_BRANCH` and `~ALL`. */
+  target_branches?: string[];
+  /** Tag names or patterns. */
+  target_tags?: string[];
+  /** A push ruleset, which governs the whole repository and matches no refs. */
+  target_pushes?: boolean;
+  /** Refs matching any of these are exempt, whatever the target matched. */
+  exclude?: string[];
+  enforcement?: RulesetEnforcement;
+  /**
+   * Who may bypass these rules. Omitting this keeps whoever GitHub already
+   * lets past; an empty list is what removes them.
+   */
+  bypass?: RulesetBypass[];
+}
+
+/**
+ * Who holds an organisation role.
+ *
+ * The same shape and the same default as a team's membership, because it is
+ * the same question: additive unless the file says otherwise, so nobody loses
+ * a role for not being written down.
+ */
+export interface RoleHolders {
+  /** Logins that hold the role directly. */
+  users?: string[];
+  /** Team slugs whose members hold it. */
+  teams?: string[];
+  /** Revoke the role from anyone the lists do not name. */
+  authoritative?: boolean;
+}
+
+/** What someone is on a team: an ordinary member, or one who administers it. */
+export type TeamRole = 'member' | 'maintainer';
+
+/**
+ * Who is on a team.
+ *
+ * Additive unless the file says otherwise, for the reason absence means
+ * "not managed" everywhere else: deleting a line from a configuration file
+ * should not quietly take somebody's access away.
+ */
+export interface TeamMembership {
+  /** Logins who administer the team. */
+  maintainers?: string[];
+  /** Logins who belong to it without administering it. */
+  members?: string[];
+  /**
+   * Remove anyone the lists do not name.
+   *
+   * Off unless asked for, and refused when the lists are empty: an
+   * authoritative block naming nobody empties the team, and emptying a team is
+   * not something anyone says by leaving a section blank.
+   */
+  authoritative?: boolean;
+}
+
+/**
+ * A desired team, declared under the slug GitHub addresses it by.
+ *
+ * The slug is the key rather than a field because it is the handle every
+ * endpoint takes and the handle another team names as its parent. `name` is
+ * what the team is called, which GitHub re-slugs when it changes — so a rename
+ * says which slug the team currently has, the same way a label does.
+ */
+export interface TeamPolicy {
+  /** Display name. Defaults to the slug it is declared under. */
+  name?: string;
+  description?: string;
+  /**
+   * `secret` is visible only to its own members and the owners; `closed` is
+   * visible to the whole organisation. A nested team cannot be secret, and
+   * neither can a team that has children.
+   */
+  privacy?: 'secret' | 'closed';
+  /** Whether members are notified when the team is mentioned. */
+  notifications?: boolean;
+  /** Slug of the team this one sits under. Empty lifts it back to the top. */
+  parent?: string;
+  membership?: TeamMembership;
+  /**
+   * Slugs this team may currently have, for a rename. Without it a renamed
+   * team reads as missing, and creating it again would leave two.
+   */
+  rename_from?: string[];
+  mode?: CollectionMode;
+}
+
+/**
+ * A custom property a repository must carry for a ruleset to reach it.
+ *
+ * `source` distinguishes a property the organisation defined from one GitHub
+ * maintains itself, and defaults to the organisation's own — which is the only
+ * kind anything else in this configuration can declare.
+ */
+export interface RulesetPropertyMatch {
+  name: string;
+  /** Any one of these values matches. */
+  values: string[];
+  source?: 'custom' | 'system';
+}
+
+/**
+ * Which repositories an organisation ruleset reaches.
+ *
+ * By name or by property, never both: GitHub's conditions take one repository
+ * form beside the refs, and a ruleset declaring two would be a question the
+ * API has already answered by refusing it.
+ */
+export interface RulesetRepositories {
+  /** Names or patterns. `~ALL` is GitHub's word for every repository. */
+  include?: string[];
+  /** Names or patterns the ruleset does not reach, whatever else matched. */
+  exclude?: string[];
+  /** Repositories carrying all of these property values. */
+  properties?: RulesetPropertyMatch[];
+  /** Repositories carrying any of these are exempt. */
+  exclude_properties?: RulesetPropertyMatch[];
+  /**
+   * Prevent the repositories this reaches from being renamed. A field of the
+   * name condition, so it cannot be asked for alongside property targeting.
+   */
+  protected?: boolean;
+}
+
+/**
+ * A ruleset an organisation applies to repositories it selects, rather than
+ * one a repository carries.
+ *
+ * The rules are the same rules, which is why this extends the repository
+ * policy instead of restating it. What it adds is the only thing an
+ * organisation ruleset has that a repository's cannot: a way of saying which
+ * repositories it is about.
+ */
+export interface OrganizationRulesetPolicy extends RulesetPolicy {
+  repositories: RulesetRepositories;
+}
+
+/**
+ * Who a branch-protection restriction names.
+ *
+ * Users are logins, teams are slugs and apps are slugs — GitHub's protection
+ * endpoint takes them by name rather than by id, unlike its ruleset bypass
+ * actors, so nothing here has to be resolved before it can be sent.
+ */
+export interface BranchRestrictions {
+  users?: string[];
+  teams?: string[];
+  apps?: string[];
+}
+
+/**
+ * Everything classic branch protection can enforce on one branch.
+ *
+ * GitHub's own model spells several of these as permissions rather than
+ * restrictions — `allow_force_pushes` rather than `block_force_push`, which is
+ * how the ruleset model spells the same idea. Both spellings are kept as their
+ * own API uses them: a file that governs a branch through protection and a
+ * file that governs it through a ruleset are talking to different features,
+ * and making them look identical would hide which one is in force.
+ */
+export interface BranchProtectionSettings {
+  required_checks?: string[];
+  strict_required_checks?: boolean;
+  /** Apply every rule here to administrators too. */
+  enforce_admins?: boolean;
+  /** Require a pull request. The review keys below configure it and imply it. */
+  require_pull_request?: boolean;
+  required_approvals?: number;
+  dismiss_stale_reviews?: boolean;
+  require_code_owner_review?: boolean;
+  require_last_push_approval?: boolean;
+  /** Who may dismiss a review. */
+  dismissal_restrictions?: BranchRestrictions;
+  /** Who may merge without the required reviews. */
+  bypass_pull_request_allowances?: BranchRestrictions;
+  /** Who may push at all. Organisation repositories only. */
+  restrict_pushes?: BranchRestrictions;
+  require_linear_history?: boolean;
+  allow_force_pushes?: boolean;
+  allow_deletions?: boolean;
+  block_creations?: boolean;
+  require_conversation_resolution?: boolean;
+  /** Make the branch read-only, for everyone. */
+  lock_branch?: boolean;
+  allow_fork_syncing?: boolean;
+  require_signatures?: boolean;
+}
+
+/** Classic branch protection for one branch, named. */
+export interface BranchProtectionPolicy extends BranchProtectionSettings {
+  branch: string;
+}
+
+/**
+ * A permission level on a repository.
+ *
+ * The five built-in levels are `read`, `triage`, `write`, `maintain` and
+ * `admin`. GitHub's own endpoints disagree about two of their names — the
+ * grant endpoints take `pull` and `push`, invitations take `read` and `write`,
+ * and a collaborator reads back as whichever the API of the day prefers — so
+ * both spellings are accepted here and translated at the boundary.
+ *
+ * The set is open because an organisation can define custom repository roles,
+ * which are granted by name. Anything octoform does not recognise as built-in
+ * is passed through as one of those.
+ *
+ * `none` is octoform's own word, not GitHub's: it revokes the grant. It has to
+ * be written, because a login simply left out of the policy is left alone.
+ */
+export type AccessLevel = string;
+
+/**
+ * Who may work on a repository, and at what level.
+ *
+ * Only the logins and slugs named here are managed. Somebody who was given
+ * access by hand and never written down is not a difference to correct — this
+ * is not the place to discover them — which is why revoking has to be spelled
+ * `none` rather than expressed by deletion from the file.
+ */
+export interface AccessPolicy {
+  /** GitHub logins, each with the level to grant them directly. */
+  users?: Record<string, Managed<AccessLevel>>;
+  /** Team slugs, each with the level to grant them. Organisations only. */
+  teams?: Record<string, Managed<AccessLevel>>;
+}
+
+/**
+ * Whether an entry of a collection should exist at all.
+ *
+ * `absent` is how a collection entry is removed, because leaving it out of the
+ * file means "not managed" everywhere else and cannot mean "delete" here
+ * without making an incomplete file dangerous.
+ */
+export type CollectionMode = 'present' | 'absent';
+
+/** A desired issue label. */
+export interface LabelPolicy {
+  name: string;
+  /** Six hex digits, with or without the leading `#`. */
+  color?: string;
+  description?: string;
+  /**
+   * Rename a label that currently has one of these names, instead of creating
+   * a second one. Deleting and recreating would take the label off every issue
+   * it is on, which is not a thing a rename should do.
+   */
+  rename_from?: string[];
+  mode?: CollectionMode;
+}
+
+/** A desired milestone. */
+export interface MilestonePolicy {
+  title: string;
+  description?: string;
+  /** Due date as `YYYY-MM-DD`. */
+  due?: string;
+  /** Closing a milestone retires it without detaching it from its issues. */
+  state?: 'open' | 'closed';
+  /** Rename a milestone that currently has one of these titles. */
+  rename_from?: string[];
+  mode?: CollectionMode;
+}
+
+/**
+ * A custom property value: one string, or several for a multi-select.
+ *
+ * An empty string or an empty list unsets the property, which is the same
+ * absence an empty repository description means. `null` cannot be used for it:
+ * that already means "stop managing this" everywhere in the configuration.
+ */
+export type PropertyValue = string | string[];
+
+/** What kind of value a custom property holds. */
+export type PropertyValueType = 'string' | 'url' | 'true_false' | 'single_select' | 'multi_select';
+
+/**
+ * Who may set a property's value on a repository.
+ *
+ * This is the setting that decides which of GitHub's two endpoints can write
+ * the value at all: with `org_actors`, the repository's own endpoint is not
+ * open to the repository's admins.
+ */
+export type PropertyEditors = 'org_actors' | 'org_and_repo_actors';
+
+/**
+ * A custom property as the organisation defines it, rather than as a
+ * repository answers it.
+ *
+ * Every field is optional except the type, and an unstated field keeps
+ * whatever the organisation has: GitHub replaces the whole definition on
+ * write, so octoform reads the current one and sends the declared fields on
+ * top of it. Without that, correcting a description would reset who may edit
+ * the values, and the file would never mention either.
+ */
+export interface PropertyDefinition {
+  value_type: PropertyValueType;
+  /** Short description, shown wherever the property is offered. */
+  description?: string;
+  /** Whether every repository must carry a value for it. */
+  required?: boolean;
+  /**
+   * The value a repository gets when it states none. Empty means no default,
+   * since `null` already means "stop managing this".
+   */
+  default_value?: PropertyValue;
+  /** The values a select may take, up to the 200 GitHub stores. */
+  allowed_values?: string[];
+  values_editable_by?: PropertyEditors;
+  /** Whether a repository must answer rather than inherit the default. */
+  require_explicit_values?: boolean;
+  mode?: CollectionMode;
 }
 
 /** Desired deployment environment and its user reviewers. */
@@ -85,15 +652,44 @@ export interface EnvironmentPolicy {
   reviewers?: string[];
 }
 
-/** Supported behavior when reconciling a declared repository file. */
+/**
+ * What octoform is allowed to do to a file in a repository.
+ *
+ * There is one mode and it is the whole boundary: a file that is not there is
+ * created, and a file that is there is left exactly as it is, whatever it
+ * contains. Nothing here overwrites and nothing here deletes. A repository's
+ * files are the one thing octoform manages that people edit by hand every day,
+ * and a governance run that quietly reverted somebody's edit would be worse
+ * than one that did nothing at all.
+ *
+ * This is also why the existing content is never fetched to compare against:
+ * a difference octoform refuses to correct is not worth reporting on every run
+ * for the life of the repository.
+ */
 export type FileMode = 'create-if-missing';
 
 /** Desired create-if-missing repository file. */
 export interface FilePolicy {
   path: string;
-  /** Path to the local file to copy, relative to the configuration file. */
+  /**
+   * Path to the local file to copy, relative to the configuration file that
+   * declares it, and refused if it resolves outside that file's directory.
+   */
   from: string;
   mode: FileMode;
+  /**
+   * Message for the commit that creates the file.
+   *
+   * Worth setting where the repository's own rules constrain commit messages —
+   * which octoform can be the thing that put there, so its own commit is
+   * exactly the one that would be refused.
+   */
+  message?: string;
+  /**
+   * Branch to create the file on. Defaults to the repository's default branch,
+   * which is also the one most likely to refuse a direct push.
+   */
+  branch?: string;
 }
 
 /** Everything that can be declared at any level of the precedence chain. */
@@ -119,9 +715,115 @@ export interface PolicySet {
   repo?: RepoPolicy;
   default_branch?: DefaultBranchPolicy;
   ensure_branches?: string[];
+  branch_protection?: BranchProtectionPolicy[];
   rulesets?: RulesetPolicy[];
+  access?: AccessPolicy;
+  labels?: LabelPolicy[];
+  milestones?: MilestonePolicy[];
+  /** Custom property values, by property name. Organisations only. */
+  properties?: Record<string, Managed<PropertyValue>>;
   environments?: EnvironmentPolicy[];
   files?: FilePolicy[];
+}
+
+/**
+ * The level of access every organisation member has to every repository the
+ * organisation owns, before any team or collaborator grant adds to it.
+ *
+ * `none` is the only value that makes a repository's own access policy the
+ * whole story; anything else is a floor no repository can go below.
+ */
+export type BasePermission = 'none' | 'read' | 'write' | 'admin';
+
+/** Desired state for the organisation's public profile. */
+export interface OrganizationProfile {
+  /** Display name, which is not the login and does not change the login. */
+  name?: Managed<string>;
+  description?: Managed<string>;
+  company?: Managed<string>;
+  /** Website, which GitHub's API calls `blog`. */
+  website?: Managed<string>;
+  location?: Managed<string>;
+  /** Public contact address, distinct from the billing address. */
+  email?: Managed<string>;
+  twitter_username?: Managed<string>;
+}
+
+/**
+ * What organisation members may do without being asked.
+ *
+ * `members_allowed_repository_creation_type` is deliberately absent. GitHub
+ * documents it as closing down, and says that using it overrides
+ * `create_repositories` — so a file that set both would have the field on its
+ * way out silently win. The three per-visibility switches say the same thing
+ * without that hazard.
+ */
+export interface OrganizationMemberPolicy {
+  /** What every member gets on every repository, before any grant adds to it. */
+  base_permission?: Managed<BasePermission>;
+  create_repositories?: Toggle;
+  create_public_repositories?: Toggle;
+  create_private_repositories?: Toggle;
+  /** Enterprise Cloud only; GitHub ignores it elsewhere. */
+  create_internal_repositories?: Toggle;
+  /** Whether a private repository of this organisation can be forked at all. */
+  fork_private_repositories?: Toggle;
+  create_pages?: Toggle;
+  create_public_pages?: Toggle;
+  create_private_pages?: Toggle;
+  /** Require every web commit to be signed off, across the organisation. */
+  web_commit_signoff_required?: Toggle;
+  /** Whether repositories may use deploy keys at all. */
+  deploy_keys_enabled?: Toggle;
+  organization_projects?: Toggle;
+  repository_projects?: Toggle;
+}
+
+/**
+ * Desired state for the organisation itself, rather than for its repositories.
+ *
+ * The security defaults for new repositories are absent on purpose: GitHub
+ * documents every one of them as closing down on this endpoint, in favour of
+ * code security configurations, and a governance tool has no business writing
+ * a setting whose own API says to stop using it.
+ */
+export interface OrganizationPolicy {
+  profile?: OrganizationProfile;
+  members?: OrganizationMemberPolicy;
+  /**
+   * Custom property definitions, by name.
+   *
+   * The organisation defines a property; a repository gives it a value under
+   * its own `properties`. The same word twice is GitHub's, and the two are not
+   * interchangeable: nothing can be declared here that a repository could
+   * answer, and no repository can answer a property nobody defined.
+   */
+  properties?: Record<string, Managed<PropertyDefinition>>;
+  /**
+   * Rulesets the organisation applies to repositories it selects.
+   *
+   * The same rules a repository can carry, aimed from above. A repository can
+   * neither weaken nor remove one, which is what makes this the level at which
+   * a rule is actually a rule rather than a default.
+   */
+  rulesets?: OrganizationRulesetPolicy[];
+  /**
+   * Teams, by the slug GitHub addresses each one by.
+   *
+   * A map rather than a list because a team is referred to by that slug from
+   * elsewhere — a child names its parent by it — and a list would make the
+   * reference point at a position instead of at a name.
+   */
+  teams?: Record<string, Managed<TeamPolicy>>;
+  /**
+   * Who holds each organisation role, by the role's name.
+   *
+   * Assignment only. GitHub's description offers no endpoint that creates an
+   * organisation role and none at all for custom repository roles, so a name
+   * here is a role that already exists — naming one that does not is refused
+   * rather than treated as a request to define it.
+   */
+  roles?: Record<string, Managed<RoleHolders>>;
 }
 
 /** A condition used to infer a repository's type when it has none recorded. */
@@ -173,6 +875,7 @@ export type ConfigVersion = 1;
 
 /** Everything one GitHub owner can declare under `owners`. */
 export interface OwnerBlock {
+  organization?: OrganizationPolicy;
   classify?: ClassifyConfig;
   audit?: AuditConfig;
   defaults?: PolicySet;
@@ -225,6 +928,7 @@ export interface Config {
    * other policies; a reference cycle is reported with the full chain.
    */
   policies?: Record<string, PolicySet>;
+  organization?: OrganizationPolicy;
   classify?: ClassifyConfig;
   audit?: AuditConfig;
   defaults?: PolicySet;
@@ -247,6 +951,7 @@ export interface Config {
  */
 export interface OwnerScope {
   owner: string;
+  organization?: OrganizationPolicy;
   classify?: ClassifyConfig;
   audit?: AuditConfig;
   defaults?: PolicySet;

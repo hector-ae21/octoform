@@ -1,10 +1,29 @@
 import { Octokit } from '@octokit/rest';
 import { UNREADABLE } from '../config/sentinels.js';
 import { capability, errorMessage, errorStatus } from './capabilities.js';
+import { graphqlRequest, valueOrUnreadable } from './graphql.js';
+import { readProtection } from '../core/branch-protection.js';
+import { readRuleset } from '../core/rulesets.js';
+import { canonicalLevel, readLevel } from '../core/access.js';
+import { readLabel, readMilestone } from '../core/collections.js';
+import { readDefinition } from '../core/properties.js';
+import { readTeam } from '../core/teams.js';
+import { readRole } from '../core/roles.js';
+import { identityKey, namesToResolve } from '../core/identity.js';
+import { ORGANIZATION_FIELDS } from '../core/organization.js';
+import { CHANGED_BY_MUTATION } from '../core/plan.js';
 import type {
+  BranchProtectionSettings,
   CapabilityResult,
   ExistingEnvironment,
+  ExistingInvitation,
+  ExistingLabel,
+  ExistingMilestone,
+  ExistingProperty,
+  ExistingRole,
   ExistingRuleset,
+  ExistingTeam,
+  OrganizationPeople,
   OwnerDiscovery,
   OwnerKind,
   PlanLimits,
@@ -13,6 +32,11 @@ import type {
   RepoDetail,
   RepoState,
   RepoStructure,
+  Resolution,
+  Resolvable,
+  SettingValue,
+  TeamMembers,
+  TeamRole,
   TokenProvider,
 } from '../types/index.js';
 
@@ -266,10 +290,18 @@ export async function getRepoDetail(
     'merge.allow_auto_merge': data.allow_auto_merge ?? null,
     'merge.allow_update_branch': data.allow_update_branch ?? null,
     'merge.delete_branch_on_merge': data.delete_branch_on_merge ?? null,
+    'merge.squash_title': data.squash_merge_commit_title ?? null,
+    'merge.squash_message': data.squash_merge_commit_message ?? null,
+    'merge.merge_commit_title': data.merge_commit_title ?? null,
+    'merge.merge_commit_message': data.merge_commit_message ?? null,
 
     'repo.description': data.description ?? null,
     'repo.homepage': data.homepage ?? null,
     'repo.topics': data.topics ?? [],
+    'repo.name': data.name,
+    'repo.visibility': data.visibility ?? (data.private ? 'private' : 'public'),
+    'repo.archived': data.archived ?? null,
+    'repo.template': (data as { is_template?: boolean }).is_template ?? null,
     'repo.allow_forking': data.allow_forking ?? null,
     'repo.web_commit_signoff_required':
       (data as { web_commit_signoff_required?: boolean }).web_commit_signoff_required ?? null,
@@ -278,7 +310,7 @@ export async function getRepoDetail(
     'security.secret_scanning_push_protection': enabled('secret_scanning_push_protection'),
   };
 
-  const [alerts, codeScanning, autoFixes, privateReporting] = await Promise.all([
+  const [alerts, codeScanning, autoFixes, privateReporting, immutableReleases] = await Promise.all([
     probe(octokit, 'GET /repos/{owner}/{repo}/vulnerability-alerts', owner, base.name),
     codeScanningState(octokit, owner, base.name),
     enabledFlag(octokit, 'GET /repos/{owner}/{repo}/automated-security-fixes', owner, base.name),
@@ -288,15 +320,35 @@ export async function getRepoDetail(
       owner,
       base.name,
     ),
+    immutableReleasesState(octokit, owner, base.name),
   ]);
   settings['security.vulnerability_alerts'] = alerts;
   settings['security.code_scanning_default_setup'] = codeScanning;
   settings['security.automated_security_fixes'] = autoFixes;
   settings['security.private_vulnerability_reporting'] = privateReporting;
+  settings['security.immutable_releases'] = immutableReleases.enabled;
+
+  const enforced: Record<string, string> = {};
+  if (immutableReleases.enforcedByOwner) {
+    enforced['security.immutable_releases'] =
+      `${owner} enforces immutable releases across its repositories`;
+  }
+
+  const graphql =
+    policy && needsGraphql(policy)
+      ? await readGraphqlSettings(octokit, owner, base.name)
+      : { settings: {} };
+  Object.assign(settings, graphql.settings);
 
   const structure = policy ? await getRepoStructure(octokit, owner, base, policy) : undefined;
 
-  return { ...base, settings, ...(structure ? { structure } : {}) };
+  return {
+    ...base,
+    settings,
+    ...(graphql.nodeId ? { nodeId: graphql.nodeId } : {}),
+    ...(Object.keys(enforced).length > 0 ? { enforced } : {}),
+    ...(structure ? { structure } : {}),
+  };
 }
 
 /**
@@ -383,6 +435,62 @@ async function getRepoStructure(
   if (policy.rulesets?.length) {
     asked = true;
     structure.rulesets = await listRulesets(octokit, owner, base.name);
+    const names = namesToResolve(policy, `${owner}/${base.name}`);
+    if (names.length > 0) structure.resolved = await resolveIdentities(octokit, owner, names);
+  }
+
+  if (policy.access?.users) {
+    asked = true;
+    const direct = await listCollaborators(octokit, owner, base.name);
+    if (direct !== undefined) structure.collaborators = direct;
+    const invitations = await listInvitations(octokit, owner, base.name);
+    if (invitations !== undefined) structure.invitations = invitations;
+  }
+
+  if (policy.access?.teams) {
+    asked = true;
+    const teams = await listRepositoryTeams(octokit, owner, base.name);
+    if (teams !== undefined) structure.teamAccess = teams;
+  }
+
+  if (policy.labels?.length) {
+    asked = true;
+    const labels = await listLabels(octokit, owner, base.name);
+    if (labels !== undefined) structure.labels = labels;
+  }
+
+  if (policy.milestones?.length) {
+    asked = true;
+    const milestones = await listMilestones(octokit, owner, base.name);
+    if (milestones !== undefined) structure.milestones = milestones;
+  }
+
+  if (policy.properties) {
+    asked = true;
+    const values = await readRepositoryProperties(octokit, owner, base.name);
+    if (values !== undefined) structure.propertyValues = values;
+  }
+
+  if (policy.branch_protection?.length) {
+    asked = true;
+    const entries = await Promise.all(
+      policy.branch_protection.map(
+        async (declared) =>
+          [
+            declared.branch,
+            await readBranchProtection(octokit, owner, base.name, declared.branch),
+          ] as const,
+      ),
+    );
+    if (entries.every(([, protection]) => protection !== UNREADABLE)) {
+      /** A branch that does not exist is left out, not recorded as unprotected. */
+      structure.branchProtection = Object.fromEntries(
+        entries.filter(
+          (entry): entry is readonly [string, BranchProtectionSettings | null] =>
+            entry[1] !== undefined && entry[1] !== UNREADABLE,
+        ),
+      );
+    }
   }
 
   if (policy.ensure_branches?.length) {
@@ -410,6 +518,11 @@ async function getRepoStructure(
     asked = true;
     const entries = await Promise.all(
       policy.files.map(async (file) => {
+        /**
+         * Probed on the branch the file would be created on. Asking the
+         * default branch instead would report a file as missing because it is
+         * only missing somewhere else, and seed a second copy of it.
+         */
         const exists = await probe(
           octokit,
           'GET /repos/{owner}/{repo}/contents/{path}',
@@ -417,6 +530,7 @@ async function getRepoStructure(
           base.name,
           {
             path: file.path,
+            ...(file.branch === undefined ? {} : { ref: file.branch }),
           },
         );
         return [file.path, exists] as const;
@@ -435,6 +549,21 @@ async function getRepoStructure(
       owner,
       base.name,
       base.default_branch,
+    );
+  }
+
+  /**
+   * Only worth a request when a policy would switch the default setup on.
+   * Turning it off cannot disable a workflow, and leaving it alone changes
+   * nothing either way.
+   */
+  if (policy.security?.code_scanning_default_setup === true) {
+    asked = true;
+    structure.workflowsUploadingCodeScanning = await workflowsMatching(
+      octokit,
+      owner,
+      base.name,
+      /github\/codeql-action\/(analyze|upload-sarif)/,
     );
   }
 
@@ -482,6 +611,39 @@ function reviewerLogins(environment: RawEnvironment): string[] | typeof UNREADAB
 }
 
 /**
+ * Classic protection on one branch.
+ *
+ * `null` is a branch with no protection, which GitHub answers with a 404
+ * carrying the message "Branch not protected" — the same distinction
+ * `detectRulesetCapability` relies on. Any other failure is `UNREADABLE`,
+ * including an unexplained 404, because a branch nobody can see is not a
+ * branch nobody protected. A branch that does not exist is left out of the
+ * map entirely, which the planner reports separately.
+ */
+async function readBranchProtection(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  branch: string,
+): Promise<BranchProtectionSettings | null | typeof UNREADABLE | undefined> {
+  try {
+    const { data } = await octokit.request(
+      'GET /repos/{owner}/{repo}/branches/{branch}/protection',
+      { owner, repo, branch },
+    );
+    return readProtection(data as Parameters<typeof readProtection>[0]);
+  } catch (error) {
+    if (errorStatus(error) !== 404) return UNREADABLE;
+    if (/^branch not protected$/i.test(errorMessage(error).trim())) return null;
+    return (await probe(octokit, 'GET /repos/{owner}/{repo}/branches/{branch}', owner, repo, {
+      branch,
+    })) === false
+      ? undefined
+      : UNREADABLE;
+  }
+}
+
+/**
  * Repository rulesets, reduced to the rules octoform models.
  *
  * The list endpoint returns summaries with no rules in them, so each ruleset
@@ -505,7 +667,7 @@ async function listRulesets(
           repo,
           ruleset_id: summary.id,
         });
-        return toExistingRuleset(res.data as RawRuleset);
+        return readRuleset(res.data as Parameters<typeof readRuleset>[0]);
       }),
     );
     return full;
@@ -514,48 +676,238 @@ async function listRulesets(
   }
 }
 
-interface RawRuleset {
-  id: number;
-  name: string;
-  conditions?: { ref_name?: { include?: string[] } };
-  rules?: Array<{ type: string; parameters?: Record<string, unknown> }>;
-}
-
-function toExistingRuleset(raw: RawRuleset): ExistingRuleset {
-  const rules = raw.rules ?? [];
-  const pullRequest = rules.find((r) => r.type === 'pull_request');
-  const statusChecks = rules.find((r) => r.type === 'required_status_checks');
-
-  const approvals = pullRequest?.parameters?.['required_approving_review_count'];
-  const checks = statusChecks?.parameters?.['required_status_checks'] as
-    Array<{ context?: string }> | undefined;
-
-  return {
-    id: raw.id,
-    name: raw.name,
-    target_branches: (raw.conditions?.ref_name?.include ?? []).map(fromRefName),
-    ...(typeof approvals === 'number' ? { required_approvals: approvals } : {}),
-    ...(checks ? { required_checks: checks.map((c) => c.context ?? '').filter(Boolean) } : {}),
-    block_force_push: rules.some((r) => r.type === 'non_fast_forward'),
-    block_deletion: rules.some((r) => r.type === 'deletion'),
-  };
+/** Every label the repository has, by name. */
+async function listLabels(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, ExistingLabel> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /repos/{owner}/{repo}/labels', {
+      owner,
+      repo,
+      per_page: 100,
+    });
+    const labels: Record<string, ExistingLabel> = {};
+    for (const entry of pages as Array<Parameters<typeof readLabel>[0]>) {
+      const label = readLabel(entry);
+      if (label) labels[label.name] = label;
+    }
+    return labels;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
- * Ruleset conditions are stored as full refs (`refs/heads/main`), except for
- * the `~ALL` / `~DEFAULT_BRANCH` placeholders, which stand on their own. The
- * configuration says `main`, so the two forms are translated at this boundary
- * and nowhere else — `plan` compares branch names, not refs.
+ * Every milestone the repository has, by title.
+ *
+ * `state: all` is the whole point of the call: the endpoint returns only open
+ * milestones by default, and GitHub does not refuse a second milestone with a
+ * title another one already has. Reading only the open ones would make a
+ * closed milestone look missing and produce a duplicate on every run.
  */
-export function toRefName(branch: string): string {
-  if (branch.startsWith('~')) return branch;
-  if (branch.startsWith('refs/')) return branch;
-  return `refs/heads/${branch}`;
+async function listMilestones(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, ExistingMilestone> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /repos/{owner}/{repo}/milestones', {
+      owner,
+      repo,
+      state: 'all',
+      per_page: 100,
+    });
+    const milestones: Record<string, ExistingMilestone> = {};
+    for (const entry of pages as Array<Parameters<typeof readMilestone>[0]>) {
+      const milestone = readMilestone(entry);
+      if (milestone) milestones[milestone.title] = milestone;
+    }
+    return milestones;
+  } catch {
+    return undefined;
+  }
 }
 
-function fromRefName(ref: string): string {
-  if (ref.startsWith('~')) return ref;
-  return ref.replace(/^refs\/heads\//, '');
+/** Custom property values set on one repository, by property name. */
+async function readRepositoryProperties(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, string | string[]> | undefined> {
+  try {
+    const { data } = await octokit.request('GET /repos/{owner}/{repo}/properties/values', {
+      owner,
+      repo,
+    });
+    const values: Record<string, string | string[]> = {};
+    for (const entry of data as Array<{
+      property_name?: string;
+      value?: string | string[] | null;
+    }>) {
+      if (entry.property_name && entry.value !== null && entry.value !== undefined) {
+        values[entry.property_name] = entry.value;
+      }
+    }
+    return values;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Collaborators granted access on this repository itself, by login.
+ *
+ * `affiliation: direct` is the whole point of the call. The default listing
+ * also returns everyone who reaches the repository through a team or the
+ * organisation's base permission, and a policy reconciled against that would
+ * offer to revoke grants that were never made here — a request GitHub accepts
+ * and that changes nothing, reported as though it had.
+ */
+async function listCollaborators(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, string> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /repos/{owner}/{repo}/collaborators', {
+      owner,
+      repo,
+      affiliation: 'direct',
+      per_page: 100,
+    });
+    const held: Record<string, string> = {};
+    for (const entry of pages as Array<{
+      login?: string;
+      role_name?: string;
+      permissions?: Record<string, boolean>;
+    }>) {
+      const level = readLevel(entry.role_name, entry.permissions);
+      if (entry.login && level) held[entry.login] = level;
+    }
+    return held;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Invitations sent and not yet answered, by the login they were sent to.
+ *
+ * Adding a collaborator who is not one already creates one of these rather
+ * than access. Reading them is what stops a plan re-sending the same
+ * invitation on every run until somebody happens to accept it.
+ */
+async function listInvitations(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, ExistingInvitation> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /repos/{owner}/{repo}/invitations', {
+      owner,
+      repo,
+      per_page: 100,
+    });
+    const pending: Record<string, ExistingInvitation> = {};
+    for (const entry of pages as Array<{
+      id?: number;
+      permissions?: string;
+      invitee?: { login?: string } | null;
+    }>) {
+      const login = entry.invitee?.login;
+      if (login && entry.id !== undefined) {
+        pending[login] = { id: entry.id, level: canonicalLevel(entry.permissions ?? '') };
+      }
+    }
+    return pending;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Teams with access to this repository, by slug. */
+async function listRepositoryTeams(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<Record<string, string> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /repos/{owner}/{repo}/teams', {
+      owner,
+      repo,
+      per_page: 100,
+    });
+    const held: Record<string, string> = {};
+    for (const entry of pages as Array<{
+      slug?: string;
+      permission?: string;
+      permissions?: Record<string, boolean>;
+    }>) {
+      const level = readLevel(entry.permission, entry.permissions);
+      if (entry.slug && level) held[entry.slug] = level;
+    }
+    return held;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Look up every name a ruleset policy has to send as a number.
+ *
+ * Done while reading so that a name nobody can find is a blocked line in the
+ * plan rather than an exception raised mid-apply, and so that a team named by
+ * three rulesets costs one request rather than three.
+ *
+ * The three answers stay apart on purpose: an id, `null` for a name GitHub
+ * does not know, and `UNREADABLE` for a lookup that failed. Reading the last
+ * as the middle one would report a perfectly good team as nonexistent because
+ * a request timed out.
+ */
+async function resolveIdentities(
+  octokit: Octokit,
+  owner: string,
+  names: readonly Resolvable[],
+): Promise<Resolution> {
+  const entries = await Promise.all(
+    names.map(
+      async (resolvable) =>
+        [identityKey(resolvable), await lookupIdentity(octokit, owner, resolvable)] as const,
+    ),
+  );
+  return new Map(entries);
+}
+
+async function lookupIdentity(
+  octokit: Octokit,
+  owner: string,
+  resolvable: Resolvable,
+): Promise<number | null | typeof UNREADABLE> {
+  const [route, parameters] = identityRequest(owner, resolvable);
+  try {
+    const { data } = await octokit.request(route, parameters);
+    const id = (data as { id?: unknown }).id;
+    return typeof id === 'number' ? id : UNREADABLE;
+  } catch (error) {
+    return errorStatus(error) === 404 ? null : UNREADABLE;
+  }
+}
+
+function identityRequest(owner: string, resolvable: Resolvable): [string, Record<string, string>] {
+  switch (resolvable.kind) {
+    case 'user':
+      return ['GET /users/{username}', { username: resolvable.name }];
+    case 'team':
+      return ['GET /orgs/{org}/teams/{team_slug}', { org: owner, team_slug: resolvable.name }];
+    case 'app':
+      return ['GET /apps/{app_slug}', { app_slug: resolvable.name }];
+    case 'repository': {
+      const [repoOwner = owner, repoName = resolvable.name] = resolvable.name.split('/');
+      return ['GET /repos/{owner}/{repo}', { owner: repoOwner, repo: repoName }];
+    }
+  }
 }
 
 /**
@@ -569,6 +921,28 @@ async function workflowsNaming(
   repo: string,
   branch: string,
 ): Promise<string[] | undefined> {
+  return await workflowsMatching(octokit, owner, repo, new RegExp(`\\b${escapeRegExp(branch)}\\b`));
+}
+
+/**
+ * Workflow files whose text matches a pattern.
+ *
+ * A repository's workflows are the one place octoform can see a consequence
+ * that GitHub will not report: a change to repository settings can stop a
+ * workflow doing its job without either of them failing. Reading them is how
+ * a warning gets evidence instead of being a guess.
+ *
+ * `undefined` means the workflows could not be read, which is not the same as
+ * there being none — a caller has to keep those apart, the same way an
+ * unreadable setting is kept apart from an absent one. A repository with no
+ * workflows directory answers `404`, and that genuinely is none.
+ */
+async function workflowsMatching(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  pattern: RegExp,
+): Promise<string[] | undefined> {
   try {
     const { data } = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
       owner,
@@ -578,7 +952,7 @@ async function workflowsNaming(
     const entries = data as Array<{ name: string; path: string; type: string }>;
     const files = entries.filter((e) => e.type === 'file' && /\.ya?ml$/.test(e.name));
 
-    const naming = await Promise.all(
+    const matching = await Promise.all(
       files.map(async (file) => {
         try {
           const res = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
@@ -588,14 +962,13 @@ async function workflowsNaming(
           });
           const content = (res.data as { content?: string }).content ?? '';
           const text = Buffer.from(content, 'base64').toString('utf8');
-          const mentions = new RegExp(`\\b${escapeRegExp(branch)}\\b`).test(text);
-          return mentions ? file.path : undefined;
+          return pattern.test(text) ? file.path : undefined;
         } catch {
           return undefined;
         }
       }),
     );
-    return naming.filter((path): path is string => path !== undefined);
+    return matching.filter((path): path is string => path !== undefined);
   } catch (error) {
     if (errorStatus(error) === 404) return [];
     return undefined;
@@ -646,6 +1019,117 @@ async function enabledFlag(
     return typeof enabled === 'boolean' ? enabled : UNREADABLE;
   } catch {
     return UNREADABLE;
+  }
+}
+
+/**
+ * Settings GitHub exposes on its GraphQL API and nowhere else, with the field
+ * each one is read from.
+ *
+ * `features.discussions` is deliberately absent: the REST repository response
+ * already carries it, and reading it here as well would make a failed GraphQL
+ * request turn a value that was in hand into an unreadable one. Only its
+ * *write* needs GraphQL, which is what {@link RepoDetail.nodeId} is for.
+ */
+const GRAPHQL_ONLY_SETTINGS: ReadonlyArray<readonly [string, string]> = [
+  ['features.sponsorships', 'hasSponsorshipsEnabled'],
+  ['features.pull_requests', 'hasPullRequestsEnabled'],
+  ['repo.issue_creation', 'issueCreationPolicy'],
+  ['repo.pull_request_creation', 'pullRequestCreationPolicy'],
+];
+
+const REPOSITORY_SETTINGS_QUERY = `
+  query RepositorySettings($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
+      id
+      ${GRAPHQL_ONLY_SETTINGS.map(([, field]) => field).join('\n      ')}
+    }
+  }
+`;
+
+interface GraphqlRepositorySettings {
+  repository: ({ id: string } & Record<string, unknown>) | null;
+}
+
+/**
+ * The settings only GraphQL knows about, plus the node identity its mutation
+ * needs, in one request.
+ *
+ * Asked for only when a policy manages one of them, because most repositories
+ * declare none and the request costs the same either way. Every field narrows
+ * to `UNREADABLE` on failure, exactly as a REST read does, so the planner
+ * blocks it for the same reason and reports it the same way — which is the
+ * whole point of the normalized transport.
+ */
+async function readGraphqlSettings(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<{ nodeId?: string; settings: Record<string, SettingValue> }> {
+  const outcome = await graphqlRequest<GraphqlRepositorySettings>(
+    octokit,
+    REPOSITORY_SETTINGS_QUERY,
+    { owner, name: repo },
+  );
+
+  const settings: Record<string, SettingValue> = {};
+  for (const [key, field] of GRAPHQL_ONLY_SETTINGS) {
+    const value = valueOrUnreadable(
+      outcome,
+      `repository.${field}`,
+      (data) => data.repository?.[field],
+    );
+    settings[key] =
+      value === UNREADABLE || typeof value === 'boolean' || typeof value === 'string'
+        ? (value as SettingValue)
+        : UNREADABLE;
+  }
+
+  const id = valueOrUnreadable(outcome, 'repository.id', (data) => data.repository?.id);
+  return { ...(typeof id === 'string' ? { nodeId: id } : {}), settings };
+}
+
+/**
+ * Whether a policy manages anything that has to be changed through GraphQL,
+ * and therefore needs the repository's node identity read alongside it.
+ */
+function needsGraphql(policy: PolicySet): boolean {
+  return [...CHANGED_BY_MUTATION].some((key) => {
+    const [group = '', name = ''] = key.split('.');
+    const declared = (policy as unknown as Record<string, Record<string, unknown> | undefined>)[
+      group
+    ];
+    return declared?.[name] !== undefined && declared?.[name] !== null;
+  });
+}
+
+/**
+ * Whether published releases are immutable, and whether the owner is the one
+ * deciding that.
+ *
+ * The same response answers both, so the enforcement half is free: an owner
+ * that enforces immutable releases leaves the repository able to read the
+ * setting but not to turn it off. Reporting that as a blocked change is only
+ * possible because it is read here rather than discovered from a rejected
+ * request.
+ */
+async function immutableReleasesState(
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+): Promise<{ enabled: boolean | typeof UNREADABLE; enforcedByOwner: boolean }> {
+  try {
+    const { data } = await octokit.request('GET /repos/{owner}/{repo}/immutable-releases', {
+      owner,
+      repo,
+    });
+    const answer = data as { enabled?: boolean; enforced_by_owner?: boolean };
+    return {
+      enabled: typeof answer.enabled === 'boolean' ? answer.enabled : UNREADABLE,
+      enforcedByOwner: answer.enforced_by_owner === true,
+    };
+  } catch {
+    return { enabled: UNREADABLE, enforcedByOwner: false };
   }
 }
 
@@ -728,44 +1212,331 @@ export async function readRepoFile(
 }
 
 /**
- * Create or update the custom property definition itself.
+ * Every custom property the organisation defines, by name.
  *
- * `allowed_values` is not declared anywhere in the configuration: it is the
- * set of type names under `types`. Asking an author to list them twice is
- * asking for the two lists to disagree, and the one that would silently win is
- * the one GitHub stores rather than the one the file shows.
+ * Returns nothing rather than an empty map when the listing fails, because
+ * every write to a definition replaces it: an empty map would say "this
+ * property does not exist yet" about properties that do, and creating one over
+ * the other is how a definition loses the fields nobody declared.
+ */
+export async function readPropertyDefinitions(
+  octokit: Octokit,
+  org: string,
+): Promise<Record<string, ExistingProperty> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /orgs/{org}/properties/schema', {
+      org,
+      per_page: 100,
+    });
+    const definitions: Record<string, ExistingProperty> = {};
+    for (const raw of pages as Array<Record<string, unknown>>) {
+      const definition = readDefinition(raw);
+      if (definition) definitions[definition.name] = definition;
+    }
+    return definitions;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Rulesets the organisation aims at its repositories.
+ *
+ * Same shape as the repository listing and the same extra request per ruleset,
+ * for the same reason: the list endpoint returns summaries with no rules and
+ * no conditions in them, and the conditions are the half that says which
+ * repositories are affected.
+ */
+export async function readOrganizationRulesets(
+  octokit: Octokit,
+  org: string,
+): Promise<ExistingRuleset[] | undefined> {
+  try {
+    const summaries = (await octokit.paginate('GET /orgs/{org}/rulesets', {
+      org,
+      per_page: 100,
+    })) as Array<{ id: number; name: string }>;
+
+    return await Promise.all(
+      summaries.map(async (summary) => {
+        const { data } = await octokit.request('GET /orgs/{org}/rulesets/{ruleset_id}', {
+          org,
+          ruleset_id: summary.id,
+        });
+        return readRuleset(data as Parameters<typeof readRuleset>[0]);
+      }),
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Every team the token can see, by slug.
+ *
+ * GitHub's listing is what is "visible to the authenticated user", so a secret
+ * team a token cannot see is simply not here. That is why this returns nothing
+ * on failure rather than an empty map: the two answers lead to opposite
+ * behaviour, and reading a failure as "the organisation has no teams" would
+ * plan to create every one of them.
+ */
+export async function readTeams(
+  octokit: Octokit,
+  org: string,
+): Promise<Record<string, ExistingTeam> | undefined> {
+  try {
+    const pages = await octokit.paginate('GET /orgs/{org}/teams', { org, per_page: 100 });
+    const teams: Record<string, ExistingTeam> = {};
+    for (const raw of pages as Array<Parameters<typeof readTeam>[0]>) {
+      const team = readTeam(raw);
+      if (team) teams[team.slug] = team;
+    }
+    return teams;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Who is on a team, with the people who have answered kept apart from the
+ * people who have only been asked.
+ *
+ * Three requests, and a fourth per pending person. The two role listings
+ * partition the active members, so their roles come for free rather than
+ * costing a request each. The pending ones cannot: GitHub says the `role` on a
+ * team invitation "refers to the Organization Invitation role", not the team
+ * one, so the team role is asked for per pending person instead of guessed —
+ * which in the steady state is nobody.
+ */
+export async function readTeamMembers(
+  octokit: Octokit,
+  org: string,
+  slug: string,
+): Promise<TeamMembers | undefined> {
+  try {
+    const active: Record<string, TeamRole> = {};
+    for (const role of ['member', 'maintainer'] as const) {
+      const pages = await octokit.paginate('GET /orgs/{org}/teams/{team_slug}/members', {
+        org,
+        team_slug: slug,
+        role,
+        per_page: 100,
+      });
+      for (const entry of pages as Array<{ login?: string }>) {
+        if (entry.login) active[entry.login] = role;
+      }
+    }
+
+    const invited = (await octokit.paginate('GET /orgs/{org}/teams/{team_slug}/invitations', {
+      org,
+      team_slug: slug,
+      per_page: 100,
+    })) as Array<{ login?: string | null }>;
+
+    const pending: Record<string, TeamRole> = {};
+    for (const entry of invited) {
+      /** An invitation sent to an email address has no login to match against. */
+      if (!entry.login) continue;
+      const { data } = await octokit.request(
+        'GET /orgs/{org}/teams/{team_slug}/memberships/{username}',
+        { org, team_slug: slug, username: entry.login },
+      );
+      const membership = data as { role?: string; state?: string };
+      if (membership.state !== 'pending') continue;
+      pending[entry.login] = membership.role === 'maintainer' ? 'maintainer' : 'member';
+    }
+
+    return { active, pending };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The organisation's roles, by name, and who holds each of the named ones.
+ *
+ * The listing is what turns a name in a configuration file into the id the
+ * assignment endpoints take. Holders are only read for the roles a policy
+ * actually names, at two requests each.
+ *
+ * @param wanted - Role names the policy declares; others are listed but not
+ *   asked about, since nothing is going to be compared against them.
+ */
+export async function readOrganizationRoles(
+  octokit: Octokit,
+  org: string,
+  wanted: readonly string[],
+): Promise<Record<string, ExistingRole> | undefined> {
+  let roles: Record<string, ExistingRole>;
+  try {
+    const { data } = await octokit.request('GET /orgs/{org}/organization-roles', { org });
+    const listed = (data as { roles?: Array<Parameters<typeof readRole>[0]> }).roles ?? [];
+    roles = {};
+    for (const raw of listed) {
+      const role = readRole(raw);
+      if (role) roles[role.name] = role;
+    }
+  } catch {
+    return undefined;
+  }
+
+  for (const name of wanted) {
+    const role = roles[name];
+    if (role === undefined) continue;
+    try {
+      const users = (await octokit.paginate('GET /orgs/{org}/organization-roles/{role_id}/users', {
+        org,
+        role_id: role.id,
+        per_page: 100,
+      })) as Array<{ login?: string }>;
+      const teams = (await octokit.paginate('GET /orgs/{org}/organization-roles/{role_id}/teams', {
+        org,
+        role_id: role.id,
+        per_page: 100,
+      })) as Array<{ slug?: string }>;
+      role.users = users.map((entry) => entry.login).filter((login): login is string => !!login);
+      role.teams = teams.map((entry) => entry.slug).filter((slug): slug is string => !!slug);
+    } catch {
+      /** Left absent rather than empty, so nobody is granted a role they hold. */
+    }
+  }
+
+  return roles;
+}
+
+/**
+ * Read the organisation's people: who owns it, who belongs to it, who works on
+ * its repositories from outside it, and who has been asked to join.
+ *
+ * The two-factor listing is asked for separately and allowed to fail on its
+ * own. GitHub answers it only for an organisation owner, and a token that
+ * governs repositories perfectly well may not be one — losing the rest of the
+ * report over a question it was never going to be allowed to ask would be the
+ * wrong trade.
+ */
+export async function readOrganizationPeople(
+  octokit: Octokit,
+  org: string,
+): Promise<OrganizationPeople> {
+  const logins = async (role: 'admin' | 'member'): Promise<string[]> => {
+    const pages = (await octokit.paginate('GET /orgs/{org}/members', {
+      org,
+      role,
+      per_page: 100,
+    })) as Array<{ login?: string }>;
+    return pages.map((entry) => entry.login).filter((login): login is string => !!login);
+  };
+
+  const outside = (await octokit.paginate('GET /orgs/{org}/outside_collaborators', {
+    org,
+    per_page: 100,
+  })) as Array<{ login?: string }>;
+
+  const pending = (await octokit.paginate('GET /orgs/{org}/invitations', {
+    org,
+    per_page: 100,
+  })) as OrganizationPeople['pending'];
+
+  const failed = (await octokit.paginate('GET /orgs/{org}/failed_invitations', {
+    org,
+    per_page: 100,
+  })) as OrganizationPeople['failed'];
+
+  let withoutTwoFactor: string[] | undefined;
+  try {
+    const pages = (await octokit.paginate('GET /orgs/{org}/members', {
+      org,
+      filter: '2fa_disabled',
+      per_page: 100,
+    })) as Array<{ login?: string }>;
+    withoutTwoFactor = pages
+      .map((entry) => entry.login)
+      .filter((login): login is string => !!login);
+  } catch {
+    withoutTwoFactor = undefined;
+  }
+
+  return {
+    admins: await logins('admin'),
+    members: await logins('member'),
+    outsideCollaborators: outside
+      .map((entry) => entry.login)
+      .filter((login): login is string => !!login),
+    ...(withoutTwoFactor === undefined ? {} : { withoutTwoFactor }),
+    pending,
+    failed,
+  };
+}
+
+/**
+ * Look up the names an organisation ruleset has to send as numbers.
+ *
+ * The same lookup the repository read already does, exposed because an
+ * organisation ruleset belongs to no repository and so has nowhere else to
+ * borrow one from.
+ */
+export async function resolveOwnerNames(
+  octokit: Octokit,
+  owner: string,
+  names: readonly Resolvable[],
+): Promise<Resolution> {
+  return resolveIdentities(octokit, owner, names);
+}
+
+/**
+ * Create or replace one custom property definition.
+ *
+ * The body is built by the caller from the definition that already stands, and
+ * that is not a detail of convenience: this endpoint replaces, so a body
+ * assembled from the configuration alone would clear every field the
+ * configuration is silent about.
  */
 export async function putPropertySchema(
   octokit: Octokit,
   org: string,
   property: string,
-  allowedValues: string[],
+  body: Record<string, unknown>,
 ): Promise<void> {
-  await octokit.request('PUT /orgs/{org}/properties/schema/{custom_property_name}', {
+  /**
+   * The route is held in a variable so its typing does not fix the body's
+   * shape here. It is built by the caller from the definition that stands, and
+   * the bundled types for this endpoint predate `url` as a value type.
+   */
+  const route: string = 'PUT /orgs/{org}/properties/schema/{custom_property_name}';
+  await octokit.request(route, { org, custom_property_name: property, ...body });
+}
+
+/** Remove a definition, and with it the value every repository had for it. */
+export async function deletePropertySchema(
+  octokit: Octokit,
+  org: string,
+  property: string,
+): Promise<void> {
+  await octokit.request('DELETE /orgs/{org}/properties/schema/{custom_property_name}', {
     org,
     custom_property_name: property,
-    value_type: 'single_select',
-    allowed_values: allowedValues,
-    required: false,
   });
 }
 
 /**
- * Assign a property value to repositories, in one call for each distinct
- * value: the endpoint takes a list of repositories and a list of properties,
- * so a whole type's worth of repositories costs a single request.
+ * Set the same property values on a group of repositories in one request.
+ *
+ * The organisation endpoint takes up to thirty repositories at a time, which
+ * is what makes a run over a whole type cost one request rather than one per
+ * repository. It also needs organisation permission, where the repository's
+ * own endpoint needs only the repository's — so the caller decides which is
+ * worth using, and only spends the larger permission when it buys something.
  */
 export async function setPropertyValues(
   octokit: Octokit,
   org: string,
-  property: string,
-  value: string,
   repos: string[],
+  properties: Array<{ property_name: string; value: string | string[] | null }>,
 ): Promise<void> {
   await octokit.request('PATCH /orgs/{org}/properties/values', {
     org,
     repository_names: repos,
-    properties: [{ property_name: property, value }],
+    properties,
   });
 }
 
@@ -838,4 +1609,38 @@ async function requestLimits(
   }
 
   return { ownerKind: 'org', plan, orgRulesets };
+}
+
+/**
+ * The organisation's own settings, keyed the way a change names them.
+ *
+ * One request answers all of them: unlike a repository, an organisation keeps
+ * everything octoform manages here on the object itself. A field GitHub did
+ * not return at all reads as `UNREADABLE` rather than as unset, so a policy
+ * cannot be planned over an answer that never came.
+ */
+export async function getOrganizationDetail(
+  octokit: Octokit,
+  owner: string,
+): Promise<Record<string, SettingValue> | undefined> {
+  let data: Record<string, unknown>;
+  try {
+    const response = await octokit.request('GET /orgs/{org}', { org: owner });
+    data = response.data as unknown as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
+
+  const settings: Record<string, SettingValue> = {};
+  for (const [key, field] of Object.entries(ORGANIZATION_FIELDS)) {
+    const value = data[field];
+    if (value === undefined) {
+      settings[key] = UNREADABLE;
+    } else if (typeof value === 'boolean' || typeof value === 'string' || value === null) {
+      settings[key] = value;
+    } else {
+      settings[key] = UNREADABLE;
+    }
+  }
+  return settings;
 }

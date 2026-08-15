@@ -11,6 +11,16 @@
   ],
   "semantics": [
     {
+      "shape": "AccessPolicy",
+      "field": "teams",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "AccessPolicy",
+      "field": "users",
+      "merge": "merge-by-key"
+    },
+    {
       "shape": "AuditConfig",
       "field": "require_description",
       "merge": "replace"
@@ -18,6 +28,41 @@
     {
       "shape": "AuditConfig",
       "field": "require_topics",
+      "merge": "replace"
+    },
+    {
+      "shape": "BranchProtectionPolicy",
+      "field": "bypass_pull_request_allowances",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "BranchProtectionPolicy",
+      "field": "dismissal_restrictions",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "BranchProtectionPolicy",
+      "field": "required_checks",
+      "merge": "replace"
+    },
+    {
+      "shape": "BranchProtectionPolicy",
+      "field": "restrict_pushes",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "BranchRestrictions",
+      "field": "apps",
+      "merge": "replace"
+    },
+    {
+      "shape": "BranchRestrictions",
+      "field": "teams",
+      "merge": "replace"
+    },
+    {
+      "shape": "BranchRestrictions",
+      "field": "users",
       "merge": "replace"
     },
     {
@@ -62,6 +107,11 @@
     },
     {
       "shape": "Config",
+      "field": "organization",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "Config",
       "field": "owners",
       "merge": "merge-by-key"
     },
@@ -96,6 +146,141 @@
       "merge": "union"
     },
     {
+      "shape": "LabelPolicy",
+      "field": "rename_from",
+      "merge": "replace"
+    },
+    {
+      "shape": "MilestonePolicy",
+      "field": "rename_from",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationPolicy",
+      "field": "members",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationPolicy",
+      "field": "profile",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationPolicy",
+      "field": "properties",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationPolicy",
+      "field": "roles",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationPolicy",
+      "field": "rulesets",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationPolicy",
+      "field": "teams",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "allowed_merge_methods",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "branch_name_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "bypass",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "commit_author_email_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "commit_message_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "committer_email_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "copilot_code_review",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "exclude",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "merge_queue",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "repositories",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "required_checks",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "required_code_scanning",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "required_deployments",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "required_workflows",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "restricted_file_extensions",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "restricted_file_paths",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "tag_name_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "target_branches",
+      "merge": "replace"
+    },
+    {
+      "shape": "OrganizationRulesetPolicy",
+      "field": "target_tags",
+      "merge": "replace"
+    },
+    {
       "shape": "OwnerBlock",
       "field": "audit",
       "merge": "merge-by-key"
@@ -117,6 +302,11 @@
     },
     {
       "shape": "OwnerBlock",
+      "field": "organization",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "OwnerBlock",
       "field": "repos",
       "merge": "merge-by-key"
     },
@@ -124,6 +314,16 @@
       "shape": "OwnerBlock",
       "field": "types",
       "merge": "merge-by-key"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "access",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "branch_protection",
+      "merge": "replace"
     },
     {
       "shape": "PolicySet",
@@ -152,13 +352,28 @@
     },
     {
       "shape": "PolicySet",
+      "field": "labels",
+      "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
       "field": "merge",
       "merge": "merge-by-key"
     },
     {
       "shape": "PolicySet",
+      "field": "milestones",
+      "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
       "field": "policies",
       "merge": "replace"
+    },
+    {
+      "shape": "PolicySet",
+      "field": "properties",
+      "merge": "merge-by-key"
     },
     {
       "shape": "PolicySet",
@@ -176,6 +391,21 @@
       "merge": "merge-by-key"
     },
     {
+      "shape": "PropertyDefinition",
+      "field": "allowed_values",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "access",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "branch_protection",
+      "merge": "replace"
+    },
+    {
       "shape": "RepoEntry",
       "field": "default_branch",
       "merge": "merge-by-key"
@@ -202,13 +432,28 @@
     },
     {
       "shape": "RepoEntry",
+      "field": "labels",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
       "field": "merge",
       "merge": "merge-by-key"
     },
     {
       "shape": "RepoEntry",
+      "field": "milestones",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
       "field": "policies",
       "merge": "replace"
+    },
+    {
+      "shape": "RepoEntry",
+      "field": "properties",
+      "merge": "merge-by-key"
     },
     {
       "shape": "RepoEntry",
@@ -227,8 +472,88 @@
     },
     {
       "shape": "RepoPolicy",
+      "field": "rename_from",
+      "merge": "replace"
+    },
+    {
+      "shape": "RepoPolicy",
       "field": "topics",
       "merge": "replace"
+    },
+    {
+      "shape": "RoleHolders",
+      "field": "teams",
+      "merge": "replace"
+    },
+    {
+      "shape": "RoleHolders",
+      "field": "users",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetBypass",
+      "field": "apps",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetBypass",
+      "field": "roles",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetBypass",
+      "field": "teams",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetBypass",
+      "field": "users",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "allowed_merge_methods",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "branch_name_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "bypass",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "commit_author_email_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "commit_message_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "committer_email_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "copilot_code_review",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "exclude",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "merge_queue",
+      "merge": "merge-by-key"
     },
     {
       "shape": "RulesetPolicy",
@@ -237,9 +562,89 @@
     },
     {
       "shape": "RulesetPolicy",
+      "field": "required_code_scanning",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "required_deployments",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "required_workflows",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "restricted_file_extensions",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "restricted_file_paths",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "tag_name_pattern",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "RulesetPolicy",
       "field": "target_branches",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPolicy",
+      "field": "target_tags",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetPropertyMatch",
+      "field": "values",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetRepositories",
+      "field": "exclude",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetRepositories",
+      "field": "exclude_properties",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetRepositories",
+      "field": "include",
+      "merge": "replace"
+    },
+    {
+      "shape": "RulesetRepositories",
+      "field": "properties",
+      "merge": "replace"
+    },
+    {
+      "shape": "TeamMembership",
+      "field": "maintainers",
+      "merge": "replace"
+    },
+    {
+      "shape": "TeamMembership",
+      "field": "members",
+      "merge": "replace"
+    },
+    {
+      "shape": "TeamPolicy",
+      "field": "membership",
+      "merge": "merge-by-key"
+    },
+    {
+      "shape": "TeamPolicy",
+      "field": "rename_from",
       "merge": "replace"
     }
   ],
-  "productVersion": "0.4.1"
+  "productVersion": "0.5.0"
 }
